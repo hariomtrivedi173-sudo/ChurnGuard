@@ -1,13 +1,14 @@
-# Python cache
-__pycache__/
-*.py[cod]
-
-# Virtual Environment
 venv/
-backend/venv/
-
-# Environment Variables
+__pycache__/
+*.pyc
 .env
 
-# VS Code
+node_modules/
+
 .vscode/
+
+.idea/
+
+.DS_Store
+
+Thumbs.db
