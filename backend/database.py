@@ -11,3 +11,4 @@ DB_NAME = os.getenv("DB_NAME")
 client = AsyncIOMotorClient(MONGO_URI, tlsCAFile=certifi.where())
 database = client[DB_NAME]
 customer_collection = database["customers"]
+user_collection = database["users"]

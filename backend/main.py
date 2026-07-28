@@ -2,7 +2,8 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from bson import ObjectId
 
-from database import customer_collection
+from database import customer_collection, user_collection
+from auth import hash_password, verify_password, create_access_token
 
 app = FastAPI(
     title="ChurnGuard API",
@@ -25,6 +26,11 @@ class CustomerResponse(BaseModel):
     plan: str
     is_active: bool
     welcome_message: str
+
+
+class User(BaseModel):
+    email: str
+    password: str
 
 
 # ---------- Helper: convert MongoDB's document into clean JSON ----------
@@ -75,7 +81,7 @@ def health_check():
 def version():
     return {
         "api_version": "1.0.0",
-        "sprint": "Sprint 2 - MongoDB Connected"
+        "sprint": "Sprint 3 - Authentication"
     }
 
 
@@ -102,6 +108,34 @@ async def db_health():
         return {"database": "error", "details": str(e)}
 
 
+# ---------- Phase 2: Path Parameters ----------
+
+@app.get("/customer/{customer_id}")
+def get_customer(customer_id: int):
+    return {
+        "customer_id": customer_id,
+        "message": f"Fetched details for customer #{customer_id}"
+    }
+
+
+@app.get("/customer/{customer_id}/status")
+def get_customer_status(customer_id: int):
+    return {
+        "customer_id": customer_id,
+        "churn_risk": "unknown",
+        "note": "This will be replaced with a real prediction in Sprint 5"
+    }
+
+
+@app.get("/plan/{plan_name}/customer/{customer_id}")
+def get_plan_customer(plan_name: str, customer_id: int):
+    return {
+        "plan": plan_name,
+        "customer_id": customer_id,
+        "message": f"Customer {customer_id} is on the {plan_name} plan"
+    }
+
+
 # ---------- Phase 3: Query Parameters ----------
 
 @app.get("/customers/search")
@@ -113,7 +147,7 @@ def search_customers(name: str = None, min_spend: float = None):
     }
 
 
-# ---------- Full CRUD APIs — now using REAL MongoDB Atlas ----------
+# ---------- Full CRUD APIs — using real MongoDB Atlas ----------
 
 @app.post("/customers", response_model=CustomerResponse)
 async def create_customer(customer: Customer):
@@ -179,3 +213,32 @@ async def delete_customer(customer_id: str):
         "message": f"Customer {customer_id} deleted successfully",
         "deleted_customer": customer_helper(doc)
     }
+
+
+# ---------- Sprint 3: Authentication ----------
+
+@app.post("/register")
+async def register_user(user: User):
+    existing = await user_collection.find_one({"email": user.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    hashed_pw = hash_password(user.password)
+    await user_collection.insert_one({
+        "email": user.email,
+        "password": hashed_pw
+    })
+    return {"message": f"User {user.email} registered successfully"}
+
+
+@app.post("/login")
+async def login_user(user: User):
+    existing = await user_collection.find_one({"email": user.email})
+    if not existing:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not verify_password(user.password, existing["password"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    token = create_access_token({"sub": user.email})
+    return {"access_token": token, "token_type": "bearer"}
