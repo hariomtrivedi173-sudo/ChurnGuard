@@ -1,9 +1,13 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from bson import ObjectId
 
 from database import customer_collection, user_collection
-from auth import hash_password, verify_password, create_access_token
+from auth import hash_password, verify_password, create_access_token, get_current_user
+
+from fastapi import UploadFile, File
+import pandas as pd
+import io
 
 app = FastAPI(
     title="ChurnGuard API",
@@ -81,7 +85,7 @@ def health_check():
 def version():
     return {
         "api_version": "1.0.0",
-        "sprint": "Sprint 3 - Authentication"
+        "sprint": "Sprint 3 - Authentication (Complete)"
     }
 
 
@@ -147,10 +151,10 @@ def search_customers(name: str = None, min_spend: float = None):
     }
 
 
-# ---------- Full CRUD APIs — using real MongoDB Atlas ----------
+# ---------- Full CRUD APIs — using real MongoDB Atlas — ALL PROTECTED ----------
 
 @app.post("/customers", response_model=CustomerResponse)
-async def create_customer(customer: Customer):
+async def create_customer(customer: Customer, current_user: str = Depends(get_current_user)):
     new_customer = customer.dict()
     result = await customer_collection.insert_one(new_customer)
     return CustomerResponse(
@@ -162,7 +166,7 @@ async def create_customer(customer: Customer):
 
 
 @app.get("/customers/all")
-async def get_all_customers():
+async def get_all_customers(current_user: str = Depends(get_current_user)):
     customers = []
     async for doc in customer_collection.find():
         customers.append(customer_helper(doc))
@@ -170,7 +174,7 @@ async def get_all_customers():
 
 
 @app.get("/customers/{customer_id}")
-async def get_one_customer(customer_id: str):
+async def get_one_customer(customer_id: str, current_user: str = Depends(get_current_user)):
     if not ObjectId.is_valid(customer_id):
         raise HTTPException(status_code=400, detail="Invalid customer ID format")
 
@@ -181,7 +185,7 @@ async def get_one_customer(customer_id: str):
 
 
 @app.put("/customers/{customer_id}")
-async def update_customer(customer_id: str, customer: Customer):
+async def update_customer(customer_id: str, customer: Customer, current_user: str = Depends(get_current_user)):
     if not ObjectId.is_valid(customer_id):
         raise HTTPException(status_code=400, detail="Invalid customer ID format")
 
@@ -200,7 +204,7 @@ async def update_customer(customer_id: str, customer: Customer):
 
 
 @app.delete("/customers/{customer_id}")
-async def delete_customer(customer_id: str):
+async def delete_customer(customer_id: str, current_user: str = Depends(get_current_user)):
     if not ObjectId.is_valid(customer_id):
         raise HTTPException(status_code=400, detail="Invalid customer ID format")
 
@@ -211,11 +215,12 @@ async def delete_customer(customer_id: str):
     await customer_collection.delete_one({"_id": ObjectId(customer_id)})
     return {
         "message": f"Customer {customer_id} deleted successfully",
-        "deleted_customer": customer_helper(doc)
+        "deleted_customer": customer_helper(doc),
+        "deleted_by": current_user
     }
 
 
-# ---------- Sprint 3: Authentication ----------
+# ---------- Sprint 3: Authentication — stays OPEN (no login required) ----------
 
 @app.post("/register")
 async def register_user(user: User):
@@ -242,3 +247,18 @@ async def login_user(user: User):
 
     token = create_access_token({"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
+
+# ---------- Sprint 4: Dataset Upload ----------
+
+@app.post("/dataset/upload")
+async def upload_dataset(file: UploadFile = File(...), current_user: str = Depends(get_current_user)):
+    contents = await file.read()
+    df = pd.read_csv(io.BytesIO(contents))
+
+    return {
+        "filename": file.filename,
+        "rows": len(df),
+        "columns": len(df.columns),
+        "column_names": list(df.columns),
+        "preview": df.head(3).to_dict(orient="records")
+    }

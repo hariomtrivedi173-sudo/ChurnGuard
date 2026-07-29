@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from jose import jwt
 from dotenv import load_dotenv
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 load_dotenv()
 
@@ -11,6 +13,8 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+security_scheme = HTTPBearer()
 
 
 def hash_password(password: str) -> str:
@@ -33,3 +37,14 @@ def decode_access_token(token: str):
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except Exception:
         return None
+
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security_scheme)):
+    token = credentials.credentials
+    payload = decode_access_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+    return payload.get("sub")
