@@ -9,6 +9,8 @@ from fastapi import UploadFile, File
 import pandas as pd
 import io
 
+from database import customer_collection, user_collection, telco_collection
+
 app = FastAPI(
     title="ChurnGuard API",
     description="AI-powered customer churn prediction and retention system",
@@ -261,4 +263,134 @@ async def upload_dataset(file: UploadFile = File(...), current_user: str = Depen
         "columns": len(df.columns),
         "column_names": list(df.columns),
         "preview": df.head(3).to_dict(orient="records")
+    }
+
+@app.post("/dataset/inspect")
+async def inspect_dataset(file: UploadFile = File(...), current_user: str = Depends(get_current_user)):
+    contents = await file.read()
+    df = pd.read_csv(io.BytesIO(contents))
+
+    dtypes = {col: str(dtype) for col, dtype in df.dtypes.items()}
+    missing_values = df.isnull().sum().to_dict()
+
+    numeric_summary = df.describe(include="number").to_dict()
+
+    return {
+        "filename": file.filename,
+        "total_rows": len(df),
+        "total_columns": len(df.columns),
+        "data_types": dtypes,
+        "missing_values_per_column": missing_values,
+        "numeric_column_summary": numeric_summary
+    }
+
+REQUIRED_COLUMNS = [
+    "customerID", "gender", "SeniorCitizen", "tenure",
+    "MonthlyCharges", "TotalCharges", "Churn"
+]
+
+
+@app.post("/dataset/validate")
+async def validate_dataset(file: UploadFile = File(...), current_user: str = Depends(get_current_user)):
+    if not file.filename.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Only .csv files are allowed")
+
+    contents = await file.read()
+    df = pd.read_csv(io.BytesIO(contents))
+
+    if len(df) == 0:
+        raise HTTPException(status_code=400, detail="The uploaded file is empty")
+
+    missing_columns = [col for col in REQUIRED_COLUMNS if col not in df.columns]
+    if missing_columns:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required columns: {missing_columns}"
+        )
+
+    return {
+        "filename": file.filename,
+        "valid": True,
+        "message": "File passed all validation checks",
+        "rows": len(df),
+        "columns": len(df.columns)
+    }
+
+@app.post("/dataset/clean")
+async def clean_dataset(file: UploadFile = File(...), current_user: str = Depends(get_current_user)):
+    contents = await file.read()
+    df = pd.read_csv(io.BytesIO(contents))
+
+    # Step 1: Find rows where TotalCharges is blank/whitespace, not a real number
+    blank_mask = df["TotalCharges"].str.strip() == ""
+    blank_count = int(blank_mask.sum())
+
+    # Step 2: Convert TotalCharges to real numbers; anything that fails becomes NaN (missing)
+    df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
+
+    # Step 3: Fill those missing values with 0 (makes sense: tenure=0 customers haven't been charged yet)
+    df["TotalCharges"] = df["TotalCharges"].fillna(0)
+
+    # Step 4: Convert SeniorCitizen from 0/1 into Yes/No, matching your other columns
+    df["SeniorCitizen"] = df["SeniorCitizen"].map({0: "No", 1: "Yes"})
+
+    # Step 5: Remove any exact duplicate rows, if they exist
+    duplicates_removed = int(df.duplicated().sum())
+    df = df.drop_duplicates()
+
+    return {
+        "filename": file.filename,
+        "rows_after_cleaning": len(df),
+        "blank_total_charges_found_and_fixed": blank_count,
+        "duplicate_rows_removed": duplicates_removed,
+        "total_charges_dtype_after_cleaning": str(df["TotalCharges"].dtype),
+        "senior_citizen_sample": df["SeniorCitizen"].head(5).tolist(),
+        "preview": df.head(3).to_dict(orient="records")
+    }
+
+@app.post("/dataset/store")
+async def store_dataset(file: UploadFile = File(...), current_user: str = Depends(get_current_user)):
+    contents = await file.read()
+    df = pd.read_csv(io.BytesIO(contents))
+
+    # Clean it (same steps as Phase 4)
+    df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
+    df["TotalCharges"] = df["TotalCharges"].fillna(0)
+    df["SeniorCitizen"] = df["SeniorCitizen"].map({0: "No", 1: "Yes"})
+    df = df.drop_duplicates()
+
+    # Clear out any previous upload, so we don't keep piling up duplicates
+    await telco_collection.delete_many({})
+
+    # Convert the cleaned table into a list of dictionaries, then insert all at once
+    records = df.to_dict(orient="records")
+    result = await telco_collection.insert_many(records)
+
+    return {
+        "filename": file.filename,
+        "message": "Dataset cleaned and stored successfully",
+        "rows_stored": len(result.inserted_ids)
+    }
+@app.get("/dataset/info")
+async def dataset_info(current_user: str = Depends(get_current_user)):
+    count = await telco_collection.count_documents({})
+    if count == 0:
+        return {"stored": False, "message": "No dataset currently stored"}
+
+    sample = await telco_collection.find_one()
+    sample["_id"] = str(sample["_id"])
+
+    return {
+        "stored": True,
+        "total_records": count,
+        "sample_record": sample
+    }
+
+
+@app.delete("/dataset/clear")
+async def clear_dataset(current_user: str = Depends(get_current_user)):
+    result = await telco_collection.delete_many({})
+    return {
+        "message": "Dataset cleared successfully",
+        "records_deleted": result.deleted_count
     }
