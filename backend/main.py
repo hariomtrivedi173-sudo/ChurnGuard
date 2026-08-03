@@ -1,15 +1,19 @@
-from fastapi import FastAPI, HTTPException, Depends
+import os
+import sys
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from pydantic import BaseModel
 from bson import ObjectId
-
-from database import customer_collection, user_collection
-from auth import hash_password, verify_password, create_access_token, get_current_user
-
-from fastapi import UploadFile, File
 import pandas as pd
 import io
 
 from database import customer_collection, user_collection, telco_collection
+from auth import hash_password, verify_password, create_access_token, get_current_user
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from ml.predict import predict_churn
+from ml.explain import explain_prediction
+from ml.recommend import generate_recommendations
+from typing import Literal
 
 app = FastAPI(
     title="ChurnGuard API",
@@ -37,6 +41,30 @@ class CustomerResponse(BaseModel):
 class User(BaseModel):
     email: str
     password: str
+
+class CustomerPredictionInput(BaseModel):
+    gender: Literal["Male", "Female"]
+    SeniorCitizen: Literal["Yes", "No"]
+    Partner: Literal["Yes", "No"]
+    Dependents: Literal["Yes", "No"]
+    tenure: int
+    PhoneService: Literal["Yes", "No"]
+    MultipleLines: Literal["Yes", "No", "No phone service"]
+    InternetService: Literal["DSL", "Fiber optic", "No"]
+    OnlineSecurity: Literal["Yes", "No", "No internet service"]
+    OnlineBackup: Literal["Yes", "No", "No internet service"]
+    DeviceProtection: Literal["Yes", "No", "No internet service"]
+    TechSupport: Literal["Yes", "No", "No internet service"]
+    StreamingTV: Literal["Yes", "No", "No internet service"]
+    StreamingMovies: Literal["Yes", "No", "No internet service"]
+    Contract: Literal["Month-to-month", "One year", "Two year"]
+    PaperlessBilling: Literal["Yes", "No"]
+    PaymentMethod: Literal[
+        "Electronic check", "Mailed check",
+        "Bank transfer (automatic)", "Credit card (automatic)"
+    ]
+    MonthlyCharges: float
+    TotalCharges: float
 
 
 # ---------- Helper: convert MongoDB's document into clean JSON ----------
@@ -393,4 +421,36 @@ async def clear_dataset(current_user: str = Depends(get_current_user)):
     return {
         "message": "Dataset cleared successfully",
         "records_deleted": result.deleted_count
+    }
+@app.post("/predict/churn")
+async def predict_customer_churn(customer: CustomerPredictionInput, current_user: str = Depends(get_current_user)):
+    result = predict_churn(customer.dict())
+    return result
+
+@app.post("/predict/explain")
+async def predict_with_explanation(customer: CustomerPredictionInput, current_user: str = Depends(get_current_user)):
+    from ml.predict import predict_churn
+    prediction_result = predict_churn(customer.dict())
+    explanation_result = explain_prediction(customer.dict())
+
+    return {
+        **prediction_result,
+        **explanation_result
+    }
+@app.post("/predict/full")
+async def predict_full_analysis(customer: CustomerPredictionInput, current_user: str = Depends(get_current_user)):
+    customer_dict = customer.dict()
+
+    prediction_result = predict_churn(customer_dict)
+    explanation_result = explain_prediction(customer_dict)
+    recommendation_result = generate_recommendations(
+        customer_dict,
+        explanation_result["top_factors"],
+        prediction_result["risk_level"]
+    )
+
+    return {
+        **prediction_result,
+        **explanation_result,
+        **recommendation_result
     }
