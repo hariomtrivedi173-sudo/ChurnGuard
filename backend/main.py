@@ -6,7 +6,7 @@ from bson import ObjectId
 import pandas as pd
 import io
 
-from database import customer_collection, user_collection, telco_collection
+from database import customer_collection, user_collection, telco_collection, database
 from auth import hash_password, verify_password, create_access_token, get_current_user
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -14,11 +14,21 @@ from ml.predict import predict_churn
 from ml.explain import explain_prediction
 from ml.recommend import generate_recommendations
 from typing import Literal
+from fastapi.middleware.cors import CORSMiddleware
+from ml.batch_predict import predict_batch
 
 app = FastAPI(
     title="ChurnGuard API",
     description="AI-powered customer churn prediction and retention system",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ---------- Pydantic Models ----------
@@ -454,3 +464,42 @@ async def predict_full_analysis(customer: CustomerPredictionInput, current_user:
         **explanation_result,
         **recommendation_result
     }
+
+@app.post("/predict/batch-all")
+async def predict_all_customers(current_user: str = Depends(get_current_user)):
+    cursor = telco_collection.find()
+    raw_customers = await cursor.to_list(length=None)
+
+    customers = []
+    for c in raw_customers:
+        clean = {k: v for k, v in c.items() if k != "_id"}
+        customers.append(clean)
+
+    results = predict_batch(customers)
+
+    high = sum(1 for r in results if r["risk_level"] == "High")
+    medium = sum(1 for r in results if r["risk_level"] == "Medium")
+    low = sum(1 for r in results if r["risk_level"] == "Low")
+
+    summary = {
+        "total_analyzed": len(results),
+        "high_risk_count": high,
+        "medium_risk_count": medium,
+        "low_risk_count": low,
+        "results": sorted(results, key=lambda r: r["churn_probability"], reverse=True)[:10],
+    }
+
+    await database["dashboard_cache"].delete_many({})
+    await database["dashboard_cache"].insert_one(dict(summary))
+
+    return summary
+
+
+@app.get("/dashboard/stats")
+async def get_dashboard_stats(current_user: str = Depends(get_current_user)):
+    cached = await database["dashboard_cache"].find_one()
+    if not cached:
+        return {"available": False, "message": "Run batch prediction first"}
+
+    clean = {k: v for k, v in cached.items() if k != "_id"}
+    return {"available": True, **clean}
