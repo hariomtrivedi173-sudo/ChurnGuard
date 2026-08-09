@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
+import toast from 'react-hot-toast'
 import { uploadDataset, getDatasetInfo } from '../api/dataset'
 
 function Upload() {
@@ -30,10 +31,12 @@ function Upload() {
     try {
       const result = await uploadDataset(file)
       setMessage(`${result.rows_stored} rows stored successfully`)
+      toast.success(`${result.rows_stored} rows uploaded`)
       setFile(null)
       loadInfo()
     } catch (err) {
       setError(err.message)
+      toast.error(err.message)
     } finally {
       setUploading(false)
     }
@@ -73,7 +76,8 @@ function Upload() {
           <button
             onClick={handleUpload}
             disabled={!file || uploading}
-            className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-medium py-2 rounded-xl transition-colors duration-100 ease-out">
+            className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-medium py-2 rounded-xl transition-colors duration-100 ease-out"
+          >
             {uploading ? 'Uploading...' : 'Upload and store'}
           </button>
         </div>

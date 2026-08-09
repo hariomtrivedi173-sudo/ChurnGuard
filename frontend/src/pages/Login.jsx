@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { loginUser } from '../api/auth'
 
 function Login() {
@@ -18,9 +19,11 @@ function Login() {
     try {
       const data = await loginUser(email, password)
       localStorage.setItem('token', data.access_token)
+      toast.success('Welcome back!')
       navigate('/dashboard')
     } catch (err) {
       setError(err.message)
+      toast.error(err.message)
     } finally {
       setLoading(false)
     }

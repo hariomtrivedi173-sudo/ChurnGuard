@@ -16,6 +16,7 @@ from ml.recommend import generate_recommendations
 from typing import Literal
 from fastapi.middleware.cors import CORSMiddleware
 from ml.batch_predict import predict_batch
+from ml.metrics import compute_metrics
 
 app = FastAPI(
     title="ChurnGuard API",
@@ -35,15 +36,29 @@ app.add_middleware(
 
 class Customer(BaseModel):
     name: str
+    email: str
+    phone: str
     age: int
-    plan: str
+    gender: Literal["Male", "Female"]
+    location: str
+    subscription_type: str
     monthly_charges: float
+    total_charges: float
+    tenure: int
+    contract_type: Literal["Month-to-month", "One year", "Two year"]
+    payment_method: str
+    internet_service: Literal["DSL", "Fiber optic", "No"]
+    tech_support: Literal["Yes", "No"]
+    online_security: Literal["Yes", "No"]
+    streaming_services: Literal["Yes", "No"]
     is_active: bool = True
+    churn_status: Literal["Yes", "No"] = "No"
 
 
 class CustomerResponse(BaseModel):
     name: str
-    plan: str
+    email: str
+    subscription_type: str
     is_active: bool
     welcome_message: str
 
@@ -82,11 +97,24 @@ class CustomerPredictionInput(BaseModel):
 def customer_helper(doc) -> dict:
     return {
         "id": str(doc["_id"]),
-        "name": doc["name"],
-        "age": doc["age"],
-        "plan": doc["plan"],
-        "monthly_charges": doc["monthly_charges"],
-        "is_active": doc["is_active"],
+        "name": doc.get("name"),
+        "email": doc.get("email"),
+        "phone": doc.get("phone"),
+        "age": doc.get("age"),
+        "gender": doc.get("gender"),
+        "location": doc.get("location"),
+        "subscription_type": doc.get("subscription_type"),
+        "monthly_charges": doc.get("monthly_charges"),
+        "total_charges": doc.get("total_charges"),
+        "tenure": doc.get("tenure"),
+        "contract_type": doc.get("contract_type"),
+        "payment_method": doc.get("payment_method"),
+        "internet_service": doc.get("internet_service"),
+        "tech_support": doc.get("tech_support"),
+        "online_security": doc.get("online_security"),
+        "streaming_services": doc.get("streaming_services"),
+        "is_active": doc.get("is_active"),
+        "churn_status": doc.get("churn_status"),
     }
 
 
@@ -199,7 +227,8 @@ async def create_customer(customer: Customer, current_user: str = Depends(get_cu
     result = await customer_collection.insert_one(new_customer)
     return CustomerResponse(
         name=customer.name,
-        plan=customer.plan,
+        email=customer.email,
+        subscription_type=customer.subscription_type,
         is_active=customer.is_active,
         welcome_message=f"Welcome aboard, {customer.name}! Your ID is {result.inserted_id}."
     )
@@ -467,6 +496,8 @@ async def predict_full_analysis(customer: CustomerPredictionInput, current_user:
 
 @app.post("/predict/batch-all")
 async def predict_all_customers(current_user: str = Depends(get_current_user)):
+    from ml.batch_predict import build_aggregates
+
     cursor = telco_collection.find()
     raw_customers = await cursor.to_list(length=None)
 
@@ -481,12 +512,16 @@ async def predict_all_customers(current_user: str = Depends(get_current_user)):
     medium = sum(1 for r in results if r["risk_level"] == "Medium")
     low = sum(1 for r in results if r["risk_level"] == "Low")
 
+    aggregates = build_aggregates(results)
+
     summary = {
         "total_analyzed": len(results),
         "high_risk_count": high,
         "medium_risk_count": medium,
         "low_risk_count": low,
         "results": sorted(results, key=lambda r: r["churn_probability"], reverse=True)[:10],
+        "risk_by_contract": aggregates["risk_by_contract"],
+        "risk_by_tenure": aggregates["risk_by_tenure"],
     }
 
     await database["dashboard_cache"].delete_many({})
@@ -503,3 +538,7 @@ async def get_dashboard_stats(current_user: str = Depends(get_current_user)):
 
     clean = {k: v for k, v in cached.items() if k != "_id"}
     return {"available": True, **clean}
+
+@app.get("/ml/metrics")
+async def get_ml_metrics(current_user: str = Depends(get_current_user)):
+    return await compute_metrics()

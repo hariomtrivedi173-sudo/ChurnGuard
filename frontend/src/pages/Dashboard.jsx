@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import StatCard from '../components/StatCard'
 import { getDashboardStats, runBatchAnalysis } from '../api/dashboard'
+import {
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  AreaChart, Area,
+} from 'recharts'
 
 function Dashboard() {
   const [stats, setStats] = useState(null)
@@ -66,7 +71,6 @@ function Dashboard() {
         </div>
 
         {error && <div className="bg-rose-100 text-rose-700 text-sm rounded-xl px-3 py-2 mb-4">{error}</div>}
-
         {loading && <p className="text-sm text-gray-400">Loading...</p>}
 
         {!loading && !stats && (
@@ -84,6 +88,68 @@ function Dashboard() {
               <StatCard label="High risk" value={stats.high_risk_count} color="rose" />
               <StatCard label="Medium risk" value={stats.medium_risk_count} color="amber" />
               <StatCard label="Low risk" value={stats.low_risk_count} color="green" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <h2 className="text-sm font-bold text-gray-800 mb-4">Risk distribution</h2>
+                <ResponsiveContainer width="100%" height={240}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'High risk', value: stats.high_risk_count, color: '#f43f5e' },
+                        { name: 'Medium risk', value: stats.medium_risk_count, color: '#f59e0b' },
+                        { name: 'Low risk', value: stats.low_risk_count, color: '#22c55e' },
+                      ]}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={85}
+                      paddingAngle={4}
+                    >
+                      {[{ color: '#f43f5e' }, { color: '#f59e0b' }, { color: '#22c55e' }].map((entry, index) => (
+                        <Cell key={index} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <h2 className="text-sm font-bold text-gray-800 mb-4">Risk by contract type</h2>
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={stats.risk_by_contract}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis dataKey="contract" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="High" stackId="a" fill="#f43f5e" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="Medium" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="Low" stackId="a" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+              <h2 className="text-sm font-bold text-gray-800 mb-4">Risk by tenure</h2>
+              <ResponsiveContainer width="100%" height={240}>
+                <AreaChart data={stats.risk_by_tenure}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                  <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Area type="monotone" dataKey="High" stackId="1" stroke="#f43f5e" fill="#fecdd3" />
+                  <Area type="monotone" dataKey="Medium" stackId="1" stroke="#f59e0b" fill="#fde68a" />
+                  <Area type="monotone" dataKey="Low" stackId="1" stroke="#22c55e" fill="#bbf7d0" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
 
             <div className="flex items-center justify-between mb-2">

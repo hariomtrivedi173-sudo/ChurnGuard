@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import { predictChurn } from '../api/predict'
+import toast from 'react-hot-toast'
 
 const initialForm = {
   gender: 'Female',
@@ -50,8 +51,10 @@ function Predict() {
         TotalCharges: Number(form.TotalCharges),
       })
       setResult(data)
+      toast.success(`Prediction complete — ${data.risk_level} risk`)
     } catch (err) {
       setError(err.message)
+      toast.error(err.message)
     } finally {
       setLoading(false)
     }
