@@ -2,6 +2,7 @@ import os
 import sys
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from pydantic import BaseModel
+# pyrefly: ignore [missing-import]
 from bson import ObjectId
 import pandas as pd
 import io
@@ -17,6 +18,7 @@ from typing import Literal
 from fastapi.middleware.cors import CORSMiddleware
 from ml.batch_predict import predict_batch
 from ml.metrics import compute_metrics
+from ml.segment_customers import get_segment_profiles
 
 app = FastAPI(
     title="ChurnGuard API",
@@ -542,3 +544,7 @@ async def get_dashboard_stats(current_user: str = Depends(get_current_user)):
 @app.get("/ml/metrics")
 async def get_ml_metrics(current_user: str = Depends(get_current_user)):
     return await compute_metrics()
+
+@app.get("/ml/segments")
+async def get_ml_segments(current_user: str = Depends(get_current_user)):
+    return await get_segment_profiles()

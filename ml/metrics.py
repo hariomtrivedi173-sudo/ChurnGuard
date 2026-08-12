@@ -1,6 +1,14 @@
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
+
+# Add the ml/ folder itself so prepare_data and predict can be imported directly
+_ml_dir = os.path.dirname(__file__)
+_backend_dir = os.path.join(_ml_dir, '..', 'backend')
+
+if _ml_dir not in sys.path:
+    sys.path.insert(0, _ml_dir)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
 
 import numpy as np
 from sklearn.metrics import (
@@ -8,7 +16,7 @@ from sklearn.metrics import (
     confusion_matrix, roc_curve, auc
 )
 
-from prepare_data import load_data, prepare_features, split_data
+from ml.prepare_data import load_data, prepare_features, split_data
 from ml.predict import model, FEATURE_COLUMNS
 
 CHURN_THRESHOLD = 0.35

@@ -2,57 +2,37 @@ import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import toast from 'react-hot-toast'
 import { getAllCustomers, createCustomer, deleteCustomer } from '../api/customers'
+import { Search, Plus, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Trash2 } from 'lucide-react'
 
 const initialForm = {
-  name: '',
-  email: '',
-  phone: '',
-  age: 30,
-  gender: 'Female',
-  location: '',
-  subscription_type: 'Standard',
-  monthly_charges: 50,
-  total_charges: 600,
-  tenure: 12,
-  contract_type: 'Month-to-month',
-  payment_method: 'Electronic check',
-  internet_service: 'DSL',
-  tech_support: 'No',
-  online_security: 'No',
-  streaming_services: 'No',
+  name: '', email: '', phone: '', age: 30, gender: 'Female', location: '',
+  subscription_type: 'Standard', monthly_charges: 50, total_charges: 600,
+  tenure: 12, contract_type: 'Month-to-month', payment_method: 'Electronic check',
+  internet_service: 'DSL', tech_support: 'No', online_security: 'No', streaming_services: 'No',
 }
 
 function Customers() {
-  const [customers, setCustomers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState(initialForm)
-  const [saving, setSaving] = useState(false)
-  const [search, setSearch] = useState('')
-  const [sortField, setSortField] = useState('name')
-  const [sortDirection, setSortDirection] = useState('asc')
-  const [currentPage, setCurrentPage] = useState(1)
+  const [customers,      setCustomers]      = useState([])
+  const [loading,        setLoading]        = useState(true)
+  const [showForm,       setShowForm]       = useState(false)
+  const [form,           setForm]           = useState(initialForm)
+  const [saving,         setSaving]         = useState(false)
+  const [search,         setSearch]         = useState('')
+  const [sortField,      setSortField]      = useState('name')
+  const [sortDirection,  setSortDirection]  = useState('asc')
+  const [currentPage,    setCurrentPage]    = useState(1)
   const pageSize = 8
 
-  useEffect(() => {
-    loadCustomers()
-  }, [])
+  useEffect(() => { loadCustomers() }, [])
 
   async function loadCustomers() {
     setLoading(true)
-    try {
-      const data = await getAllCustomers()
-      setCustomers(data)
-    } catch (err) {
-      toast.error(err.message)
-    } finally {
-      setLoading(false)
-    }
+    try { setCustomers(await getAllCustomers()) }
+    catch (err) { toast.error(err.message) }
+    finally { setLoading(false) }
   }
 
-  function updateField(field, value) {
-    setForm({ ...form, [field]: value })
-  }
+  function updateField(f, v) { setForm({ ...form, [f]: v }) }
 
   async function handleAdd(e) {
     e.preventDefault()
@@ -69,11 +49,8 @@ function Customers() {
       setForm(initialForm)
       setShowForm(false)
       loadCustomers()
-    } catch (err) {
-      toast.error(err.message)
-    } finally {
-      setSaving(false)
-    }
+    } catch (err) { toast.error(err.message) }
+    finally { setSaving(false) }
   }
 
   async function handleDelete(id, name) {
@@ -82,166 +59,194 @@ function Customers() {
       await deleteCustomer(id)
       toast.success('Customer deleted')
       loadCustomers()
-    } catch (err) {
-      toast.error(err.message)
-    }
+    } catch (err) { toast.error(err.message) }
   }
 
   function handleSort(field) {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDirection('asc')
-    }
+    if (sortField === field) setSortDirection(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortField(field); setSortDirection('asc') }
     setCurrentPage(1)
   }
 
-  const filtered = customers.filter((c) =>
+  const filtered = customers.filter(c =>
     c.name?.toLowerCase().includes(search.toLowerCase()) ||
     c.email?.toLowerCase().includes(search.toLowerCase())
   )
-
   const sorted = [...filtered].sort((a, b) => {
-    const valA = a[sortField] ?? ''
-    const valB = b[sortField] ?? ''
-    if (typeof valA === 'number') {
-      return sortDirection === 'asc' ? valA - valB : valB - valA
-    }
+    const va = a[sortField] ?? '', vb = b[sortField] ?? ''
+    if (typeof va === 'number') return sortDirection === 'asc' ? va - vb : vb - va
     return sortDirection === 'asc'
-      ? String(valA).localeCompare(String(valB))
-      : String(valB).localeCompare(String(valA))
+      ? String(va).localeCompare(String(vb))
+      : String(vb).localeCompare(String(va))
   })
-
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
-  const paginated = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  const paginated  = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   return (
-    <div className="min-h-screen bg-purple-50 flex gap-4 p-4">
+    <div className="page-layout">
       <Sidebar />
+      <div className="page-content">
 
-      <div className="flex-1">
-        <div className="flex items-center justify-between mb-6">
+        {/* ── Header ── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
           <div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-1">Customers</h1>
-            <p className="text-sm text-gray-400">
-              {loading ? 'Loading...' : `${filtered.length} of ${customers.length} shown`}
+            <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Customers</h1>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              {loading ? 'Loading…' : `${filtered.length} of ${customers.length} customers`}
             </p>
           </div>
           <button
+            id="add-customer-btn"
             onClick={() => setShowForm(!showForm)}
-            className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors duration-100 ease-out"
+            className={showForm ? 'btn-secondary' : 'btn-primary'}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            {showForm ? 'Cancel' : '+ Add customer'}
+            {showForm ? <><X size={14} /> Cancel</> : <><Plus size={14} /> Add Customer</>}
           </button>
         </div>
 
+        {/* ── Add form ── */}
         {showForm && (
-          <form onSubmit={handleAdd} className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <TextField label="Name" value={form.name} onChange={(v) => updateField('name', v)} required />
-              <TextField label="Email" type="email" value={form.email} onChange={(v) => updateField('email', v)} required />
-              <TextField label="Phone" value={form.phone} onChange={(v) => updateField('phone', v)} required />
-              <TextField label="Age" type="number" value={form.age} onChange={(v) => updateField('age', v)} />
-              <SelectField label="Gender" value={form.gender} onChange={(v) => updateField('gender', v)} options={['Male', 'Female']} />
-              <TextField label="Location" value={form.location} onChange={(v) => updateField('location', v)} required />
-              <TextField label="Subscription type" value={form.subscription_type} onChange={(v) => updateField('subscription_type', v)} />
-              <TextField label="Monthly charges ($)" type="number" step="0.01" value={form.monthly_charges} onChange={(v) => updateField('monthly_charges', v)} />
-              <TextField label="Total charges ($)" type="number" step="0.01" value={form.total_charges} onChange={(v) => updateField('total_charges', v)} />
-              <TextField label="Tenure (months)" type="number" value={form.tenure} onChange={(v) => updateField('tenure', v)} />
-              <SelectField label="Contract" value={form.contract_type} onChange={(v) => updateField('contract_type', v)} options={['Month-to-month', 'One year', 'Two year']} />
-              <TextField label="Payment method" value={form.payment_method} onChange={(v) => updateField('payment_method', v)} />
-              <SelectField label="Internet service" value={form.internet_service} onChange={(v) => updateField('internet_service', v)} options={['DSL', 'Fiber optic', 'No']} />
-              <SelectField label="Tech support" value={form.tech_support} onChange={(v) => updateField('tech_support', v)} options={['Yes', 'No']} />
-              <SelectField label="Online security" value={form.online_security} onChange={(v) => updateField('online_security', v)} options={['Yes', 'No']} />
-              <SelectField label="Streaming services" value={form.streaming_services} onChange={(v) => updateField('streaming_services', v)} options={['Yes', 'No']} />
-            </div>
-            <button
-              type="submit"
-              disabled={saving}
-              className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors duration-100 ease-out"
-            >
-              {saving ? 'Saving...' : 'Save customer'}
-            </button>
-          </form>
+          <div className="card" style={{ padding: '24px', marginBottom: '20px' }}>
+            <p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '18px' }}>New Customer</p>
+            <form onSubmit={handleAdd}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '18px' }}>
+                <FormField label="Name"><input className="input-base" value={form.name} onChange={e => updateField('name', e.target.value)} required placeholder="Full name" /></FormField>
+                <FormField label="Email"><input className="input-base" type="email" value={form.email} onChange={e => updateField('email', e.target.value)} required placeholder="email@example.com" /></FormField>
+                <FormField label="Phone"><input className="input-base" value={form.phone} onChange={e => updateField('phone', e.target.value)} required placeholder="+91 00000 00000" /></FormField>
+                <FormField label="Age"><input className="input-base" type="number" value={form.age} onChange={e => updateField('age', e.target.value)} /></FormField>
+                <FormField label="Gender">
+                  <select className="input-base" value={form.gender} onChange={e => updateField('gender', e.target.value)}>
+                    {['Male','Female'].map(o => <option key={o}>{o}</option>)}
+                  </select>
+                </FormField>
+                <FormField label="Location"><input className="input-base" value={form.location} onChange={e => updateField('location', e.target.value)} required placeholder="City" /></FormField>
+                <FormField label="Subscription Type"><input className="input-base" value={form.subscription_type} onChange={e => updateField('subscription_type', e.target.value)} /></FormField>
+                <FormField label="Monthly Charges ($)"><input className="input-base" type="number" step="0.01" value={form.monthly_charges} onChange={e => updateField('monthly_charges', e.target.value)} /></FormField>
+                <FormField label="Total Charges ($)"><input className="input-base" type="number" step="0.01" value={form.total_charges} onChange={e => updateField('total_charges', e.target.value)} /></FormField>
+                <FormField label="Tenure (months)"><input className="input-base" type="number" value={form.tenure} onChange={e => updateField('tenure', e.target.value)} /></FormField>
+                <FormField label="Contract">
+                  <select className="input-base" value={form.contract_type} onChange={e => updateField('contract_type', e.target.value)}>
+                    {['Month-to-month','One year','Two year'].map(o => <option key={o}>{o}</option>)}
+                  </select>
+                </FormField>
+                <FormField label="Payment Method"><input className="input-base" value={form.payment_method} onChange={e => updateField('payment_method', e.target.value)} /></FormField>
+                <FormField label="Internet Service">
+                  <select className="input-base" value={form.internet_service} onChange={e => updateField('internet_service', e.target.value)}>
+                    {['DSL','Fiber optic','No'].map(o => <option key={o}>{o}</option>)}
+                  </select>
+                </FormField>
+                <FormField label="Tech Support">
+                  <select className="input-base" value={form.tech_support} onChange={e => updateField('tech_support', e.target.value)}>
+                    {['Yes','No'].map(o => <option key={o}>{o}</option>)}
+                  </select>
+                </FormField>
+                <FormField label="Online Security">
+                  <select className="input-base" value={form.online_security} onChange={e => updateField('online_security', e.target.value)}>
+                    {['Yes','No'].map(o => <option key={o}>{o}</option>)}
+                  </select>
+                </FormField>
+                <FormField label="Streaming Services">
+                  <select className="input-base" value={form.streaming_services} onChange={e => updateField('streaming_services', e.target.value)}>
+                    {['Yes','No'].map(o => <option key={o}>{o}</option>)}
+                  </select>
+                </FormField>
+              </div>
+              <button type="submit" disabled={saving} className="btn-primary">
+                {saving ? 'Saving…' : 'Save Customer'}
+              </button>
+            </form>
+          </div>
         )}
 
-        <input
-          type="text"
-          placeholder="Search by name or email..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value)
-            setCurrentPage(1)
-          }}
-          className="w-full mb-4 px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
-        />
+        {/* ── Search ── */}
+        <div style={{ position: 'relative', marginBottom: '16px' }}>
+          <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input
+            id="customer-search"
+            type="text"
+            placeholder="Search by name or email…"
+            value={search}
+            onChange={e => { setSearch(e.target.value); setCurrentPage(1) }}
+            className="input-base"
+            style={{ paddingLeft: '40px' }}
+          />
+        </div>
 
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-400 border-b border-gray-100">
-                <SortableHeader label="Name" field="name" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
-                <SortableHeader label="Email" field="email" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
-                <SortableHeader label="Subscription" field="subscription_type" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
-                <SortableHeader label="Contract" field="contract_type" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
-                <SortableHeader label="Monthly" field="monthly_charges" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
-                <th className="font-normal py-3 px-4">Status</th>
-                <th className="font-normal py-3 px-4"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginated.map((c) => (
-                <tr key={c.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors duration-100">
-                  <td className="py-3 px-4 text-gray-800">{c.name}</td>
-                  <td className="py-3 px-4 text-gray-500">{c.email}</td>
-                  <td className="py-3 px-4 text-gray-500">{c.subscription_type}</td>
-                  <td className="py-3 px-4 text-gray-500">{c.contract_type}</td>
-                  <td className="py-3 px-4 text-gray-500">${c.monthly_charges}</td>
-                  <td className="py-3 px-4">
-                    <span className={`text-xs font-medium px-3 py-1 rounded-full ${
-                      c.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      {c.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <button
-                      onClick={() => handleDelete(c.id, c.name)}
-                      className="text-rose-500 hover:text-rose-700 text-xs transition-colors duration-100"
-                    >
-                      Delete
-                    </button>
-                  </td>
+        {/* ── Table ── */}
+        <div className="card" style={{ overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#faf9ff' }}>
+                  {[
+                    { label: 'Name',         field: 'name' },
+                    { label: 'Email',        field: 'email' },
+                    { label: 'Subscription', field: 'subscription_type' },
+                    { label: 'Contract',     field: 'contract_type' },
+                    { label: 'Monthly',      field: 'monthly_charges' },
+                  ].map(({ label, field }) => (
+                    <SortHeader key={field} label={label} field={field} sortField={sortField} sortDir={sortDirection} onSort={handleSort} />
+                  ))}
+                  <th style={{ padding: '11px 18px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                  <th style={{ padding: '11px 18px', width: '56px' }} />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {paginated.map(c => (
+                  <tr
+                    key={c.id}
+                    style={{ borderTop: '1px solid var(--border)', transition: 'background 150ms ease', cursor: 'default' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#faf9ff'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <td style={{ padding: '13px 18px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{c.name}</td>
+                    <td style={{ padding: '13px 18px', fontSize: '13px', color: 'var(--text-secondary)' }}>{c.email}</td>
+                    <td style={{ padding: '13px 18px', fontSize: '13px', color: 'var(--text-secondary)' }}>{c.subscription_type}</td>
+                    <td style={{ padding: '13px 18px', fontSize: '13px', color: 'var(--text-secondary)' }}>{c.contract_type}</td>
+                    <td style={{ padding: '13px 18px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>${c.monthly_charges}</td>
+                    <td style={{ padding: '13px 18px' }}>
+                      <span className={c.is_active ? 'badge badge-green' : 'badge'} style={!c.is_active ? { background: '#f3f4f6', color: '#9ca3af' } : {}}>
+                        {c.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '13px 18px', textAlign: 'right' }}>
+                      <button
+                        onClick={() => handleDelete(c.id, c.name)}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          color: 'var(--text-muted)', padding: '4px', borderRadius: '6px',
+                          transition: 'color 150ms ease, background 150ms ease',
+                          display: 'flex', alignItems: 'center',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.color = '#e11d48'; e.currentTarget.style.background = '#fff1f2' }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none' }}
+                        title={`Delete ${c.name}`}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {!loading && sorted.length === 0 && (
-            <p className="text-center text-gray-400 py-8 text-sm">No customers found.</p>
+            <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)', fontSize: '14px' }}>
+              No customers found.
+            </div>
           )}
 
+          {/* Pagination */}
           {sorted.length > 0 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-              <p className="text-xs text-gray-400">
-                Page {currentPage} of {totalPages}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', borderTop: '1px solid var(--border)', background: '#faf9ff' }}>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Page {currentPage} of {totalPages} · {sorted.length} results
               </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="text-xs px-3 py-1 rounded-lg bg-gray-50 text-gray-600 disabled:opacity-40 hover:bg-gray-100 transition-colors duration-100"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="text-xs px-3 py-1 rounded-lg bg-gray-50 text-gray-600 disabled:opacity-40 hover:bg-gray-100 transition-colors duration-100"
-                >
-                  Next
-                </button>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <PageBtn disabled={currentPage === 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))} icon={<ChevronLeft size={14} />} />
+                <PageBtn disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} icon={<ChevronRight size={14} />} />
               </div>
             </div>
           )}
@@ -251,37 +256,55 @@ function Customers() {
   )
 }
 
-function TextField({ label, ...props }) {
+function FormField({ label, children }) {
   return (
     <div>
-      <label className="text-xs text-gray-500">{label}</label>
-      <input {...props} onChange={(e) => props.onChange(e.target.value)}
-        className="w-full mt-1 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm" />
+      <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '5px' }}>{label}</label>
+      {children}
     </div>
   )
 }
 
-function SelectField({ label, value, onChange, options }) {
-  return (
-    <div>
-      <label className="text-xs text-gray-500">{label}</label>
-      <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="w-full mt-1 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm">
-        {options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-      </select>
-    </div>
-  )
-}
-
-function SortableHeader({ label, field, sortField, sortDirection, onSort }) {
+function SortHeader({ label, field, sortField, sortDir, onSort }) {
   const active = sortField === field
   return (
     <th
       onClick={() => onSort(field)}
-      className="font-normal py-3 px-4 cursor-pointer select-none hover:text-gray-600 transition-colors duration-100"
+      style={{
+        padding: '11px 18px', textAlign: 'left', fontSize: '11px',
+        fontWeight: 600, color: active ? 'var(--purple-600)' : 'var(--text-muted)',
+        textTransform: 'uppercase', letterSpacing: '0.05em',
+        cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
+        transition: 'color 150ms ease',
+      }}
     >
-      {label} {active && (sortDirection === 'asc' ? '↑' : '↓')}
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+        {label}
+        {active
+          ? (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)
+          : <ChevronDown size={12} style={{ opacity: 0.3 }} />}
+      </span>
     </th>
+  )
+}
+
+function PageBtn({ disabled, onClick, icon }) {
+  return (
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      style={{
+        width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        border: '1.5px solid var(--border)', borderRadius: '8px',
+        background: 'var(--surface)', color: disabled ? 'var(--text-muted)' : 'var(--text-secondary)',
+        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
+        transition: 'all 150ms ease',
+      }}
+      onMouseEnter={e => { if (!disabled) { e.currentTarget.style.borderColor = 'var(--purple-400)'; e.currentTarget.style.color = 'var(--purple-600)' } }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = disabled ? 'var(--text-muted)' : 'var(--text-secondary)' }}
+    >
+      {icon}
+    </button>
   )
 }
 

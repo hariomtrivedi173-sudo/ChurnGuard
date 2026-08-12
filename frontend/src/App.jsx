@@ -5,6 +5,8 @@ import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
 import Predict from './pages/Predict'
 import Upload from './pages/Upload'
+import Analytics from './pages/Analytics'
+import Register from './pages/Register'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -27,6 +29,8 @@ function App() {
         <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
         <Route path="/predict" element={<ProtectedRoute><Predict /></ProtectedRoute>} />
         <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+        <Route path="/register" element={<Register />} />
       </Routes>
     </BrowserRouter>
   )

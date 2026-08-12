@@ -5,9 +5,15 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
+_ml_dir = os.path.dirname(__file__)
+_backend_dir = os.path.join(_ml_dir, '..', 'backend')
 
-from prepare_data import load_data, prepare_features
+if _ml_dir not in sys.path:
+    sys.path.insert(0, _ml_dir)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
+from ml.prepare_data import load_data, prepare_features
 
 SEGMENT_FEATURES = ["tenure", "MonthlyCharges", "TotalCharges"]
 
@@ -43,6 +49,25 @@ def profile_segments(df: pd.DataFrame):
         churn_rate_percent=("Churn", lambda x: round(x.mean() * 100, 2)),
     ).round(2)
     return profile
+
+
+async def get_segment_profiles():
+    df = await load_data()
+    if df.empty:
+        return []
+        
+    df_prepared = prepare_features(df)
+    df_segmented, _, _ = segment_customers(df_prepared, n_clusters=4)
+    profile = profile_segments(df_segmented)
+    
+    # Convert DataFrame index 'segment' to a column and format as dicts
+    profile = profile.reset_index()
+    
+    # Add descriptive names to segments based on K-Means common patterns
+    # We will map segment index to names in the frontend, or we can do it here.
+    # Let's just return the data, frontend will style it.
+    return profile.to_dict(orient='records')
+
 
 
 async def main():
