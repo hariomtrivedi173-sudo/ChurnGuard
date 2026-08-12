@@ -1,6 +1,7 @@
 import os
 import sys
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 # pyrefly: ignore [missing-import]
 from bson import ObjectId
@@ -14,7 +15,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ml.predict import predict_churn
 from ml.explain import explain_prediction
 from ml.recommend import generate_recommendations
-from typing import Literal
+from typing import Literal, Optional
 from fastapi.middleware.cors import CORSMiddleware
 from ml.batch_predict import predict_batch
 from ml.metrics import compute_metrics
@@ -291,7 +292,16 @@ async def delete_customer(customer_id: str, current_user: str = Depends(get_curr
     }
 
 
-# ---------- Sprint 3: Authentication — stays OPEN (no login required) ----------
+class UserProfileUpdate(BaseModel):
+    first_name: Optional[str] = "Maya"
+    last_name: Optional[str] = "Chen"
+    email: Optional[str] = None
+    role: Optional[str] = "Head of Customer Success"
+    company: Optional[str] = "ChurnGuard Inc."
+    phone: Optional[str] = "+1 (555) 014-2231"
+
+
+# ---------- Sprint 3: Authentication ----------
 
 @app.post("/register")
 async def register_user(user: User):
@@ -302,7 +312,12 @@ async def register_user(user: User):
     hashed_pw = hash_password(user.password)
     await user_collection.insert_one({
         "email": user.email,
-        "password": hashed_pw
+        "password": hashed_pw,
+        "first_name": "Maya",
+        "last_name": "Chen",
+        "role": "Head of Customer Success",
+        "company": "ChurnGuard Inc.",
+        "phone": "+1 (555) 014-2231"
     })
     return {"message": f"User {user.email} registered successfully"}
 
@@ -318,6 +333,61 @@ async def login_user(user: User):
 
     token = create_access_token({"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
+
+
+@app.get("/profile/me")
+async def get_user_profile(current_user: str = Depends(get_current_user)):
+    user_doc = await user_collection.find_one({"email": current_user})
+    if not user_doc:
+        return {
+            "first_name": "Maya",
+            "last_name": "Chen",
+            "email": current_user,
+            "role": "Head of Customer Success",
+            "company": "ChurnGuard Inc.",
+            "phone": "+1 (555) 014-2231"
+        }
+
+    return {
+        "first_name": user_doc.get("first_name", "Maya"),
+        "last_name": user_doc.get("last_name", "Chen"),
+        "email": user_doc.get("email", current_user),
+        "role": user_doc.get("role", "Head of Customer Success"),
+        "company": user_doc.get("company", "ChurnGuard Inc."),
+        "phone": user_doc.get("phone", "+1 (555) 014-2231")
+    }
+
+
+@app.put("/profile/me")
+async def update_user_profile(profile_data: UserProfileUpdate, current_user: str = Depends(get_current_user)):
+    user_doc = await user_collection.find_one({"email": current_user})
+    update_fields = profile_data.dict(exclude_unset=True)
+
+    if user_doc:
+        await user_collection.update_one(
+            {"email": current_user},
+            {"$set": update_fields}
+        )
+    else:
+        await user_collection.insert_one({
+            "email": current_user,
+            "password": "",
+            **update_fields
+        })
+
+    updated_doc = await user_collection.find_one({"email": current_user}) or update_fields
+    return {
+        "message": "Profile updated successfully",
+        "profile": {
+            "first_name": updated_doc.get("first_name", profile_data.first_name),
+            "last_name": updated_doc.get("last_name", profile_data.last_name),
+            "email": updated_doc.get("email", current_user),
+            "role": updated_doc.get("role", profile_data.role),
+            "company": updated_doc.get("company", profile_data.company),
+            "phone": updated_doc.get("phone", profile_data.phone)
+        }
+    }
+
 
 # ---------- Sprint 4: Dataset Upload ----------
 
@@ -419,27 +489,72 @@ async def clean_dataset(file: UploadFile = File(...), current_user: str = Depend
 
 @app.post("/dataset/store")
 async def store_dataset(file: UploadFile = File(...), current_user: str = Depends(get_current_user)):
-    contents = await file.read()
-    df = pd.read_csv(io.BytesIO(contents))
+    try:
+        contents = await file.read()
+        df = pd.read_csv(io.BytesIO(contents))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid CSV file: {str(e)}")
 
-    # Clean it (same steps as Phase 4)
-    df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
-    df["TotalCharges"] = df["TotalCharges"].fillna(0)
-    df["SeniorCitizen"] = df["SeniorCitizen"].map({0: "No", 1: "Yes"})
+    if df.empty:
+        raise HTTPException(status_code=400, detail="Uploaded CSV file contains no records.")
+
+    # Clean TotalCharges safely if column exists
+    if "TotalCharges" in df.columns:
+        df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce").fillna(0)
+
+    # Safely clean SeniorCitizen only if the column exists
+    if "SeniorCitizen" in df.columns:
+        df["SeniorCitizen"] = df["SeniorCitizen"].replace({
+            0: "No", 1: "Yes",
+            "0": "No", "1": "Yes",
+            0.0: "No", 1.0: "Yes"
+        })
+
     df = df.drop_duplicates()
+    df = df.fillna("")
 
-    # Clear out any previous upload, so we don't keep piling up duplicates
-    await telco_collection.delete_many({})
-
-    # Convert the cleaned table into a list of dictionaries, then insert all at once
     records = df.to_dict(orient="records")
+    if not records:
+        raise HTTPException(status_code=400, detail="No valid records found in CSV file after cleaning.")
+
+    # Clear previous upload and store new records
+    await telco_collection.delete_many({})
     result = await telco_collection.insert_many(records)
+
+    # Auto-calculate dashboard stats and predictions cache for the newly uploaded dataset
+    try:
+        clean_customers = [{k: v for k, v in c.items() if k != "_id"} for c in records]
+        batch_results = predict_batch(clean_customers)
+
+        high = sum(1 for r in batch_results if r["risk_level"] == "High")
+        medium = sum(1 for r in batch_results if r["risk_level"] == "Medium")
+        low = sum(1 for r in batch_results if r["risk_level"] == "Low")
+
+        total_mrr = sum(float(c.get("MonthlyCharges", 0)) for c in clean_customers if str(c.get("MonthlyCharges", "")).replace('.', '', 1).isdigit())
+        avg_churn = round((high / len(batch_results) * 100), 1) if batch_results else 0.0
+
+        summary = {
+            "total_analyzed": len(batch_results),
+            "high_risk_count": high,
+            "medium_risk_count": medium,
+            "low_risk_count": low,
+            "total_mrr": round(total_mrr, 2),
+            "avg_churn_rate": avg_churn,
+            "results": sorted(batch_results, key=lambda r: r["churn_probability"], reverse=True)[:10],
+        }
+
+        await database["dashboard_cache"].delete_many({})
+        await database["dashboard_cache"].insert_one(dict(summary))
+    except Exception as e:
+        print("Error auto-updating dashboard cache:", e)
 
     return {
         "filename": file.filename,
         "message": "Dataset cleaned and stored successfully",
         "rows_stored": len(result.inserted_ids)
     }
+
+
 @app.get("/dataset/info")
 async def dataset_info(current_user: str = Depends(get_current_user)):
     count = await telco_collection.count_documents({})
@@ -459,6 +574,7 @@ async def dataset_info(current_user: str = Depends(get_current_user)):
 @app.delete("/dataset/clear")
 async def clear_dataset(current_user: str = Depends(get_current_user)):
     result = await telco_collection.delete_many({})
+    await database["dashboard_cache"].delete_many({})
     return {
         "message": "Dataset cleared successfully",
         "records_deleted": result.deleted_count
@@ -535,11 +651,41 @@ async def predict_all_customers(current_user: str = Depends(get_current_user)):
 @app.get("/dashboard/stats")
 async def get_dashboard_stats(current_user: str = Depends(get_current_user)):
     cached = await database["dashboard_cache"].find_one()
-    if not cached:
-        return {"available": False, "message": "Run batch prediction first"}
+    if cached:
+        clean = {k: v for k, v in cached.items() if k != "_id"}
+        return {"available": True, **clean}
 
-    clean = {k: v for k, v in cached.items() if k != "_id"}
-    return {"available": True, **clean}
+    # If cache is missing, compute stats on the fly if dataset exists
+    count = await telco_collection.count_documents({})
+    if count == 0:
+        return {"available": False, "message": "No dataset uploaded yet"}
+
+    cursor = telco_collection.find()
+    raw_customers = await cursor.to_list(length=None)
+    clean_customers = [{k: v for k, v in c.items() if k != "_id"} for c in raw_customers]
+    
+    batch_results = predict_batch(clean_customers)
+    high = sum(1 for r in batch_results if r["risk_level"] == "High")
+    medium = sum(1 for r in batch_results if r["risk_level"] == "Medium")
+    low = sum(1 for r in batch_results if r["risk_level"] == "Low")
+    total_mrr = sum(float(c.get("MonthlyCharges", 0)) for c in clean_customers if str(c.get("MonthlyCharges", "")).replace('.', '', 1).isdigit())
+    avg_churn = round((high / len(batch_results) * 100), 1) if batch_results else 0.0
+
+    summary = {
+        "available": True,
+        "total_analyzed": len(batch_results),
+        "high_risk_count": high,
+        "medium_risk_count": medium,
+        "low_risk_count": low,
+        "total_mrr": round(total_mrr, 2),
+        "avg_churn_rate": avg_churn,
+        "results": sorted(batch_results, key=lambda r: r["churn_probability"], reverse=True)[:10],
+    }
+
+    await database["dashboard_cache"].delete_many({})
+    await database["dashboard_cache"].insert_one(dict(summary))
+    return summary
+
 
 @app.get("/ml/metrics")
 async def get_ml_metrics(current_user: str = Depends(get_current_user)):
@@ -547,4 +693,33 @@ async def get_ml_metrics(current_user: str = Depends(get_current_user)):
 
 @app.get("/ml/segments")
 async def get_ml_segments(current_user: str = Depends(get_current_user)):
-    return await get_segment_profiles()
+    return await get_segment_profiles()
+
+@app.get("/reports/export/csv")
+async def export_reports_csv(risk_level: Optional[str] = "All", current_user: str = Depends(get_current_user)):
+    cursor = telco_collection.find({})
+    customers = await cursor.to_list(length=None)
+    
+    if not customers:
+        raise HTTPException(status_code=404, detail="No customers found. Upload a dataset first.")
+        
+    for c in customers:
+        c["_id"] = str(c["_id"])
+        
+    results = predict_batch(customers)
+    
+    if risk_level != "All":
+        results = [r for r in results if r["risk_level"] == risk_level]
+        
+    if not results:
+        raise HTTPException(status_code=404, detail=f"No customers found matching risk level: {risk_level}")
+        
+    df = pd.DataFrame(results)
+    
+    stream = io.StringIO()
+    df.to_csv(stream, index=False)
+    
+    response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv")
+    response.headers["Content-Disposition"] = f"attachment; filename=churndata_{risk_level.lower()}.csv"
+    return response
+

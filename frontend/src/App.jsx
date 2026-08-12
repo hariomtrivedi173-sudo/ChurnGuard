@@ -7,6 +7,9 @@ import Predict from './pages/Predict'
 import Upload from './pages/Upload'
 import Analytics from './pages/Analytics'
 import Register from './pages/Register'
+import Segments from './pages/Segments'
+import Reports from './pages/Reports'
+import Settings from './pages/Settings'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -28,6 +31,9 @@ function App() {
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
         <Route path="/predict" element={<ProtectedRoute><Predict /></ProtectedRoute>} />
+        <Route path="/segments" element={<ProtectedRoute><Segments /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
         <Route path="/register" element={<Register />} />
