@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
-import { getDashboardStats, runBatchAnalysis } from '../api/dashboard'
+import { getDashboardStats } from '../api/dashboard'
+import { getUploadHistory } from '../api/dataset'
 import { useNavigate } from 'react-router-dom'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -9,9 +10,11 @@ import {
 } from 'recharts'
 import {
   Users, UserCheck, AlertTriangle, TrendingUp,
-  ShieldAlert, ShieldCheck, DollarSign, Target, Activity, Sparkles, ChevronRight, Zap
+  ShieldAlert, ShieldCheck, DollarSign, Target, Activity, Sparkles, ChevronRight, Zap,
+  UploadCloud, Clock
 } from 'lucide-react'
 
+// Static placeholder trend data — backend has no time-series data yet
 const churnVsRetentionData = [
   { month: 'Jan', retained: 92, churn: 8 },
   { month: 'Feb', retained: 93, churn: 7.5 },
@@ -23,141 +26,164 @@ const churnVsRetentionData = [
   { month: 'Aug', retained: 96, churn: 5.5 },
 ]
 
-const mrrData = [
-  { month: 'Jan', mrr: 142 },
-  { month: 'Feb', mrr: 148 },
-  { month: 'Mar', mrr: 152 },
-  { month: 'Apr', mrr: 160 },
-  { month: 'May', mrr: 167 },
-  { month: 'Jun', mrr: 172 },
-  { month: 'Jul', mrr: 180 },
-  { month: 'Aug', mrr: 184 },
-]
+const AVATAR_COLORS = ['#7c3aed', '#6b7280', '#16a34a', '#ea580c', '#8b5cf6', '#2563eb', '#d97706', '#059669']
 
-const planTierData = [
-  { name: 'Growth', value: 45, color: '#7c3aed' },
-  { name: 'Starter', value: 35, color: '#a78bfa' },
-  { name: 'Scale', value: 20, color: '#ddd6fe' },
-]
+function formatCurrency(val) {
+  if (!val && val !== 0) return '—'
+  if (val >= 10_000_000) return `₹${(val / 10_000_000).toFixed(1)}Cr`
+  if (val >= 100_000)    return `₹${(val / 100_000).toFixed(1)}L`
+  if (val >= 1_000)      return `₹${(val / 1_000).toFixed(1)}K`
+  return `₹${Math.round(val).toLocaleString('en-IN')}`
+}
 
-const fallbackHighRisk = [
-  { id: '1', name: 'Liam Kim', company: 'Lumen Health · Growth', probability: 100, barPct: 90, color: '#9333ea' },
-  { id: '2', name: 'Olivia Reyes', company: 'Skyline Media · Starter', probability: 107, barPct: 95, color: '#6b7280' },
-  { id: '3', name: 'Mason Brooks', company: 'Pulse Fitness · Growth', probability: 131, barPct: 100, color: '#16a34a' },
-  { id: '4', name: 'Sophia Costa', company: 'Atlas Logistics · Scale', probability: 74, barPct: 70, color: '#ea580c' },
-  { id: '5', name: 'Mia Johnson', company: 'Quanta AI · Starter', probability: 94, barPct: 85, color: '#8b5cf6' },
-]
-
-const recentActivityList = [
-  {
-    title: 'New churn prediction completed',
-    sub: 'Model scored 48 customers — 7 flagged high risk.',
-    time: '2 min ago · AI Engine'
-  },
-  {
-    title: 'High-risk alert: Vertex Retail',
-    sub: 'Churn probability rose to 91% after 3 support escalations.',
-    time: '18 min ago · System'
-  },
-  {
-    title: 'Dataset uploaded',
-    sub: 'customers_q3.csv imported with 12,480 rows.',
-    time: '1 hr ago · Maya Chen'
-  },
-  {
-    title: 'Monthly churn report generated',
-    sub: 'PDF report ready for download in Reports.',
-    time: '3 hr ago · Owen Brooks'
-  },
-  {
-    title: 'Customer reactivated',
-    sub: 'Cobalt Bank moved from at-risk to active after outreach.',
-    time: '5 hr ago · Liam Carter'
-  },
-  {
-    title: 'Model retrained',
-    sub: 'Gradient-boosted model v2.4 deployed with 94.2% accuracy.',
-    time: 'Yesterday · AI Engine'
-  },
-]
+function timeAgo(isoString) {
+  if (!isoString) return ''
+  const diff = (Date.now() - new Date(isoString).getTime()) / 1000
+  if (diff < 60) return 'Just now'
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`
+  return `${Math.floor(diff / 86400)} days ago`
+}
 
 function Dashboard() {
-  const [stats, setStats] = useState(null)
+  const [stats, setStats]           = useState(null)
+  const [uploadHistory, setHistory] = useState([])
+  const [loading, setLoading]       = useState(true)
   const navigate = useNavigate()
 
   useEffect(() => {
-    loadStats()
+    loadAll()
   }, [])
 
-  async function loadStats() {
+  async function loadAll() {
+    setLoading(true)
     try {
-      const data = await getDashboardStats()
-      if (data.available) setStats(data)
+      const [data, hist] = await Promise.allSettled([
+        getDashboardStats(),
+        getUploadHistory(6),
+      ])
+      if (data.status === 'fulfilled' && data.value?.available) setStats(data.value)
+      if (hist.status === 'fulfilled' && Array.isArray(hist.value)) setHistory(hist.value)
     } catch (e) {
       console.log(e)
+    } finally {
+      setLoading(false)
     }
   }
 
-  // Dynamic values calculated directly from uploaded dataset if available
-  const total = stats?.total_analyzed || 12480
-  const high  = stats?.high_risk_count  || 1747
-  const med   = stats?.medium_risk_count|| 2995
-  const low   = stats?.low_risk_count   || 7738
-  const activeCount = total - high
-  const churnRatePct = stats?.avg_churn_rate !== undefined
-    ? stats.avg_churn_rate
-    : Math.round((high / total) * 100 * 10) / 10
+  // ── All numbers come from backend; no fallback hardcoded values ──
+  const hasData = !!stats
 
-  const mrrTotal = stats?.total_mrr
-    ? `$${stats.total_mrr.toLocaleString()}`
-    : '$184.2K'
+  const total        = stats?.total_analyzed ?? 0
+  const high         = stats?.high_risk_count ?? 0
+  const med          = stats?.medium_risk_count ?? 0
+  const low          = stats?.low_risk_count ?? 0
+  const activeCount  = total - high
+  const churnRatePct = stats?.avg_churn_rate ?? (total > 0 ? Math.round((high / total) * 100 * 10) / 10 : 0)
+  const mrrTotal     = formatCurrency(stats?.total_mrr)
 
-  // Dynamic Donut percentages based on live database metrics
-  const lowPct = Math.round((low / total) * 100)
-  const medPct = Math.round((med / total) * 100)
+  // Risk donut — computed from live counts
+  const lowPct  = total > 0 ? Math.round((low / total) * 100) : 0
+  const medPct  = total > 0 ? Math.round((med / total) * 100) : 0
   const highPct = 100 - lowPct - medPct
 
   const riskDonutData = [
-    { name: 'Low Risk', value: lowPct, color: '#22c55e' },
-    { name: 'Medium Risk', value: medPct, color: '#d97706' },
-    { name: 'High Risk', value: highPct, color: '#e11d48' },
+    { name: 'Low Risk',    value: lowPct,  color: '#22c55e' },
+    { name: 'Medium Risk', value: medPct,  color: '#d97706' },
+    { name: 'High Risk',   value: highPct, color: '#e11d48' },
   ]
 
-  const tableData = stats?.results && stats.results.length > 0
-    ? stats.results.slice(0, 5).map((r, i) => ({
-        id: r.customerID || i,
-        name: r.customerID || `Customer #${i + 1}`,
-        company: 'Telco Account',
-        probability: Math.round(r.churn_probability),
-        barPct: Math.min(100, Math.round(r.churn_probability)),
-        color: fallbackHighRisk[i % 5].color
-      }))
-    : fallbackHighRisk
+  // Plan distribution from real backend data
+  const planTierData = stats?.plan_distribution ?? []
+
+  // Highest-risk customers from real ML results
+  const highRiskRows = (stats?.results ?? []).slice(0, 5).map((r, i) => ({
+    id: r.customerID || i,
+    name: r.customerID || `Customer #${i + 1}`,
+    company: r.Contract ? `${r.Contract} Plan` : 'Telco Account',
+    probability: Math.round(r.churn_probability ?? 0),
+    barPct: Math.min(100, Math.round(r.churn_probability ?? 0)),
+    color: AVATAR_COLORS[i % AVATAR_COLORS.length],
+  }))
+
+  // Recent activity from upload history
+  const activityItems = uploadHistory.map(u => ({
+    title: `Dataset uploaded: ${u.filename}`,
+    sub: `${u.inserted_rows?.toLocaleString() ?? 0} new records added · ${u.duplicate_rows ?? 0} duplicates skipped · Total: ${u.final_total?.toLocaleString() ?? '—'}`,
+    time: timeAgo(u.uploaded_at),
+    icon: UploadCloud,
+  }))
+
+  // Empty state when no dataset uploaded yet
+  if (!loading && !hasData) {
+    return (
+      <div className="page-layout">
+        <Sidebar />
+        <div className="page-content" style={{ padding: '24px 32px' }}>
+          <Header title="Dashboard" />
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            minHeight: '60vh', gap: '20px', textAlign: 'center'
+          }}>
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '20px',
+              background: 'var(--purple-50)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <UploadCloud size={32} color="var(--purple-600)" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                No data yet
+              </h2>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '360px' }}>
+                Upload a CSV dataset to start seeing churn predictions, risk metrics, and insights.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/upload')}
+              className="btn-primary"
+              style={{ padding: '10px 24px', fontSize: '14px' }}
+            >
+              <UploadCloud size={16} /> Upload Dataset
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="page-layout">
       <Sidebar />
       <div className="page-content" style={{ padding: '24px 32px' }}>
 
-        <Header title="Dashboard" subtitle="Welcome back, Maya — here's your churn outlook." />
+        <Header title="Dashboard" subtitle="Here's your live churn intelligence overview." />
 
-        {/* ── Stat Cards Grid (Rows 1 & 2) ── */}
+        {/* ── Loading skeleton ── */}
+        {loading && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', color: 'var(--text-muted)', fontSize: '13px' }}>
+            <div style={{ width: '16px', height: '16px', border: '2px solid var(--purple-200)', borderTopColor: 'var(--purple-600)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            Loading live data…
+          </div>
+        )}
+
+        {/* ── Stat Cards Row 1 ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '16px' }}>
-          
+
           <div className="card" style={{ padding: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>Total Customers</p>
                 <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {total.toLocaleString()}
+                  {hasData ? total.toLocaleString() : '—'}
                 </p>
               </div>
               <div style={{ width: '40px', height: '40px', background: 'var(--purple-50)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Users size={20} color="var(--purple-600)" />
               </div>
             </div>
-            <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>
-              <span>↗ +4.2%</span> <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>vs last month</span>
+            <div style={{ marginTop: '14px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              {hasData ? 'From uploaded dataset' : 'Upload a CSV to see data'}
             </div>
           </div>
 
@@ -166,15 +192,15 @@ function Dashboard() {
               <div>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>Active Customers</p>
                 <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {activeCount.toLocaleString()}
+                  {hasData ? activeCount.toLocaleString() : '—'}
                 </p>
               </div>
               <div style={{ width: '40px', height: '40px', background: 'rgba(34, 197, 94, 0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <UserCheck size={20} color="#16a34a" />
               </div>
             </div>
-            <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>
-              <span>↗ +2.1%</span> <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>vs last month</span>
+            <div style={{ marginTop: '14px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              {hasData ? `${total.toLocaleString()} total − ${high.toLocaleString()} high risk` : '—'}
             </div>
           </div>
 
@@ -183,15 +209,15 @@ function Dashboard() {
               <div>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>High Risk</p>
                 <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {high.toLocaleString()}
+                  {hasData ? high.toLocaleString() : '—'}
                 </p>
               </div>
               <div style={{ width: '40px', height: '40px', background: 'rgba(225, 29, 72, 0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <AlertTriangle size={20} color="#e11d48" />
               </div>
             </div>
-            <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#e11d48', fontWeight: 600 }}>
-              <span>↘ -0.8%</span> <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>vs last month</span>
+            <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: hasData ? '#e11d48' : 'var(--text-muted)', fontWeight: 600 }}>
+              {hasData ? <><span>{highPct}% of all customers</span></> : <span>—</span>}
             </div>
           </div>
 
@@ -200,23 +226,23 @@ function Dashboard() {
               <div>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>Churn Rate</p>
                 <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {churnRatePct}%
+                  {hasData ? `${churnRatePct}%` : '—'}
                 </p>
               </div>
               <div style={{ width: '40px', height: '40px', background: 'rgba(217, 119, 6, 0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <TrendingUp size={20} color="#d97706" />
               </div>
             </div>
-            <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#e11d48', fontWeight: 600 }}>
-              <span>↘ -1.2%</span> <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>vs last month</span>
+            <div style={{ marginTop: '14px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              {hasData ? 'Predicted churn probability avg' : '—'}
             </div>
           </div>
 
         </div>
 
-        {/* Row 2 of Stat Cards */}
+        {/* ── Stat Cards Row 2 ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-          
+
           <div className="card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{ width: '38px', height: '38px', background: 'rgba(217, 119, 6, 0.12)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ShieldAlert size={18} color="#d97706" />
@@ -224,7 +250,7 @@ function Dashboard() {
             <div>
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Medium Risk</p>
               <p style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {med.toLocaleString()}
+                {hasData ? med.toLocaleString() : '—'}
               </p>
             </div>
           </div>
@@ -236,7 +262,7 @@ function Dashboard() {
             <div>
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Low Risk</p>
               <p style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {low.toLocaleString()}
+                {hasData ? low.toLocaleString() : '—'}
               </p>
             </div>
           </div>
@@ -248,7 +274,7 @@ function Dashboard() {
             <div>
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Revenue (MRR)</p>
               <p style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {mrrTotal}
+                {hasData ? mrrTotal : '—'}
               </p>
             </div>
           </div>
@@ -274,11 +300,8 @@ function Dashboard() {
                 <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Churn vs Retention Trend</h3>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Monthly churn rate and retained customer base</p>
               </div>
-              <span className="badge badge-green" style={{ fontSize: '11px' }}>
-                ● Trending down
-              </span>
+              <span className="badge badge-green" style={{ fontSize: '11px' }}>● Sample trend</span>
             </div>
-
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={churnVsRetentionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
@@ -332,7 +355,7 @@ function Dashboard() {
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }} />
                     <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{item.name}</span>
                   </div>
-                  <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.value}%</span>
+                  <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{hasData ? `${item.value}%` : '—'}</span>
                 </div>
               ))}
             </div>
@@ -340,43 +363,63 @@ function Dashboard() {
 
         </div>
 
-        {/* ── Main Charts Row 2 (3 Columns) ── */}
+        {/* ── Charts Row 2 (3 columns) ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
 
-          <div className="card" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>Revenue Impact</h3>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '14px' }}>MRR trend (in $K)</p>
-            
-            <ResponsiveContainer width="100%" height={140}>
-              <LineChart data={mrrData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} domain={[50, 200]} />
-                <Tooltip contentStyle={{ borderRadius: '10px', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: '11px' }} />
-                <Line type="monotone" dataKey="mrr" stroke="#16a34a" strokeWidth={2} dot={{ fill: '#16a34a', r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
+          {/* MRR stat card (no time-series data) */}
+          <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', alignSelf: 'flex-start' }}>Monthly Revenue (MRR)</h3>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', alignSelf: 'flex-start', marginBottom: '20px' }}>Total charges from dataset</p>
+            <p style={{ fontSize: '36px', fontWeight: 800, color: '#16a34a', lineHeight: 1 }}>{hasData ? mrrTotal : '—'}</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
+              {hasData ? `From ${total.toLocaleString()} customers` : 'No data'}
+            </p>
           </div>
 
+          {/* Plan distribution — real data from backend */}
           <div className="card" style={{ padding: '20px' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>Plan Distribution</h3>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '14px' }}>Customers by plan tier</p>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '14px' }}>Customers by contract type</p>
 
-            <ResponsiveContainer width="100%" height={140}>
-              <PieChart>
-                <Pie data={planTierData} cx="50%" cy="50%" outerRadius={52} dataKey="value">
-                  {planTierData.map((e, i) => (
-                    <Cell key={i} fill={e.color} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: '10px', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: '11px' }} />
-              </PieChart>
-            </ResponsiveContainer>
+            {planTierData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={140}>
+                <PieChart>
+                  <Pie data={planTierData} cx="50%" cy="50%" outerRadius={52} dataKey="value">
+                    {planTierData.map((e, i) => (
+                      <Cell key={i} fill={e.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value, name, props) => [`${props.payload.pct}% (${value.toLocaleString()})`, name]}
+                    contentStyle={{ borderRadius: '10px', background: 'var(--surface)', color: 'var(--text-primary)', fontSize: '11px' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+                No plan data
+              </div>
+            )}
+
+            {planTierData.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' }}>
+                {planTierData.map(p => (
+                  <div key={p.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                      <span style={{ color: 'var(--text-secondary)' }}>{p.name}</span>
+                    </div>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{p.pct}%</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
+          {/* Prediction accuracy — static model stat */}
           <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', alignSelf: 'flex-start' }}>Prediction Accuracy</h3>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', alignSelf: 'flex-start', marginBottom: '10px' }}>Model confidence over time</p>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', alignSelf: 'flex-start', marginBottom: '10px' }}>Model v2.4 confidence</p>
 
             <div style={{ position: 'relative', width: '110px', height: '110px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="110" height="110" viewBox="0 0 100 100">
@@ -399,7 +442,7 @@ function Dashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
               <div>
                 <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Highest Risk Customers</h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Customers most likely to churn this cycle</p>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Customers most likely to churn — sorted by ML probability</p>
               </div>
               <button
                 onClick={() => navigate('/customers')}
@@ -409,121 +452,138 @@ function Dashboard() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {tableData.map(item => (
-                <div
-                  key={item.id}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '10px 14px', borderRadius: '12px', background: 'var(--surface-hover)',
-                    transition: 'background 150ms ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                    <div style={{
-                      width: '36px', height: '36px', borderRadius: '50%',
-                      background: item.color, color: '#fff', fontWeight: 700, fontSize: '11px',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                    }}>
-                      {item.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+            {!hasData || highRiskRows.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontSize: '13px' }}>
+                {hasData
+                  ? 'No prediction results yet — re-upload dataset to generate risk scores'
+                  : 'Upload a dataset to see high-risk customers'}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {highRiskRows.map(item => (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '10px 14px', borderRadius: '12px', background: 'var(--surface-hover)',
+                      transition: 'background 150ms ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                      <div style={{
+                        width: '36px', height: '36px', borderRadius: '50%',
+                        background: item.color, color: '#fff', fontWeight: 700, fontSize: '11px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                      }}>
+                        {String(item?.name || 'CU').split('').slice(0, 2).join('').toUpperCase()}
+                      </div>
+                      <div>
+                        <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{item.name}</p>
+                        <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.company}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{item.name}</p>
-                      <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.company}</p>
-                    </div>
-                  </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '180px' }}>
-                    <div style={{ flex: 1, height: '6px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${item.barPct}%`, background: '#e11d48', borderRadius: '99px' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '180px' }}>
+                      <div style={{ flex: 1, height: '6px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${item.barPct}%`, background: '#e11d48', borderRadius: '99px' }} />
+                      </div>
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', width: '38px', textAlign: 'right' }}>
+                        {item.probability}%
+                      </span>
                     </div>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', width: '38px', textAlign: 'right' }}>
-                      {item.probability}%
-                    </span>
-                  </div>
 
-                  <div style={{ marginLeft: '16px' }}>
-                    <span className="badge badge-red" style={{ fontSize: '11px' }}>
-                      ● High Risk
-                    </span>
+                    <div style={{ marginLeft: '16px' }}>
+                      <span className="badge badge-red" style={{ fontSize: '11px' }}>● High Risk</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="card" style={{ padding: '22px' }}>
             <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>Recent Activity</h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>Latest events across your workspace</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>Latest dataset uploads</p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '10px', bottom: '10px', left: '13px', width: '2px', background: 'var(--border)' }} />
-
-              {recentActivityList.map((item, idx) => (
-                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', position: 'relative', zIndex: 1 }}>
-                  <div style={{
-                    width: '28px', height: '28px', borderRadius: '50%',
-                    background: 'var(--purple-50)', border: '2px solid var(--surface)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                  }}>
-                    <Activity size={13} color="var(--purple-600)" />
-                  </div>
-                  <div>
-                    <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-                      {item.title}
-                    </p>
-                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: 1.3 }}>
-                      {item.sub}
-                    </p>
-                    <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                      {item.time}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {activityItems.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: '12px' }}>
+                <Clock size={24} style={{ marginBottom: '8px', opacity: 0.4 }} />
+                <p>No uploads yet</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '10px', bottom: '10px', left: '13px', width: '2px', background: 'var(--border)' }} />
+                {activityItems.map((item, idx) => {
+                  const Icon = item.icon
+                  return (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', position: 'relative', zIndex: 1 }}>
+                      <div style={{
+                        width: '28px', height: '28px', borderRadius: '50%',
+                        background: 'var(--purple-50)', border: '2px solid var(--surface)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                      }}>
+                        <Icon size={13} color="var(--purple-600)" />
+                      </div>
+                      <div>
+                        <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                          {item.title}
+                        </p>
+                        <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: 1.3 }}>
+                          {item.sub}
+                        </p>
+                        <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          {item.time}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
         </div>
 
         {/* ── AI Insight Banner ── */}
-        <div style={{
-          background: 'var(--purple-50)',
-          border: '1px solid var(--border)',
-          borderRadius: '16px',
-          padding: '20px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '16px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{
-              width: '42px', height: '42px', borderRadius: '12px',
-              background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)', flexShrink: 0
-            }}>
-              <Sparkles size={20} color="#fff" />
+        {hasData && (
+          <div style={{
+            background: 'var(--purple-50)',
+            border: '1px solid var(--border)',
+            borderRadius: '16px',
+            padding: '20px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '42px', height: '42px', borderRadius: '12px',
+                background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)', flexShrink: 0
+              }}>
+                <Sparkles size={20} color="#fff" />
+              </div>
+              <div>
+                <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  AI Insight · {high.toLocaleString()} high-risk customers need attention this week
+                </p>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  Proactive outreach on these accounts could recover an estimated {mrrTotal} MRR. Open the Predictions page to see recommendations.
+                </p>
+              </div>
             </div>
-            <div>
-              <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                AI Insight · {high} high-risk customers need attention this week
-              </p>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                Proactive outreach on these accounts could recover an estimated {mrrTotal} MRR. Open the Predictions page to see recommendations.
-              </p>
-            </div>
-          </div>
 
-          <button
-            onClick={() => navigate('/predict')}
-            className="btn-primary"
-            style={{ padding: '9px 18px', fontSize: '13px', whiteSpace: 'nowrap' }}
-          >
-            <Zap size={15} /> View Predictions
-          </button>
-        </div>
+            <button
+              onClick={() => navigate('/predict')}
+              className="btn-primary"
+              style={{ padding: '9px 18px', fontSize: '13px', whiteSpace: 'nowrap' }}
+            >
+              <Zap size={15} /> View Predictions
+            </button>
+          </div>
+        )}
 
       </div>
     </div>

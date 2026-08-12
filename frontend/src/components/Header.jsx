@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Plus, Sun, Moon, Bell, Settings, LogOut } from 'lucide-react'
+import { apiRequest } from '../api/client'
 
-function Header({ title = "Dashboard", subtitle = "Welcome back, Maya — here's your churn outlook." }) {
+function Header({ title = "Dashboard", subtitle = "" }) {
   const navigate = useNavigate()
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light')
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [unreadCount, setUnreadCount] = useState(2)
+  const [profile, setProfile] = useState({ first_name: '', last_name: '', email: '' })
 
   const notifRef = useRef(null)
   const profileRef = useRef(null)
@@ -16,6 +18,22 @@ function Header({ title = "Dashboard", subtitle = "Welcome back, Maya — here's
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
   }, [theme])
+
+  // Load real user profile on mount
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token || token === 'null' || token === 'undefined') return
+    apiRequest('/profile/me')
+      .then(data => { if (data) setProfile(data) })
+      .catch(() => {})
+  }, [])
+
+  const initials = [
+    profile?.first_name?.[0] ?? '',
+    profile?.last_name?.[0] ?? ''
+  ].join('').toUpperCase() || profile?.email?.[0]?.toUpperCase() || 'U'
+
+  const displayName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || profile?.email || 'User'
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -167,7 +185,7 @@ function Header({ title = "Dashboard", subtitle = "Welcome back, Maya — here's
                 boxShadow: '0 2px 8px rgba(124, 58, 237, 0.3)'
               }}
             >
-              MC
+              {initials}
             </div>
 
             {showProfileMenu && (
@@ -178,8 +196,8 @@ function Header({ title = "Dashboard", subtitle = "Welcome back, Maya — here's
                 padding: '8px', zIndex: 100,
               }}>
                 <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)', marginBottom: '4px' }}>
-                  <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>Maya Chen</p>
-                  <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>maya@churnguard.ai</p>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{displayName}</p>
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{profile.email || '—'}</p>
                 </div>
 
                 <button

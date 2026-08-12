@@ -118,7 +118,7 @@ function Predict() {
       <Sidebar />
       <div className="page-content" style={{ padding: '24px 32px' }}>
 
-        <Header title="Predictions" subtitle="Welcome back, Maya — here's your churn outlook." />
+        <Header title="Predictions" subtitle="Run AI-powered churn predictions on your customers." />
 
         {/* ── Two Card Split Layout ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'start' }}>

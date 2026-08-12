@@ -12,12 +12,12 @@ function Settings() {
 
   // Profile state
   const [profile, setProfile] = useState({
-    first_name: 'Maya',
-    last_name: 'Chen',
-    email: 'maya@churnguard.ai',
-    role: 'Head of Customer Success',
-    company: 'ChurnGuard Inc.',
-    phone: '+1 (555) 014-2231'
+    first_name: '',
+    last_name: '',
+    email: '',
+    role: 'Analyst',
+    company: '',
+    phone: ''
   })
 
   // Password state
@@ -52,12 +52,12 @@ function Settings() {
       const data = await fetchProfile()
       if (data) {
         setProfile({
-          first_name: data.first_name || 'Maya',
-          last_name: data.last_name || 'Chen',
-          email: data.email || 'maya@churnguard.ai',
-          role: data.role || 'Head of Customer Success',
-          company: data.company || 'ChurnGuard Inc.',
-          phone: data.phone || '+1 (555) 014-2231'
+          first_name: data.first_name || '',
+          last_name: data.last_name || '',
+          email: data.email || '',
+          role: data.role || 'Analyst',
+          company: data.company || '',
+          phone: data.phone || ''
         })
         localStorage.setItem('user_profile', JSON.stringify(data))
       }
@@ -126,14 +126,17 @@ function Settings() {
     toast.success(`Language changed to ${e.target.options[e.target.selectedIndex].text}`)
   }
 
-  const initials = `${(profile.first_name || 'M')[0]}${(profile.last_name || 'C')[0]}`.toUpperCase()
+  const initials = [
+    profile?.first_name?.[0] ?? '',
+    profile?.last_name?.[0] ?? ''
+  ].join('').toUpperCase() || profile?.email?.[0]?.toUpperCase() || 'U'
 
   return (
     <div className="page-layout">
       <Sidebar />
       <div className="page-content" style={{ padding: '24px 32px' }}>
 
-        <Header title="Settings" subtitle="Welcome back, Maya — here's your workspace configuration." />
+        <Header title="Settings" subtitle="Manage your profile, security, and workspace preferences." />
 
         {/* ── Settings Tab Bar ── */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'var(--surface)', padding: '6px', borderRadius: '14px', border: '1px solid var(--border)', maxWidth: 'fit-content' }}>

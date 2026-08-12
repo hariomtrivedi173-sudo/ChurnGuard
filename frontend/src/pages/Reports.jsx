@@ -57,7 +57,7 @@ function Reports() {
       <Sidebar />
       <div className="page-content" style={{ padding: '24px 32px' }}>
 
-        <Header title="Reports" subtitle="Welcome back, Maya — here's your churn outlook." />
+        <Header title="Reports" subtitle="Download and schedule churn analysis reports." />
 
         {/* ── Top Section: Available Reports (Matching Image 1 & 2) ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '28px' }}>

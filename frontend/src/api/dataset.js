@@ -22,3 +22,8 @@ export async function getDatasetInfo() {
   const { apiRequest } = await import('./client')
   return apiRequest('/dataset/info')
 }
+
+export async function getUploadHistory(limit = 10) {
+  const { apiRequest } = await import('./client')
+  return apiRequest(`/uploads/history?limit=${limit}`)
+}

@@ -1,9 +1,9 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate } from 'react'
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('token')
 
-  if (!token) {
+  if (!token || token === 'undefined' || token === 'null') {
     return <Navigate to="/" replace />
   }
 

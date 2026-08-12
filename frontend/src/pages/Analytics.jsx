@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
 import {
@@ -6,6 +6,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line
 } from 'recharts'
 import { TrendingDown, TrendingUp, DollarSign, Users, Calendar } from 'lucide-react'
+import { getDashboardStats } from '../api/dashboard'
 
 // Trend Analysis Data (Image 3)
 const churnTrendData = [
@@ -71,60 +72,73 @@ const monthlyChurnByPlanData = [
 
 function Analytics() {
   const [activeTab, setActiveTab] = useState('Trend Analysis')
+  const [stats, setStats] = useState(null)
+
+  useEffect(() => {
+    getDashboardStats()
+      .then(data => { if (data?.available) setStats(data) })
+      .catch(() => {})
+  }, [])
+
+  const churnRate    = stats?.avg_churn_rate != null ? `${stats.avg_churn_rate}%` : '—'
+  const retainRate   = stats?.avg_churn_rate != null ? `${(100 - stats.avg_churn_rate).toFixed(1)}%` : '—'
+  const totalMrr     = stats?.total_mrr
+  const highRiskMrr  = stats && totalMrr ? `₹${((totalMrr * (stats.high_risk_count / (stats.total_analyzed || 1))) / 1000).toFixed(1)}K` : '—'
+  const segCount     = stats?.plan_distribution?.length ?? '—'
 
   return (
     <div className="page-layout">
       <Sidebar />
       <div className="page-content" style={{ padding: '24px 32px' }}>
 
-        <Header title="Analytics" subtitle="Welcome back, Maya — here's your churn outlook." />
+        <Header title="Analytics" subtitle="Churn intelligence and customer segment analysis." />
 
         {/* ── Top 4 Metric Cards (Matching Image 3) ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
           
           <div className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>6.4%</p>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '6px' }}>Avg Monthly Churn</p>
+              <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{churnRate}</p>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '6px' }}>Avg Churn Rate</p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
               <div style={{ width: '36px', height: '36px', background: 'rgba(34, 197, 94, 0.12)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <TrendingDown size={18} color="#16a34a" />
               </div>
-              <span className="badge badge-green" style={{ fontSize: '10px' }}>-1.2%</span>
+              <span className="badge badge-green" style={{ fontSize: '10px' }}>Live</span>
             </div>
           </div>
 
           <div className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>93.6%</p>
+              <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{retainRate}</p>
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '6px' }}>Retention Rate</p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
               <div style={{ width: '36px', height: '36px', background: 'rgba(34, 197, 94, 0.12)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <TrendingUp size={18} color="#16a34a" />
               </div>
-              <span className="badge badge-green" style={{ fontSize: '10px' }}>+1.2%</span>
+              <span className="badge badge-green" style={{ fontSize: '10px' }}>Live</span>
             </div>
           </div>
 
           <div className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>$48.2K</p>
+              <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{highRiskMrr}</p>
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '6px' }}>At-Risk MRR</p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
               <div style={{ width: '36px', height: '36px', background: 'rgba(217, 119, 6, 0.12)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <DollarSign size={18} color="#d97706" />
               </div>
-              <span className="badge badge-amber" style={{ fontSize: '10px' }}>-8%</span>
+              <span className="badge badge-amber" style={{ fontSize: '10px' }}>Live</span>
             </div>
           </div>
 
           <div className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>4</p>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '6px' }}>Segments Tracked</p>
+              <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{segCount}</p>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '6px' }}>Contract Types</p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
               <div style={{ width: '36px', height: '36px', background: 'var(--purple-50)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

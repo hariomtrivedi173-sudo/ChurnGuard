@@ -1,12 +1,14 @@
 import os
 import sys
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
+import math
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 # pyrefly: ignore [missing-import]
 from bson import ObjectId
 import pandas as pd
 import io
+from datetime import datetime, timezone
 
 from database import customer_collection, user_collection, telco_collection, database
 from auth import hash_password, verify_password, create_access_token, get_current_user
@@ -29,11 +31,25 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Ensure compound unique index on (company_id, customerID) in telco_collection."""
+    try:
+        await telco_collection.create_index(
+            [("company_id", 1), ("customerID", 1)],
+            unique=True,
+            name="company_customer_id_unique",
+            sparse=True
+        )
+        print("MongoDB compound unique index ensured: company_id + customerID")
+    except Exception as e:
+        print("MongoDB index creation notice:", e)
 
 # ---------- Pydantic Models ----------
 
@@ -69,6 +85,15 @@ class CustomerResponse(BaseModel):
 class User(BaseModel):
     email: str
     password: str
+
+class RegisterUser(BaseModel):
+    email: str
+    password: str
+    first_name: str = ""
+    last_name: str = ""
+    company: str = ""
+    phone: str = ""
+    role: str = "Analyst"
 
 class CustomerPredictionInput(BaseModel):
     gender: Literal["Male", "Female"]
@@ -304,7 +329,7 @@ class UserProfileUpdate(BaseModel):
 # ---------- Sprint 3: Authentication ----------
 
 @app.post("/register")
-async def register_user(user: User):
+async def register_user(user: RegisterUser):
     existing = await user_collection.find_one({"email": user.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -313,11 +338,11 @@ async def register_user(user: User):
     await user_collection.insert_one({
         "email": user.email,
         "password": hashed_pw,
-        "first_name": "Maya",
-        "last_name": "Chen",
-        "role": "Head of Customer Success",
-        "company": "ChurnGuard Inc.",
-        "phone": "+1 (555) 014-2231"
+        "first_name": user.first_name.strip(),
+        "last_name": user.last_name.strip(),
+        "role": user.role.strip() or "Analyst",
+        "company": user.company.strip(),
+        "phone": user.phone.strip()
     })
     return {"message": f"User {user.email} registered successfully"}
 
@@ -489,6 +514,11 @@ async def clean_dataset(file: UploadFile = File(...), current_user: str = Depend
 
 @app.post("/dataset/store")
 async def store_dataset(file: UploadFile = File(...), current_user: str = Depends(get_current_user)):
+    # Fetch logged-in user profile to determine company_id and user_id
+    user_doc = await user_collection.find_one({"email": current_user})
+    company_id = str((user_doc.get("company") if user_doc else None) or current_user).strip()
+    user_id = str(user_doc.get("_id")) if user_doc else ""
+
     try:
         contents = await file.read()
         df = pd.read_csv(io.BytesIO(contents))
@@ -497,6 +527,8 @@ async def store_dataset(file: UploadFile = File(...), current_user: str = Depend
 
     if df.empty:
         raise HTTPException(status_code=400, detail="Uploaded CSV file contains no records.")
+
+    total_rows = len(df)
 
     # Clean TotalCharges safely if column exists
     if "TotalCharges" in df.columns:
@@ -517,21 +549,107 @@ async def store_dataset(file: UploadFile = File(...), current_user: str = Depend
     if not records:
         raise HTTPException(status_code=400, detail="No valid records found in CSV file after cleaning.")
 
-    # Clear previous upload and store new records
-    await telco_collection.delete_many({})
-    result = await telco_collection.insert_many(records)
+    # ── Fetch existing customerIDs for this company from MongoDB Atlas ──
+    existing_ids = set()
+    async for doc in telco_collection.find(
+        {"$or": [{"company_id": company_id}, {"company_id": {"$exists": False}}]},
+        {"customerID": 1, "_id": 0}
+    ):
+        cid = doc.get("customerID")
+        if cid:
+            existing_ids.add(str(cid).strip())
 
-    # Auto-calculate dashboard stats and predictions cache for the newly uploaded dataset
+    inserted_count = 0
+    duplicate_count = 0
+    new_records = []
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    if "customerID" in df.columns:
+        for rec in records:
+            cid = str(rec.get("customerID", "")).strip()
+            if cid and cid in existing_ids:
+                duplicate_count += 1
+            else:
+                rec["company_id"] = company_id
+                rec["created_at"] = now_iso
+                rec["uploaded_by"] = current_user
+                new_records.append(rec)
+                if cid:
+                    existing_ids.add(cid)  # prevent intra-file duplicates
+    else:
+        # If no customerID column present, generate synthetic customerID and attach company metadata
+        for idx, rec in enumerate(records):
+            rec["company_id"] = company_id
+            rec["customerID"] = f"CUS-{idx + 1}"
+            rec["created_at"] = now_iso
+            rec["uploaded_by"] = current_user
+            new_records.append(rec)
+
+    # ── BULK INSERT INTO MONGODB ATLAS ──
+    if new_records:
+        try:
+            insert_result = await telco_collection.insert_many(new_records, ordered=False)
+            inserted_count = len(insert_result.inserted_ids)
+        except Exception as e:
+            print("MongoDB insert exception:", e)
+            if hasattr(e, "details") and isinstance(e.details, dict):
+                inserted_count = e.details.get("nInserted", 0)
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Dataset upload failed. No successful upload was recorded."
+                )
+
+    # ── VERIFY DATABASE COUNT DIRECTLY FROM MONGODB ATLAS AFTER INSERT ──
+    total_in_db = await telco_collection.count_documents({})
+
+    # ── STORE UPLOAD HISTORY ONLY AFTER SUCCESSFUL INSERT ──
+    await database["dataset_uploads"].insert_one({
+        "company_id": company_id,
+        "user_id": user_id,
+        "filename": file.filename,
+        "uploaded_by": current_user,
+        "total_rows": total_rows,
+        "new_records": inserted_count,
+        "inserted_rows": inserted_count,
+        "duplicate_rows": duplicate_count,
+        "duplicates_skipped": duplicate_count,
+        "total_in_db": total_in_db,
+        "final_total": total_in_db,
+        "created_at": now_iso,
+        "uploaded_at": now_iso,
+        "status": "success"
+    })
+
+    # ── Auto-update dashboard cache with ALL records from MongoDB Atlas ──
     try:
-        clean_customers = [{k: v for k, v in c.items() if k != "_id"} for c in records]
+        cursor = telco_collection.find()
+        all_docs = await cursor.to_list(length=None)
+        clean_customers = [{k: v for k, v in c.items() if k != "_id"} for c in all_docs]
         batch_results = predict_batch(clean_customers)
 
         high = sum(1 for r in batch_results if r["risk_level"] == "High")
         medium = sum(1 for r in batch_results if r["risk_level"] == "Medium")
         low = sum(1 for r in batch_results if r["risk_level"] == "Low")
 
-        total_mrr = sum(float(c.get("MonthlyCharges", 0)) for c in clean_customers if str(c.get("MonthlyCharges", "")).replace('.', '', 1).isdigit())
+        total_mrr = sum(
+            float(c.get("MonthlyCharges", 0))
+            for c in clean_customers
+            if str(c.get("MonthlyCharges", "")).replace('.', '', 1).isdigit()
+        )
         avg_churn = round((high / len(batch_results) * 100), 1) if batch_results else 0.0
+
+        from collections import Counter
+        contract_counts = Counter(c.get("Contract", "Unknown") for c in clean_customers)
+        plan_distribution = []
+        color_map = {"Month-to-month": "#e11d48", "One year": "#d97706", "Two year": "#22c55e"}
+        for plan, count in contract_counts.items():
+            plan_distribution.append({
+                "name": plan,
+                "value": count,
+                "pct": round(count / len(clean_customers) * 100, 1) if clean_customers else 0,
+                "color": color_map.get(plan, "#7c3aed")
+            })
 
         summary = {
             "total_analyzed": len(batch_results),
@@ -540,6 +658,7 @@ async def store_dataset(file: UploadFile = File(...), current_user: str = Depend
             "low_risk_count": low,
             "total_mrr": round(total_mrr, 2),
             "avg_churn_rate": avg_churn,
+            "plan_distribution": plan_distribution,
             "results": sorted(batch_results, key=lambda r: r["churn_probability"], reverse=True)[:10],
         }
 
@@ -549,9 +668,17 @@ async def store_dataset(file: UploadFile = File(...), current_user: str = Depend
         print("Error auto-updating dashboard cache:", e)
 
     return {
+        "success": True,
         "filename": file.filename,
-        "message": "Dataset cleaned and stored successfully",
-        "rows_stored": len(result.inserted_ids)
+        "message": "Dataset stored successfully in MongoDB Atlas",
+        "total_rows": total_rows,
+        "new_records": inserted_count,
+        "inserted": inserted_count,
+        "duplicates_skipped": duplicate_count,
+        "duplicate_rows": duplicate_count,
+        "total_in_db": total_in_db,
+        "final_customer_count": total_in_db,
+        "rows_stored": inserted_count
     }
 
 
@@ -663,13 +790,26 @@ async def get_dashboard_stats(current_user: str = Depends(get_current_user)):
     cursor = telco_collection.find()
     raw_customers = await cursor.to_list(length=None)
     clean_customers = [{k: v for k, v in c.items() if k != "_id"} for c in raw_customers]
-    
+
     batch_results = predict_batch(clean_customers)
     high = sum(1 for r in batch_results if r["risk_level"] == "High")
     medium = sum(1 for r in batch_results if r["risk_level"] == "Medium")
     low = sum(1 for r in batch_results if r["risk_level"] == "Low")
     total_mrr = sum(float(c.get("MonthlyCharges", 0)) for c in clean_customers if str(c.get("MonthlyCharges", "")).replace('.', '', 1).isdigit())
     avg_churn = round((high / len(batch_results) * 100), 1) if batch_results else 0.0
+
+    from collections import Counter
+    contract_counts = Counter(c.get("Contract", "Unknown") for c in clean_customers)
+    color_map = {"Month-to-month": "#e11d48", "One year": "#d97706", "Two year": "#22c55e"}
+    plan_distribution = [
+        {
+            "name": plan,
+            "value": cnt,
+            "pct": round(cnt / len(clean_customers) * 100, 1) if clean_customers else 0,
+            "color": color_map.get(plan, "#7c3aed")
+        }
+        for plan, cnt in contract_counts.items()
+    ]
 
     summary = {
         "available": True,
@@ -679,12 +819,26 @@ async def get_dashboard_stats(current_user: str = Depends(get_current_user)):
         "low_risk_count": low,
         "total_mrr": round(total_mrr, 2),
         "avg_churn_rate": avg_churn,
+        "plan_distribution": plan_distribution,
         "results": sorted(batch_results, key=lambda r: r["churn_probability"], reverse=True)[:10],
     }
 
     await database["dashboard_cache"].delete_many({})
     await database["dashboard_cache"].insert_one(dict(summary))
     return summary
+
+
+@app.get("/uploads/history")
+async def get_upload_history(limit: int = 10, current_user: str = Depends(get_current_user)):
+    """Return the last N dataset upload events."""
+    cursor = database["dataset_uploads"].find().sort("uploaded_at", -1).limit(limit)
+    history = []
+    async for doc in cursor:
+        doc["_id"] = str(doc["_id"])
+        if "uploaded_at" in doc and hasattr(doc["uploaded_at"], "isoformat"):
+            doc["uploaded_at"] = doc["uploaded_at"].isoformat()
+        history.append(doc)
+    return history
 
 
 @app.get("/ml/metrics")
@@ -722,4 +876,63 @@ async def export_reports_csv(risk_level: Optional[str] = "All", current_user: st
     response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv")
     response.headers["Content-Disposition"] = f"attachment; filename=churndata_{risk_level.lower()}.csv"
     return response
+
+
+# ---------- Telco Customers (CSV-uploaded dataset) — Paginated ----------
+
+@app.get("/telco/customers")
+async def get_telco_customers(
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=50, ge=1, le=200),
+    search: str = Query(default=""),
+    current_user: str = Depends(get_current_user)
+):
+    """Return paginated records from the telco (CSV-upload) collection."""
+    query = {}
+    if search:
+        query = {
+            "$or": [
+                {"customerID": {"$regex": search, "$options": "i"}},
+                {"Contract": {"$regex": search, "$options": "i"}},
+                {"InternetService": {"$regex": search, "$options": "i"}},
+            ]
+        }
+
+    total = await telco_collection.count_documents(query)
+    skip = (page - 1) * limit
+
+    cursor = telco_collection.find(query).skip(skip).limit(limit)
+    records = await cursor.to_list(length=limit)
+
+    for r in records:
+        r["_id"] = str(r["_id"])
+
+    return {
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": math.ceil(total / limit) if total > 0 else 1,
+        "records": records
+    }
+
+
+@app.delete("/telco/customers/{customer_id}")
+async def delete_telco_customer(customer_id: str, current_user: str = Depends(get_current_user)):
+    """Delete a customer from the telco collection by customerID field or MongoDB _id."""
+    # First try by customerID field
+    result = await telco_collection.delete_one({"customerID": customer_id})
+
+    if result.deleted_count == 0:
+        # Fall back to MongoDB _id
+        if ObjectId.is_valid(customer_id):
+            result = await telco_collection.delete_one({"_id": ObjectId(customer_id)})
+
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail=f"Customer '{customer_id}' not found")
+
+    # Invalidate dashboard cache so next load recomputes with correct count
+    await database["dashboard_cache"].delete_many({})
+
+    return {"message": f"Customer '{customer_id}' deleted successfully"}
+
 

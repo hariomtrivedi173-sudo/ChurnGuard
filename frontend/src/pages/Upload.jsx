@@ -2,31 +2,53 @@ import { useEffect, useRef, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
 import toast from 'react-hot-toast'
-import { uploadDataset, getDatasetInfo } from '../api/dataset'
-import { UploadCloud, FileText, CheckCircle, AlertCircle, X, Table } from 'lucide-react'
+import { uploadDataset, getDatasetInfo, getUploadHistory } from '../api/dataset'
+import { UploadCloud, FileText, CheckCircle, AlertCircle, X, Clock, Database, TrendingUp, Copy, Users } from 'lucide-react'
 
-const sampleDatasetRows = [
-  { id: 'CUS-1001', name: 'Ava Carter', company: 'Northwind Labs', plan: 'Enterprise', tenure: 24, usage: 82, tickets: 1, nps: 9 },
-  { id: 'CUS-1002', name: 'Liam Nguyen', company: 'Lumen Health', plan: 'Growth', tenure: 11, usage: 64, tickets: 3, nps: 6 },
-  { id: 'CUS-1003', name: 'Noah Patel', company: 'Vertex Retail', plan: 'Scale', tenure: 18, usage: 71, tickets: 0, nps: 8 },
-  { id: 'CUS-1004', name: 'Emma Garcia', company: 'Cobalt Bank', plan: 'Enterprise', tenure: 31, usage: 88, tickets: 2, nps: 10 },
-  { id: 'CUS-1005', name: 'Olivia Kim', company: 'Skyline Media', plan: 'Starter', tenure: 4, usage: 42, tickets: 5, nps: 3 },
-]
+function timeAgo(isoString) {
+  if (!isoString) return ''
+  const diff = (Date.now() - new Date(isoString).getTime()) / 1000
+  if (diff < 60) return 'Just now'
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`
+  return `${Math.floor(diff / 86400)} days ago`
+}
 
 function Upload() {
-  const [file,      setFile]      = useState(null)
-  const [uploading, setUploading] = useState(false)
-  const [message,   setMessage]   = useState('')
-  const [error,     setError]     = useState('')
-  const [info,      setInfo]      = useState(null)
-  const [dragging,  setDragging]  = useState(false)
+  const [file,       setFile]       = useState(null)
+  const [uploading,  setUploading]  = useState(false)
+  const [uploadResult, setResult]   = useState(null)
+  const [error,      setError]      = useState('')
+  const [info,       setInfo]       = useState(null)
+  const [history,    setHistory]    = useState([])
+  const [dragging,   setDragging]   = useState(false)
+  const [preview,    setPreview]    = useState(null)  // { columns, rows }
   const inputRef = useRef()
 
-  useEffect(() => { loadInfo() }, [])
+  useEffect(() => {
+    loadInfo()
+    loadHistory()
+  }, [])
 
   async function loadInfo() {
-    try { setInfo(await getDatasetInfo()) }
-    catch { setInfo(null) }
+    try {
+      const d = await getDatasetInfo()
+      setInfo(d)
+      // Build preview from sample record
+      if (d?.sample_record) {
+        const cols = Object.keys(d.sample_record).filter(k => k !== '_id')
+        setPreview({ columns: cols, sample: d.sample_record })
+      }
+    } catch {
+      setInfo(null)
+    }
+  }
+
+  async function loadHistory() {
+    try {
+      const h = await getUploadHistory(5)
+      if (Array.isArray(h)) setHistory(h)
+    } catch { /* silent */ }
   }
 
   function handleDrop(e) {
@@ -41,13 +63,14 @@ function Upload() {
     if (!file) return
     setUploading(true)
     setError('')
-    setMessage('')
+    setResult(null)
     try {
       const result = await uploadDataset(file)
-      setMessage(`${result.rows_stored.toLocaleString()} rows stored successfully`)
-      toast.success(`${result.rows_stored.toLocaleString()} rows uploaded`)
+      setResult(result)
+      toast.success(`${result.inserted?.toLocaleString() ?? result.rows_stored} new records added`)
       setFile(null)
-      loadInfo()
+      await loadInfo()
+      await loadHistory()
     } catch (err) {
       setError(err.message)
       toast.error(err.message)
@@ -61,7 +84,7 @@ function Upload() {
       <Sidebar />
       <div className="page-content" style={{ padding: '24px 32px' }}>
 
-        <Header title="Upload Dataset" subtitle="Upload customer data to retrain ML models and generate predictions." />
+        <Header title="Upload Dataset" subtitle="Upload customer CSV data to run predictions and update the dashboard." />
 
         {/* Current dataset status */}
         {info !== null && (
@@ -76,8 +99,8 @@ function Upload() {
               : <AlertCircle size={16} color="#d97706" />}
             <p style={{ fontSize: '13px', fontWeight: 600, color: info?.stored ? '#16a34a' : '#d97706' }}>
               {info?.stored
-                ? `${info.total_records.toLocaleString()} customer records currently stored`
-                : 'No dataset currently stored'}
+                ? `${info.total_records.toLocaleString()} customer records currently in database`
+                : 'No dataset currently stored — upload a CSV to get started'}
             </p>
           </div>
         )}
@@ -85,7 +108,8 @@ function Upload() {
         {/* Drop zone */}
         <div
           className="card"
-          style={{ padding: '48px 32px', marginBottom: '20px', cursor: 'pointer', textAlign: 'center',
+          style={{
+            padding: '48px 32px', marginBottom: '20px', cursor: 'pointer', textAlign: 'center',
             border: dragging ? '2px dashed var(--purple-400)' : '2px dashed var(--border)',
             background: dragging ? 'var(--purple-50)' : 'var(--surface)',
             transition: 'all 200ms ease',
@@ -107,8 +131,11 @@ function Upload() {
           <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '6px' }}>
             {dragging ? 'Drop your CSV here' : 'Drag & drop your CSV file'}
           </p>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
             or click to browse — only .csv files accepted
+          </p>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+            New records are <strong>appended</strong>. Existing customerIDs are automatically skipped.
           </p>
           <input
             ref={inputRef}
@@ -147,9 +174,32 @@ function Upload() {
           </div>
         )}
 
-        {message && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', fontSize: '13px', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px' }}>
-            <CheckCircle size={15} /> {message}
+        {/* Upload Result Summary */}
+        {uploadResult && (
+          <div style={{
+            background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '14px',
+            padding: '16px 20px', marginBottom: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <CheckCircle size={16} color="#16a34a" />
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#15803d' }}>Upload successful</p>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+              {[
+                { label: 'Total Rows', value: uploadResult.total_rows?.toLocaleString() ?? '—', icon: Database, color: '#7c3aed' },
+                { label: 'New Records', value: (uploadResult.new_records ?? uploadResult.inserted)?.toLocaleString() ?? '—', icon: TrendingUp, color: '#16a34a' },
+                { label: 'Duplicates Skipped', value: (uploadResult.duplicates_skipped ?? uploadResult.duplicate_rows)?.toLocaleString() ?? '0', icon: Copy, color: '#d97706' },
+                { label: 'Total in DB', value: (uploadResult.total_in_db ?? uploadResult.final_customer_count)?.toLocaleString() ?? '—', icon: Users, color: '#8b5cf6' },
+              ].map(({ label, value, icon: Icon, color }) => (
+                <div key={label} style={{ background: 'white', borderRadius: '10px', padding: '12px 16px', border: '1px solid #dcfce7' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                    <Icon size={14} color={color} />
+                    <p style={{ fontSize: '11px', color: '#6b7280', fontWeight: 600 }}>{label}</p>
+                  </div>
+                  <p style={{ fontSize: '20px', fontWeight: 800, color }}>{value}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -166,48 +216,110 @@ function Upload() {
             className="btn-primary"
             style={{ width: '100%', padding: '12px', fontSize: '14px', justifyContent: 'center', marginBottom: '24px' }}
           >
-            {uploading ? 'Uploading & Cleaning Dataset…' : 'Upload & Store Dataset'}
+            {uploading ? 'Uploading & Processing…' : 'Upload & Store Dataset'}
           </button>
         )}
 
-        {/* ── Dataset Preview Table (Matching Image 2) ── */}
-        <div className="card" style={{ padding: '24px' }}>
+        {/* Dataset Preview Table */}
+        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
             <div>
               <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Dataset Preview</h3>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>First 5 rows of the uploaded dataset</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                {preview ? 'First record from the stored dataset' : 'No dataset currently stored'}
+              </p>
             </div>
-            <span className="badge badge-purple" style={{ fontSize: '11px' }}>
-              14 columns
-            </span>
+            {preview && (
+              <span className="badge badge-purple" style={{ fontSize: '11px' }}>
+                {preview.columns.length} columns
+              </span>
+            )}
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: 'var(--table-header-bg)', borderBottom: '1px solid var(--border)' }}>
-                  {['ID', 'NAME', 'COMPANY', 'PLAN', 'TENURE', 'USAGE', 'TICKETS', 'NPS'].map(h => (
-                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sampleDatasetRows.map(row => (
-                  <tr key={row.id} style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px 16px', fontSize: '12px', fontWeight: 700, color: 'var(--purple-600)' }}>{row.id}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{row.name}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>{row.company}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>{row.plan}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>{row.tenure}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>{row.usage}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>{row.tickets}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>{row.nps}</td>
+          {!preview ? (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontSize: '13px' }}>
+              <Database size={32} style={{ marginBottom: '10px', opacity: 0.3 }} />
+              <p>Upload a CSV to see a dataset preview here</p>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: 'var(--table-header-bg)', borderBottom: '1px solid var(--border)' }}>
+                    {preview.columns.map(col => (
+                      <th key={col} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
+                        {col.toUpperCase()}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  <tr style={{ borderTop: '1px solid var(--border)' }}>
+                    {preview.columns.map(col => (
+                      <td key={col} style={{ padding: '10px 14px', fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                        {String(preview.sample[col] ?? '—')}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
+
+        {/* Upload History */}
+        {history.length > 0 && (
+          <div className="card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <Clock size={16} color="var(--text-muted)" />
+              <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Upload History</h3>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+              {history.map((h, i) => (
+                <div
+                  key={h._id || i}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 100px 90px 90px 90px 120px',
+                    alignItems: 'center',
+                    padding: '12px 0',
+                    borderBottom: i < history.length - 1 ? '1px solid var(--border)' : 'none',
+                    gap: '16px',
+                    fontSize: '12px',
+                  }}
+                >
+                  <div>
+                    <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{h.filename}</p>
+                    <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>by {h.uploaded_by}</p>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{h.total_rows?.toLocaleString()}</p>
+                    <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>total rows</p>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontWeight: 700, color: '#16a34a' }}>{h.inserted_rows?.toLocaleString()}</p>
+                    <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>inserted</p>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontWeight: 700, color: '#d97706' }}>{h.duplicate_rows?.toLocaleString()}</p>
+                    <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>duplicates</p>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{h.final_total?.toLocaleString()}</p>
+                    <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>total in DB</p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span className={h.status === 'success' ? 'badge badge-green' : 'badge badge-yellow'} style={{ fontSize: '10px' }}>
+                      ● {h.status}
+                    </span>
+                    <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '3px' }}>{timeAgo(h.uploaded_at)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
