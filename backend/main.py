@@ -11,7 +11,7 @@ import io
 from datetime import datetime, timezone
 
 from database import customer_collection, user_collection, telco_collection, database
-from auth import hash_password, verify_password, create_access_token, get_current_user
+from auth import hash_password, verify_password, create_access_token, get_current_user, get_current_user_doc, get_company_id_for_name
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ml.predict import predict_churn
@@ -94,6 +94,7 @@ class RegisterUser(BaseModel):
     company: str = ""
     phone: str = ""
     role: str = "Analyst"
+    country: str = "India"
 
 class CustomerPredictionInput(BaseModel):
     gender: Literal["Male", "Female"]
@@ -250,8 +251,10 @@ def search_customers(name: str = None, min_spend: float = None):
 # ---------- Full CRUD APIs — using real MongoDB Atlas — ALL PROTECTED ----------
 
 @app.post("/customers", response_model=CustomerResponse)
-async def create_customer(customer: Customer, current_user: str = Depends(get_current_user)):
+async def create_customer(customer: Customer, user_doc: dict = Depends(get_current_user_doc)):
     new_customer = customer.dict()
+    new_customer["company_id"] = user_doc["company_id"]
+    new_customer["uploaded_by"] = user_doc["email"]
     result = await customer_collection.insert_one(new_customer)
     return CustomerResponse(
         name=customer.name,
@@ -263,37 +266,37 @@ async def create_customer(customer: Customer, current_user: str = Depends(get_cu
 
 
 @app.get("/customers/all")
-async def get_all_customers(current_user: str = Depends(get_current_user)):
+async def get_all_customers(user_doc: dict = Depends(get_current_user_doc)):
     customers = []
-    async for doc in customer_collection.find():
+    async for doc in customer_collection.find({"company_id": user_doc["company_id"]}):
         customers.append(customer_helper(doc))
     return customers
 
 
 @app.get("/customers/{customer_id}")
-async def get_one_customer(customer_id: str, current_user: str = Depends(get_current_user)):
+async def get_one_customer(customer_id: str, user_doc: dict = Depends(get_current_user_doc)):
     if not ObjectId.is_valid(customer_id):
         raise HTTPException(status_code=400, detail="Invalid customer ID format")
 
-    doc = await customer_collection.find_one({"_id": ObjectId(customer_id)})
+    doc = await customer_collection.find_one({"_id": ObjectId(customer_id), "company_id": user_doc["company_id"]})
     if doc is None:
         raise HTTPException(status_code=404, detail=f"No customer found with ID {customer_id}")
     return customer_helper(doc)
 
 
 @app.put("/customers/{customer_id}")
-async def update_customer(customer_id: str, customer: Customer, current_user: str = Depends(get_current_user)):
+async def update_customer(customer_id: str, customer: Customer, user_doc: dict = Depends(get_current_user_doc)):
     if not ObjectId.is_valid(customer_id):
         raise HTTPException(status_code=400, detail="Invalid customer ID format")
 
     result = await customer_collection.update_one(
-        {"_id": ObjectId(customer_id)},
+        {"_id": ObjectId(customer_id), "company_id": user_doc["company_id"]},
         {"$set": customer.dict()}
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail=f"No customer found with ID {customer_id}")
 
-    updated_doc = await customer_collection.find_one({"_id": ObjectId(customer_id)})
+    updated_doc = await customer_collection.find_one({"_id": ObjectId(customer_id), "company_id": user_doc["company_id"]})
     return {
         "message": f"Customer {customer_id} updated successfully",
         "customer": customer_helper(updated_doc)
@@ -301,32 +304,33 @@ async def update_customer(customer_id: str, customer: Customer, current_user: st
 
 
 @app.delete("/customers/{customer_id}")
-async def delete_customer(customer_id: str, current_user: str = Depends(get_current_user)):
+async def delete_customer(customer_id: str, user_doc: dict = Depends(get_current_user_doc)):
     if not ObjectId.is_valid(customer_id):
         raise HTTPException(status_code=400, detail="Invalid customer ID format")
 
-    doc = await customer_collection.find_one({"_id": ObjectId(customer_id)})
+    doc = await customer_collection.find_one({"_id": ObjectId(customer_id), "company_id": user_doc["company_id"]})
     if doc is None:
         raise HTTPException(status_code=404, detail=f"No customer found with ID {customer_id}")
 
-    await customer_collection.delete_one({"_id": ObjectId(customer_id)})
+    await customer_collection.delete_one({"_id": ObjectId(customer_id), "company_id": user_doc["company_id"]})
     return {
         "message": f"Customer {customer_id} deleted successfully",
         "deleted_customer": customer_helper(doc),
-        "deleted_by": current_user
+        "deleted_by": user_doc["email"]
     }
 
 
 class UserProfileUpdate(BaseModel):
-    first_name: Optional[str] = "Maya"
-    last_name: Optional[str] = "Chen"
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     email: Optional[str] = None
-    role: Optional[str] = "Head of Customer Success"
-    company: Optional[str] = "ChurnGuard Inc."
-    phone: Optional[str] = "+1 (555) 014-2231"
+    role: Optional[str] = None
+    company: Optional[str] = None
+    phone: Optional[str] = None
+    country: Optional[str] = None
 
 
-# ---------- Sprint 3: Authentication ----------
+# ---------- Phase 1: Authentication & Profile ----------
 
 @app.post("/register")
 async def register_user(user: RegisterUser):
@@ -334,17 +338,23 @@ async def register_user(user: RegisterUser):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    company_name = user.company.strip()
+    company_id = get_company_id_for_name(company_name, user.email)
     hashed_pw = hash_password(user.password)
+
     await user_collection.insert_one({
         "email": user.email,
         "password": hashed_pw,
         "first_name": user.first_name.strip(),
         "last_name": user.last_name.strip(),
+        "company": company_name,
+        "company_id": company_id,
         "role": user.role.strip() or "Analyst",
-        "company": user.company.strip(),
-        "phone": user.phone.strip()
+        "phone": user.phone.strip(),
+        "country": user.country.strip() or "India",
+        "created_at": datetime.now(timezone.utc).isoformat()
     })
-    return {"message": f"User {user.email} registered successfully"}
+    return {"message": f"User {user.email} registered successfully", "company_id": company_id}
 
 
 @app.post("/login")
@@ -356,60 +366,55 @@ async def login_user(user: User):
     if not verify_password(user.password, existing["password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    token = create_access_token({"sub": user.email})
-    return {"access_token": token, "token_type": "bearer"}
+    company_id = existing.get("company_id")
+    if not company_id:
+        company_id = get_company_id_for_name(existing.get("company", ""), existing.get("email", ""))
+        await user_collection.update_one({"_id": existing["_id"]}, {"$set": {"company_id": company_id}})
+
+    token = create_access_token({"sub": user.email, "company_id": company_id})
+    return {"access_token": token, "token_type": "bearer", "company_id": company_id}
 
 
 @app.get("/profile/me")
-async def get_user_profile(current_user: str = Depends(get_current_user)):
-    user_doc = await user_collection.find_one({"email": current_user})
-    if not user_doc:
-        return {
-            "first_name": "Maya",
-            "last_name": "Chen",
-            "email": current_user,
-            "role": "Head of Customer Success",
-            "company": "ChurnGuard Inc.",
-            "phone": "+1 (555) 014-2231"
-        }
-
+async def get_user_profile(user_doc: dict = Depends(get_current_user_doc)):
     return {
-        "first_name": user_doc.get("first_name", "Maya"),
-        "last_name": user_doc.get("last_name", "Chen"),
-        "email": user_doc.get("email", current_user),
-        "role": user_doc.get("role", "Head of Customer Success"),
-        "company": user_doc.get("company", "ChurnGuard Inc."),
-        "phone": user_doc.get("phone", "+1 (555) 014-2231")
+        "first_name": user_doc.get("first_name", ""),
+        "last_name": user_doc.get("last_name", ""),
+        "email": user_doc.get("email", ""),
+        "role": user_doc.get("role", "Analyst"),
+        "company": user_doc.get("company", ""),
+        "company_id": user_doc.get("company_id", ""),
+        "phone": user_doc.get("phone", ""),
+        "country": user_doc.get("country", "India")
     }
 
 
 @app.put("/profile/me")
-async def update_user_profile(profile_data: UserProfileUpdate, current_user: str = Depends(get_current_user)):
-    user_doc = await user_collection.find_one({"email": current_user})
-    update_fields = profile_data.dict(exclude_unset=True)
+async def update_user_profile(profile_data: UserProfileUpdate, user_doc: dict = Depends(get_current_user_doc)):
+    update_fields = {k: v for k, v in profile_data.dict(exclude_unset=True).items() if v is not None}
 
-    if user_doc:
+    if "company" in update_fields and update_fields["company"].strip():
+        new_company = update_fields["company"].strip()
+        update_fields["company_id"] = get_company_id_for_name(new_company, user_doc.get("email", ""))
+
+    if update_fields:
         await user_collection.update_one(
-            {"email": current_user},
+            {"_id": user_doc["_id"]},
             {"$set": update_fields}
         )
-    else:
-        await user_collection.insert_one({
-            "email": current_user,
-            "password": "",
-            **update_fields
-        })
 
-    updated_doc = await user_collection.find_one({"email": current_user}) or update_fields
+    updated_doc = await user_collection.find_one({"_id": user_doc["_id"]})
     return {
         "message": "Profile updated successfully",
         "profile": {
-            "first_name": updated_doc.get("first_name", profile_data.first_name),
-            "last_name": updated_doc.get("last_name", profile_data.last_name),
-            "email": updated_doc.get("email", current_user),
-            "role": updated_doc.get("role", profile_data.role),
-            "company": updated_doc.get("company", profile_data.company),
-            "phone": updated_doc.get("phone", profile_data.phone)
+            "first_name": updated_doc.get("first_name", ""),
+            "last_name": updated_doc.get("last_name", ""),
+            "email": updated_doc.get("email", ""),
+            "role": updated_doc.get("role", "Analyst"),
+            "company": updated_doc.get("company", ""),
+            "company_id": updated_doc.get("company_id", ""),
+            "phone": updated_doc.get("phone", ""),
+            "country": updated_doc.get("country", "India")
         }
     }
 
@@ -417,7 +422,7 @@ async def update_user_profile(profile_data: UserProfileUpdate, current_user: str
 # ---------- Sprint 4: Dataset Upload ----------
 
 @app.post("/dataset/upload")
-async def upload_dataset(file: UploadFile = File(...), current_user: str = Depends(get_current_user)):
+async def upload_dataset(file: UploadFile = File(...), user_doc: dict = Depends(get_current_user_doc)):
     contents = await file.read()
     df = pd.read_csv(io.BytesIO(contents))
 
@@ -430,7 +435,7 @@ async def upload_dataset(file: UploadFile = File(...), current_user: str = Depen
     }
 
 @app.post("/dataset/inspect")
-async def inspect_dataset(file: UploadFile = File(...), current_user: str = Depends(get_current_user)):
+async def inspect_dataset(file: UploadFile = File(...), user_doc: dict = Depends(get_current_user_doc)):
     contents = await file.read()
     df = pd.read_csv(io.BytesIO(contents))
 
@@ -455,7 +460,7 @@ REQUIRED_COLUMNS = [
 
 
 @app.post("/dataset/validate")
-async def validate_dataset(file: UploadFile = File(...), current_user: str = Depends(get_current_user)):
+async def validate_dataset(file: UploadFile = File(...), user_doc: dict = Depends(get_current_user_doc)):
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only .csv files are allowed")
 
@@ -481,24 +486,16 @@ async def validate_dataset(file: UploadFile = File(...), current_user: str = Dep
     }
 
 @app.post("/dataset/clean")
-async def clean_dataset(file: UploadFile = File(...), current_user: str = Depends(get_current_user)):
+async def clean_dataset(file: UploadFile = File(...), user_doc: dict = Depends(get_current_user_doc)):
     contents = await file.read()
     df = pd.read_csv(io.BytesIO(contents))
 
-    # Step 1: Find rows where TotalCharges is blank/whitespace, not a real number
     blank_mask = df["TotalCharges"].str.strip() == ""
     blank_count = int(blank_mask.sum())
 
-    # Step 2: Convert TotalCharges to real numbers; anything that fails becomes NaN (missing)
-    df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
-
-    # Step 3: Fill those missing values with 0 (makes sense: tenure=0 customers haven't been charged yet)
-    df["TotalCharges"] = df["TotalCharges"].fillna(0)
-
-    # Step 4: Convert SeniorCitizen from 0/1 into Yes/No, matching your other columns
+    df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce").fillna(0)
     df["SeniorCitizen"] = df["SeniorCitizen"].map({0: "No", 1: "Yes"})
 
-    # Step 5: Remove any exact duplicate rows, if they exist
     duplicates_removed = int(df.duplicated().sum())
     df = df.drop_duplicates()
 
@@ -513,11 +510,10 @@ async def clean_dataset(file: UploadFile = File(...), current_user: str = Depend
     }
 
 @app.post("/dataset/store")
-async def store_dataset(file: UploadFile = File(...), current_user: str = Depends(get_current_user)):
-    # Fetch logged-in user profile to determine company_id and user_id
-    user_doc = await user_collection.find_one({"email": current_user})
-    company_id = str((user_doc.get("company") if user_doc else None) or current_user).strip()
-    user_id = str(user_doc.get("_id")) if user_doc else ""
+async def store_dataset(file: UploadFile = File(...), user_doc: dict = Depends(get_current_user_doc)):
+    company_id = user_doc["company_id"]
+    user_id = str(user_doc.get("_id", ""))
+    current_user = user_doc.get("email", "")
 
     try:
         contents = await file.read()
@@ -530,11 +526,9 @@ async def store_dataset(file: UploadFile = File(...), current_user: str = Depend
 
     total_rows = len(df)
 
-    # Clean TotalCharges safely if column exists
     if "TotalCharges" in df.columns:
         df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce").fillna(0)
 
-    # Safely clean SeniorCitizen only if the column exists
     if "SeniorCitizen" in df.columns:
         df["SeniorCitizen"] = df["SeniorCitizen"].replace({
             0: "No", 1: "Yes",
@@ -549,10 +543,10 @@ async def store_dataset(file: UploadFile = File(...), current_user: str = Depend
     if not records:
         raise HTTPException(status_code=400, detail="No valid records found in CSV file after cleaning.")
 
-    # ── Fetch existing customerIDs for this company from MongoDB Atlas ──
+    # ── Fetch existing customerIDs for THIS company ONLY from MongoDB Atlas ──
     existing_ids = set()
     async for doc in telco_collection.find(
-        {"$or": [{"company_id": company_id}, {"company_id": {"$exists": False}}]},
+        {"company_id": company_id},
         {"customerID": 1, "_id": 0}
     ):
         cid = doc.get("customerID")
@@ -575,9 +569,8 @@ async def store_dataset(file: UploadFile = File(...), current_user: str = Depend
                 rec["uploaded_by"] = current_user
                 new_records.append(rec)
                 if cid:
-                    existing_ids.add(cid)  # prevent intra-file duplicates
+                    existing_ids.add(cid)
     else:
-        # If no customerID column present, generate synthetic customerID and attach company metadata
         for idx, rec in enumerate(records):
             rec["company_id"] = company_id
             rec["customerID"] = f"CUS-{idx + 1}"
@@ -585,7 +578,6 @@ async def store_dataset(file: UploadFile = File(...), current_user: str = Depend
             rec["uploaded_by"] = current_user
             new_records.append(rec)
 
-    # ── BULK INSERT INTO MONGODB ATLAS ──
     if new_records:
         try:
             insert_result = await telco_collection.insert_many(new_records, ordered=False)
@@ -600,10 +592,10 @@ async def store_dataset(file: UploadFile = File(...), current_user: str = Depend
                     detail="Dataset upload failed. No successful upload was recorded."
                 )
 
-    # ── VERIFY DATABASE COUNT DIRECTLY FROM MONGODB ATLAS AFTER INSERT ──
-    total_in_db = await telco_collection.count_documents({})
+    # ── VERIFY DATABASE COUNT DIRECTLY FROM MONGODB ATLAS FOR THIS COMPANY ──
+    total_in_db = await telco_collection.count_documents({"company_id": company_id})
 
-    # ── STORE UPLOAD HISTORY ONLY AFTER SUCCESSFUL INSERT ──
+    # ── STORE UPLOAD HISTORY FOR THIS COMPANY ONLY ──
     await database["dataset_uploads"].insert_one({
         "company_id": company_id,
         "user_id": user_id,
@@ -621,9 +613,9 @@ async def store_dataset(file: UploadFile = File(...), current_user: str = Depend
         "status": "success"
     })
 
-    # ── Auto-update dashboard cache with ALL records from MongoDB Atlas ──
+    # ── Auto-update dashboard cache for THIS company ONLY ──
     try:
-        cursor = telco_collection.find()
+        cursor = telco_collection.find({"company_id": company_id})
         all_docs = await cursor.to_list(length=None)
         clean_customers = [{k: v for k, v in c.items() if k != "_id"} for c in all_docs]
         batch_results = predict_batch(clean_customers)
@@ -652,6 +644,8 @@ async def store_dataset(file: UploadFile = File(...), current_user: str = Depend
             })
 
         summary = {
+            "company_id": company_id,
+            "available": True,
             "total_analyzed": len(batch_results),
             "high_risk_count": high,
             "medium_risk_count": medium,
@@ -662,8 +656,11 @@ async def store_dataset(file: UploadFile = File(...), current_user: str = Depend
             "results": sorted(batch_results, key=lambda r: r["churn_probability"], reverse=True)[:10],
         }
 
-        await database["dashboard_cache"].delete_many({})
-        await database["dashboard_cache"].insert_one(dict(summary))
+        await database["dashboard_cache"].replace_one(
+            {"company_id": company_id},
+            summary,
+            upsert=True
+        )
     except Exception as e:
         print("Error auto-updating dashboard cache:", e)
 
@@ -683,13 +680,15 @@ async def store_dataset(file: UploadFile = File(...), current_user: str = Depend
 
 
 @app.get("/dataset/info")
-async def dataset_info(current_user: str = Depends(get_current_user)):
-    count = await telco_collection.count_documents({})
+async def dataset_info(user_doc: dict = Depends(get_current_user_doc)):
+    company_id = user_doc["company_id"]
+    count = await telco_collection.count_documents({"company_id": company_id})
     if count == 0:
         return {"stored": False, "message": "No dataset currently stored"}
 
-    sample = await telco_collection.find_one()
-    sample["_id"] = str(sample["_id"])
+    sample = await telco_collection.find_one({"company_id": company_id})
+    if sample:
+        sample["_id"] = str(sample["_id"])
 
     return {
         "stored": True,
@@ -699,21 +698,23 @@ async def dataset_info(current_user: str = Depends(get_current_user)):
 
 
 @app.delete("/dataset/clear")
-async def clear_dataset(current_user: str = Depends(get_current_user)):
-    result = await telco_collection.delete_many({})
-    await database["dashboard_cache"].delete_many({})
+async def clear_dataset(user_doc: dict = Depends(get_current_user_doc)):
+    company_id = user_doc["company_id"]
+    result = await telco_collection.delete_many({"company_id": company_id})
+    await database["dashboard_cache"].delete_many({"company_id": company_id})
+    await database["dataset_uploads"].delete_many({"company_id": company_id})
     return {
         "message": "Dataset cleared successfully",
         "records_deleted": result.deleted_count
     }
+
 @app.post("/predict/churn")
-async def predict_customer_churn(customer: CustomerPredictionInput, current_user: str = Depends(get_current_user)):
+async def predict_customer_churn(customer: CustomerPredictionInput, user_doc: dict = Depends(get_current_user_doc)):
     result = predict_churn(customer.dict())
     return result
 
 @app.post("/predict/explain")
-async def predict_with_explanation(customer: CustomerPredictionInput, current_user: str = Depends(get_current_user)):
-    from ml.predict import predict_churn
+async def predict_with_explanation(customer: CustomerPredictionInput, user_doc: dict = Depends(get_current_user_doc)):
     prediction_result = predict_churn(customer.dict())
     explanation_result = explain_prediction(customer.dict())
 
@@ -721,8 +722,9 @@ async def predict_with_explanation(customer: CustomerPredictionInput, current_us
         **prediction_result,
         **explanation_result
     }
+
 @app.post("/predict/full")
-async def predict_full_analysis(customer: CustomerPredictionInput, current_user: str = Depends(get_current_user)):
+async def predict_full_analysis(customer: CustomerPredictionInput, user_doc: dict = Depends(get_current_user_doc)):
     customer_dict = customer.dict()
 
     prediction_result = predict_churn(customer_dict)
@@ -740,10 +742,11 @@ async def predict_full_analysis(customer: CustomerPredictionInput, current_user:
     }
 
 @app.post("/predict/batch-all")
-async def predict_all_customers(current_user: str = Depends(get_current_user)):
+async def predict_all_customers(user_doc: dict = Depends(get_current_user_doc)):
     from ml.batch_predict import build_aggregates
+    company_id = user_doc["company_id"]
 
-    cursor = telco_collection.find()
+    cursor = telco_collection.find({"company_id": company_id})
     raw_customers = await cursor.to_list(length=None)
 
     customers = []
@@ -760,6 +763,8 @@ async def predict_all_customers(current_user: str = Depends(get_current_user)):
     aggregates = build_aggregates(results)
 
     summary = {
+        "company_id": company_id,
+        "available": True,
         "total_analyzed": len(results),
         "high_risk_count": high,
         "medium_risk_count": medium,
@@ -769,25 +774,34 @@ async def predict_all_customers(current_user: str = Depends(get_current_user)):
         "risk_by_tenure": aggregates["risk_by_tenure"],
     }
 
-    await database["dashboard_cache"].delete_many({})
-    await database["dashboard_cache"].insert_one(dict(summary))
+    await database["dashboard_cache"].replace_one({"company_id": company_id}, summary, upsert=True)
 
     return summary
 
 
 @app.get("/dashboard/stats")
-async def get_dashboard_stats(current_user: str = Depends(get_current_user)):
-    cached = await database["dashboard_cache"].find_one()
+async def get_dashboard_stats(user_doc: dict = Depends(get_current_user_doc)):
+    company_id = user_doc["company_id"]
+    cached = await database["dashboard_cache"].find_one({"company_id": company_id})
     if cached:
         clean = {k: v for k, v in cached.items() if k != "_id"}
         return {"available": True, **clean}
 
-    # If cache is missing, compute stats on the fly if dataset exists
-    count = await telco_collection.count_documents({})
+    count = await telco_collection.count_documents({"company_id": company_id})
     if count == 0:
-        return {"available": False, "message": "No dataset uploaded yet"}
+        return {
+            "available": True,
+            "total_analyzed": 0,
+            "high_risk_count": 0,
+            "medium_risk_count": 0,
+            "low_risk_count": 0,
+            "total_mrr": 0.0,
+            "avg_churn_rate": 0.0,
+            "plan_distribution": [],
+            "results": []
+        }
 
-    cursor = telco_collection.find()
+    cursor = telco_collection.find({"company_id": company_id})
     raw_customers = await cursor.to_list(length=None)
     clean_customers = [{k: v for k, v in c.items() if k != "_id"} for c in raw_customers]
 
@@ -812,6 +826,7 @@ async def get_dashboard_stats(current_user: str = Depends(get_current_user)):
     ]
 
     summary = {
+        "company_id": company_id,
         "available": True,
         "total_analyzed": len(batch_results),
         "high_risk_count": high,
@@ -823,15 +838,14 @@ async def get_dashboard_stats(current_user: str = Depends(get_current_user)):
         "results": sorted(batch_results, key=lambda r: r["churn_probability"], reverse=True)[:10],
     }
 
-    await database["dashboard_cache"].delete_many({})
-    await database["dashboard_cache"].insert_one(dict(summary))
+    await database["dashboard_cache"].replace_one({"company_id": company_id}, summary, upsert=True)
     return summary
 
 
 @app.get("/uploads/history")
-async def get_upload_history(limit: int = 10, current_user: str = Depends(get_current_user)):
-    """Return the last N dataset upload events."""
-    cursor = database["dataset_uploads"].find().sort("uploaded_at", -1).limit(limit)
+async def get_upload_history(limit: int = 10, user_doc: dict = Depends(get_current_user_doc)):
+    company_id = user_doc["company_id"]
+    cursor = database["dataset_uploads"].find({"company_id": company_id}).sort("uploaded_at", -1).limit(limit)
     history = []
     async for doc in cursor:
         doc["_id"] = str(doc["_id"])
@@ -842,20 +856,40 @@ async def get_upload_history(limit: int = 10, current_user: str = Depends(get_cu
 
 
 @app.get("/ml/metrics")
-async def get_ml_metrics(current_user: str = Depends(get_current_user)):
+async def get_ml_metrics(user_doc: dict = Depends(get_current_user_doc)):
+    company_id = user_doc["company_id"]
+    count = await telco_collection.count_documents({"company_id": company_id})
+    if count == 0:
+        return {
+            "accuracy": 0.0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1_score": 0.0,
+            "auc": 0.0,
+            "confusion_matrix": {"true_negative": 0, "false_positive": 0, "false_negative": 0, "true_positive": 0},
+            "roc_curve": [],
+            "feature_importance": []
+        }
     return await compute_metrics()
 
+
 @app.get("/ml/segments")
-async def get_ml_segments(current_user: str = Depends(get_current_user)):
+async def get_ml_segments(user_doc: dict = Depends(get_current_user_doc)):
+    company_id = user_doc["company_id"]
+    count = await telco_collection.count_documents({"company_id": company_id})
+    if count == 0:
+        return []
     return await get_segment_profiles()
 
+
 @app.get("/reports/export/csv")
-async def export_reports_csv(risk_level: Optional[str] = "All", current_user: str = Depends(get_current_user)):
-    cursor = telco_collection.find({})
+async def export_reports_csv(risk_level: Optional[str] = "All", user_doc: dict = Depends(get_current_user_doc)):
+    company_id = user_doc["company_id"]
+    cursor = telco_collection.find({"company_id": company_id})
     customers = await cursor.to_list(length=None)
     
     if not customers:
-        raise HTTPException(status_code=404, detail="No customers found. Upload a dataset first.")
+        raise HTTPException(status_code=404, detail="No customers found for your company. Upload a dataset first.")
         
     for c in customers:
         c["_id"] = str(c["_id"])
@@ -885,18 +919,16 @@ async def get_telco_customers(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=50, ge=1, le=200),
     search: str = Query(default=""),
-    current_user: str = Depends(get_current_user)
+    user_doc: dict = Depends(get_current_user_doc)
 ):
-    """Return paginated records from the telco (CSV-upload) collection."""
-    query = {}
+    company_id = user_doc["company_id"]
+    query = {"company_id": company_id}
     if search:
-        query = {
-            "$or": [
-                {"customerID": {"$regex": search, "$options": "i"}},
-                {"Contract": {"$regex": search, "$options": "i"}},
-                {"InternetService": {"$regex": search, "$options": "i"}},
-            ]
-        }
+        query["$or"] = [
+            {"customerID": {"$regex": search, "$options": "i"}},
+            {"Contract": {"$regex": search, "$options": "i"}},
+            {"InternetService": {"$regex": search, "$options": "i"}},
+        ]
 
     total = await telco_collection.count_documents(query)
     skip = (page - 1) * limit
@@ -917,22 +949,20 @@ async def get_telco_customers(
 
 
 @app.delete("/telco/customers/{customer_id}")
-async def delete_telco_customer(customer_id: str, current_user: str = Depends(get_current_user)):
-    """Delete a customer from the telco collection by customerID field or MongoDB _id."""
-    # First try by customerID field
-    result = await telco_collection.delete_one({"customerID": customer_id})
+async def delete_telco_customer(customer_id: str, user_doc: dict = Depends(get_current_user_doc)):
+    company_id = user_doc["company_id"]
+    result = await telco_collection.delete_one({"company_id": company_id, "customerID": customer_id})
 
     if result.deleted_count == 0:
-        # Fall back to MongoDB _id
         if ObjectId.is_valid(customer_id):
-            result = await telco_collection.delete_one({"_id": ObjectId(customer_id)})
+            result = await telco_collection.delete_one({"company_id": company_id, "_id": ObjectId(customer_id)})
 
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail=f"Customer '{customer_id}' not found")
 
-    # Invalidate dashboard cache so next load recomputes with correct count
-    await database["dashboard_cache"].delete_many({})
+    await database["dashboard_cache"].delete_many({"company_id": company_id})
 
     return {"message": f"Customer '{customer_id}' deleted successfully"}
+
 
 

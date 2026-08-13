@@ -17,7 +17,8 @@ function Settings() {
     email: '',
     role: 'Analyst',
     company: '',
-    phone: ''
+    phone: '',
+    country: 'India'
   })
 
   // Password state
@@ -57,7 +58,8 @@ function Settings() {
           email: data.email || '',
           role: data.role || 'Analyst',
           company: data.company || '',
-          phone: data.phone || ''
+          phone: data.phone || '',
+          country: data.country || 'India'
         })
         localStorage.setItem('user_profile', JSON.stringify(data))
       }
@@ -76,10 +78,10 @@ function Settings() {
     try {
       const res = await updateProfile(profile)
       toast.success(res.message || 'Profile saved successfully!')
-      localStorage.setItem('user_profile', JSON.stringify(profile))
+      if (res.profile) setProfile(res.profile)
+      localStorage.setItem('user_profile', JSON.stringify(res.profile || profile))
     } catch (err) {
-      toast.success('Profile saved successfully!')
-      localStorage.setItem('user_profile', JSON.stringify(profile))
+      toast.error(err.message || 'Failed to update profile')
     } finally {
       setSavingProfile(false)
     }
@@ -239,7 +241,7 @@ function Settings() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '6px' }}>COMPANY</label>
                     <input
@@ -257,6 +259,22 @@ function Settings() {
                       onChange={e => setProfile({ ...profile, phone: e.target.value })}
                       className="input-base"
                     />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '6px' }}>COUNTRY</label>
+                    <select
+                      value={profile.country}
+                      onChange={e => setProfile({ ...profile, country: e.target.value })}
+                      className="input-base"
+                    >
+                      <option>India</option>
+                      <option>United States</option>
+                      <option>United Kingdom</option>
+                      <option>Canada</option>
+                      <option>Australia</option>
+                      <option>Germany</option>
+                      <option>Other</option>
+                    </select>
                   </div>
                 </div>
 

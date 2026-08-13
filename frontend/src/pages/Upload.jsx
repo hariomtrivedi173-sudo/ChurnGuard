@@ -268,13 +268,17 @@ function Upload() {
         </div>
 
         {/* Upload History */}
-        {history.length > 0 && (
-          <div className="card" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <Clock size={16} color="var(--text-muted)" />
-              <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Upload History</h3>
-            </div>
+        <div className="card" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <Clock size={16} color="var(--text-muted)" />
+            <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Upload History</h3>
+          </div>
 
+          {history.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: '13px' }}>
+              No uploads yet
+            </div>
+          ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
               {history.map((h, i) => (
                 <div
@@ -318,8 +322,8 @@ function Upload() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
       </div>
     </div>

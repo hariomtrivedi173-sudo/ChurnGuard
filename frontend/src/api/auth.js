@@ -27,6 +27,7 @@ export async function registerUser(email, password, profileData = {}) {
       company:    profileData.company    || "",
       phone:      profileData.phone      || "",
       role:       profileData.role       || "Analyst",
+      country:    profileData.country    || "India",
     }),
   })
 

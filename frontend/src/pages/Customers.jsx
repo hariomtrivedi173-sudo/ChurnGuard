@@ -151,10 +151,10 @@ function Customers() {
                     <td colSpan={8} style={{ padding: '56px', textAlign: 'center' }}>
                       <Users size={40} style={{ margin: '0 auto 14px', opacity: 0.2, display: 'block' }} />
                       <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                        {search ? 'No customers match your search' : 'No dataset uploaded yet'}
+                        {search ? 'No customers match your search' : 'No customers yet'}
                       </p>
                       <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                        {search ? 'Try a different customer ID or contract type.' : 'Go to the Upload page and upload a CSV dataset.'}
+                        {search ? 'Try a different customer ID or contract type.' : 'Upload a CSV dataset to see customer records.'}
                       </p>
                     </td>
                   </tr>

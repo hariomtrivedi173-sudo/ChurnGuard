@@ -71,21 +71,21 @@ function Dashboard() {
     }
   }
 
-  // ── All numbers come from backend; no fallback hardcoded values ──
-  const hasData = !!stats
+  // ── Backend stats & data state ──
+  const hasData = !!stats && stats.total_analyzed > 0
 
   const total        = stats?.total_analyzed ?? 0
   const high         = stats?.high_risk_count ?? 0
   const med          = stats?.medium_risk_count ?? 0
   const low          = stats?.low_risk_count ?? 0
-  const activeCount  = total - high
-  const churnRatePct = stats?.avg_churn_rate ?? (total > 0 ? Math.round((high / total) * 100 * 10) / 10 : 0)
-  const mrrTotal     = formatCurrency(stats?.total_mrr)
+  const activeCount  = total > 0 ? (total - high) : 0
+  const churnRatePct = stats?.avg_churn_rate ?? 0
+  const mrrTotal     = formatCurrency(stats?.total_mrr ?? 0)
 
   // Risk donut — computed from live counts
   const lowPct  = total > 0 ? Math.round((low / total) * 100) : 0
   const medPct  = total > 0 ? Math.round((med / total) * 100) : 0
-  const highPct = 100 - lowPct - medPct
+  const highPct = total > 0 ? (100 - lowPct - medPct) : 0
 
   const riskDonutData = [
     { name: 'Low Risk',    value: lowPct,  color: '#22c55e' },
@@ -114,44 +114,6 @@ function Dashboard() {
     icon: UploadCloud,
   }))
 
-  // Empty state when no dataset uploaded yet
-  if (!loading && !hasData) {
-    return (
-      <div className="page-layout">
-        <Sidebar />
-        <div className="page-content" style={{ padding: '24px 32px' }}>
-          <Header title="Dashboard" />
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            minHeight: '60vh', gap: '20px', textAlign: 'center'
-          }}>
-            <div style={{
-              width: '64px', height: '64px', borderRadius: '20px',
-              background: 'var(--purple-50)', display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              <UploadCloud size={32} color="var(--purple-600)" />
-            </div>
-            <div>
-              <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
-                No data yet
-              </h2>
-              <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '360px' }}>
-                Upload a CSV dataset to start seeing churn predictions, risk metrics, and insights.
-              </p>
-            </div>
-            <button
-              onClick={() => navigate('/upload')}
-              className="btn-primary"
-              style={{ padding: '10px 24px', fontSize: '14px' }}
-            >
-              <UploadCloud size={16} /> Upload Dataset
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="page-layout">
       <Sidebar />
@@ -175,7 +137,7 @@ function Dashboard() {
               <div>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>Total Customers</p>
                 <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {hasData ? total.toLocaleString() : '—'}
+                  {total.toLocaleString()}
                 </p>
               </div>
               <div style={{ width: '40px', height: '40px', background: 'var(--purple-50)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -183,7 +145,7 @@ function Dashboard() {
               </div>
             </div>
             <div style={{ marginTop: '14px', fontSize: '11px', color: 'var(--text-muted)' }}>
-              {hasData ? 'From uploaded dataset' : 'Upload a CSV to see data'}
+              {hasData ? 'From uploaded dataset' : 'No dataset uploaded'}
             </div>
           </div>
 
@@ -192,7 +154,7 @@ function Dashboard() {
               <div>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>Active Customers</p>
                 <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {hasData ? activeCount.toLocaleString() : '—'}
+                  {activeCount.toLocaleString()}
                 </p>
               </div>
               <div style={{ width: '40px', height: '40px', background: 'rgba(34, 197, 94, 0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -200,7 +162,7 @@ function Dashboard() {
               </div>
             </div>
             <div style={{ marginTop: '14px', fontSize: '11px', color: 'var(--text-muted)' }}>
-              {hasData ? `${total.toLocaleString()} total − ${high.toLocaleString()} high risk` : '—'}
+              {hasData ? `${total.toLocaleString()} total − ${high.toLocaleString()} high risk` : 'No active customers'}
             </div>
           </div>
 
@@ -209,7 +171,7 @@ function Dashboard() {
               <div>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>High Risk</p>
                 <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {hasData ? high.toLocaleString() : '—'}
+                  {high.toLocaleString()}
                 </p>
               </div>
               <div style={{ width: '40px', height: '40px', background: 'rgba(225, 29, 72, 0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -217,7 +179,7 @@ function Dashboard() {
               </div>
             </div>
             <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: hasData ? '#e11d48' : 'var(--text-muted)', fontWeight: 600 }}>
-              {hasData ? <><span>{highPct}% of all customers</span></> : <span>—</span>}
+              {hasData ? <span>{highPct}% of all customers</span> : <span>0% of all customers</span>}
             </div>
           </div>
 
@@ -226,7 +188,7 @@ function Dashboard() {
               <div>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>Churn Rate</p>
                 <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {hasData ? `${churnRatePct}%` : '—'}
+                  {churnRatePct}%
                 </p>
               </div>
               <div style={{ width: '40px', height: '40px', background: 'rgba(217, 119, 6, 0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -234,7 +196,7 @@ function Dashboard() {
               </div>
             </div>
             <div style={{ marginTop: '14px', fontSize: '11px', color: 'var(--text-muted)' }}>
-              {hasData ? 'Predicted churn probability avg' : '—'}
+              {hasData ? 'Predicted churn probability avg' : '0% churn rate'}
             </div>
           </div>
 
@@ -250,7 +212,7 @@ function Dashboard() {
             <div>
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Medium Risk</p>
               <p style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {hasData ? med.toLocaleString() : '—'}
+                {med.toLocaleString()}
               </p>
             </div>
           </div>
@@ -262,7 +224,7 @@ function Dashboard() {
             <div>
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Low Risk</p>
               <p style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {hasData ? low.toLocaleString() : '—'}
+                {low.toLocaleString()}
               </p>
             </div>
           </div>
@@ -274,7 +236,7 @@ function Dashboard() {
             <div>
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Revenue (MRR)</p>
               <p style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {hasData ? mrrTotal : '—'}
+                {mrrTotal}
               </p>
             </div>
           </div>

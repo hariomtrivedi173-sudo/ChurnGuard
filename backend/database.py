@@ -1,5 +1,6 @@
 import os
 import certifi
+import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 
@@ -8,8 +9,39 @@ load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME")
 
-client = AsyncIOMotorClient(MONGO_URI, tlsCAFile=certifi.where())
-database = client[DB_NAME]
-customer_collection = database["customers"]
-user_collection = database["users"]
-telco_collection = database["telco_customers"]
+_client = None
+_client_loop = None
+
+def get_client():
+    global _client, _client_loop
+    try:
+        current_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        current_loop = None
+
+    if _client is None or current_loop != _client_loop or (_client.io_loop and _client.io_loop.is_closed()):
+        _client = AsyncIOMotorClient(MONGO_URI, tlsCAFile=certifi.where())
+        _client_loop = current_loop
+    return _client
+
+class LazyDatabase:
+    def __getitem__(self, item):
+        return LazyCollection(item)
+    def __getattr__(self, item):
+        client = get_client()
+        return getattr(client[DB_NAME], item)
+
+class LazyCollection:
+    def __init__(self, name):
+        self.name = name
+
+    def __getattr__(self, attr):
+        client = get_client()
+        db = client[DB_NAME]
+        coll = db[self.name]
+        return getattr(coll, attr)
+
+database = LazyDatabase()
+customer_collection = LazyCollection("customers")
+user_collection = LazyCollection("users")
+telco_collection = LazyCollection("telco_customers")
