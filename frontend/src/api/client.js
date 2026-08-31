@@ -1,21 +1,27 @@
-const API_URL = "http://127.0.0.1:8000"
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+// ── Standard JSON request (GET / POST / PUT / DELETE) ──────────────────────
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem('token')
 
   const headers = {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
     ...options.headers,
   }
 
   if (token && token !== 'null' && token !== 'undefined') {
-    headers["Authorization"] = `Bearer ${token}`
+    headers['Authorization'] = `Bearer ${token}`
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers,
-  })
+  let response
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers,
+    })
+  } catch (networkError) {
+    throw new Error(`Network error: ${networkError.message}`)
+  }
 
   if (response.status === 401) {
     localStorage.removeItem('token')
@@ -31,4 +37,72 @@ export async function apiRequest(endpoint, options = {}) {
   }
 
   return response.json()
+}
+
+// ── FormData request (file uploads) ────────────────────────────────────────
+export async function apiFormData(endpoint, formData) {
+  const token = localStorage.getItem('token')
+
+  const headers = {}
+  if (token && token !== 'null' && token !== 'undefined') {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  let response
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    })
+  } catch (networkError) {
+    throw new Error(`Network error: ${networkError.message}`)
+  }
+
+  if (response.status === 401) {
+    localStorage.removeItem('token')
+    if (window.location.pathname !== '/') {
+      window.location.href = '/'
+    }
+    throw new Error('Session expired. Please sign in again.')
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(errorData.detail || `Upload failed: ${response.status}`)
+  }
+
+  return response.json()
+}
+
+// ── Blob/file download request (CSV exports) ───────────────────────────────
+export async function apiBlob(endpoint) {
+  const token = localStorage.getItem('token')
+
+  const headers = {}
+  if (token && token !== 'null' && token !== 'undefined') {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  let response
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, { headers })
+  } catch (networkError) {
+    throw new Error(`Network error: ${networkError.message}`)
+  }
+
+  if (response.status === 401) {
+    localStorage.removeItem('token')
+    if (window.location.pathname !== '/') {
+      window.location.href = '/'
+    }
+    throw new Error('Session expired. Please sign in again.')
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(errorData.detail || `Download failed: ${response.status}`)
+  }
+
+  return response.blob()
 }

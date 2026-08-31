@@ -3,7 +3,10 @@ import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
 import toast from 'react-hot-toast'
 import { uploadDataset, getDatasetInfo, getUploadHistory } from '../api/dataset'
-import { UploadCloud, FileText, CheckCircle, AlertCircle, X, Clock, Database, TrendingUp, Copy, Users } from 'lucide-react'
+import {
+  UploadCloud, FileText, CheckCircle, AlertCircle, X, Clock,
+  Database, TrendingUp, Copy, Users, Loader2, Check
+} from 'lucide-react'
 
 function timeAgo(isoString) {
   if (!isoString) return ''
@@ -14,15 +17,24 @@ function timeAgo(isoString) {
   return `${Math.floor(diff / 86400)} days ago`
 }
 
+const UPLOAD_STAGES = [
+  { key: 'uploading',   label: 'Uploading CSV file to server…' },
+  { key: 'validating',  label: 'Validating column schema & datatypes…' },
+  { key: 'processing',  label: 'Deduplicating against existing customer IDs…' },
+  { key: 'storing',     label: 'Bulk storing in MongoDB Atlas & indexing…' },
+  { key: 'complete',    label: 'Upload complete! Synchronized cache.' },
+]
+
 function Upload() {
-  const [file,       setFile]       = useState(null)
-  const [uploading,  setUploading]  = useState(false)
-  const [uploadResult, setResult]   = useState(null)
-  const [error,      setError]      = useState('')
-  const [info,       setInfo]       = useState(null)
-  const [history,    setHistory]    = useState([])
-  const [dragging,   setDragging]   = useState(false)
-  const [preview,    setPreview]    = useState(null)  // { columns, rows }
+  const [file,          setFile]          = useState(null)
+  const [uploading,     setUploading]     = useState(false)
+  const [uploadStage,   setUploadStage]   = useState(0) // index in UPLOAD_STAGES
+  const [uploadResult,  setResult]        = useState(null)
+  const [error,         setError]         = useState('')
+  const [info,          setInfo]          = useState(null)
+  const [history,       setHistory]       = useState([])
+  const [dragging,      setDragging]      = useState(false)
+  const [preview,       setPreview]       = useState(null)
   const inputRef = useRef()
 
   useEffect(() => {
@@ -34,7 +46,6 @@ function Upload() {
     try {
       const d = await getDatasetInfo()
       setInfo(d)
-      // Build preview from sample record
       if (d?.sample_record) {
         const cols = Object.keys(d.sample_record).filter(k => k !== '_id')
         setPreview({ columns: cols, sample: d.sample_record })
@@ -55,23 +66,47 @@ function Upload() {
     e.preventDefault()
     setDragging(false)
     const dropped = e.dataTransfer.files[0]
-    if (dropped?.name.endsWith('.csv')) setFile(dropped)
-    else toast.error('Please drop a .csv file')
+    if (dropped?.name.endsWith('.csv')) {
+      setFile(dropped)
+      setResult(null)
+      setError('')
+    } else {
+      toast.error('Please drop a valid .csv file')
+    }
   }
 
   async function handleUpload() {
-    if (!file) return
+    if (!file || uploading) return
+
     setUploading(true)
     setError('')
     setResult(null)
+    setUploadStage(0)
+
+    // Simulated progress stage progression while network request is active
+    const stageTimer1 = setTimeout(() => setUploadStage(1), 250)
+    const stageTimer2 = setTimeout(() => setUploadStage(2), 600)
+    const stageTimer3 = setTimeout(() => setUploadStage(3), 1100)
+
     try {
       const result = await uploadDataset(file)
+      clearTimeout(stageTimer1)
+      clearTimeout(stageTimer2)
+      clearTimeout(stageTimer3)
+      setUploadStage(4) // complete
+
       setResult(result)
-      toast.success(`${result.inserted?.toLocaleString() ?? result.rows_stored} new records added`)
+      const newCount = result.inserted ?? result.rows_stored ?? 0
+      toast.success(`${newCount.toLocaleString()} new records added successfully!`)
       setFile(null)
+
+      // Refresh in-memory state without full page reload
       await loadInfo()
       await loadHistory()
     } catch (err) {
+      clearTimeout(stageTimer1)
+      clearTimeout(stageTimer2)
+      clearTimeout(stageTimer3)
       setError(err.message)
       toast.error(err.message)
     } finally {
@@ -84,7 +119,7 @@ function Upload() {
       <Sidebar />
       <div className="page-content" style={{ padding: '24px 32px' }}>
 
-        <Header title="Upload Dataset" subtitle="Upload customer CSV data to run predictions and update the dashboard." />
+        <Header title="Upload Dataset" subtitle="Upload customer CSV data to run predictions, update stats, and power ML dashboards." />
 
         {/* Current dataset status */}
         {info !== null && (
@@ -99,7 +134,7 @@ function Upload() {
               : <AlertCircle size={16} color="#d97706" />}
             <p style={{ fontSize: '13px', fontWeight: 600, color: info?.stored ? '#16a34a' : '#d97706' }}>
               {info?.stored
-                ? `${info.total_records.toLocaleString()} customer records currently in database`
+                ? `${info.total_records.toLocaleString()} customer records currently stored in your tenant database`
                 : 'No dataset currently stored — upload a CSV to get started'}
             </p>
           </div>
@@ -109,7 +144,7 @@ function Upload() {
         <div
           className="card"
           style={{
-            padding: '48px 32px', marginBottom: '20px', cursor: 'pointer', textAlign: 'center',
+            padding: '44px 32px', marginBottom: '20px', cursor: 'pointer', textAlign: 'center',
             border: dragging ? '2px dashed var(--purple-400)' : '2px dashed var(--border)',
             background: dragging ? 'var(--purple-50)' : 'var(--surface)',
             transition: 'all 200ms ease',
@@ -134,7 +169,7 @@ function Upload() {
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
             or click to browse — only .csv files accepted
           </p>
-          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '16px' }}>
             New records are <strong>appended</strong>. Existing customerIDs are automatically skipped.
           </p>
           <input
@@ -142,14 +177,20 @@ function Upload() {
             type="file"
             accept=".csv"
             style={{ display: 'none' }}
-            onChange={e => setFile(e.target.files[0])}
+            onChange={e => {
+              if (e.target.files[0]) {
+                setFile(e.target.files[0])
+                setResult(null)
+                setError('')
+              }
+            }}
           />
           <span className="btn-secondary" style={{ pointerEvents: 'none', display: 'inline-flex' }}>
             Browse Files
           </span>
         </div>
 
-        {/* Selected file */}
+        {/* Selected file card */}
         {file && (
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -165,12 +206,47 @@ function Upload() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => setFile(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', borderRadius: '6px' }}
-            >
-              <X size={16} />
-            </button>
+            {!uploading && (
+              <button
+                onClick={() => setFile(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', borderRadius: '6px' }}
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Upload Progress Indicator */}
+        {uploading && (
+          <div className="card" style={{ padding: '20px 24px', marginBottom: '20px', background: 'var(--surface)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '16px', height: '16px', border: '2px solid var(--purple-200)', borderTopColor: 'var(--purple-600)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {UPLOAD_STAGES[uploadStage]?.label || 'Processing upload…'}
+                </span>
+              </div>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--purple-600)' }}>
+                {Math.round(((uploadStage + 1) / UPLOAD_STAGES.length) * 100)}%
+              </span>
+            </div>
+
+            {/* Progress bar track */}
+            <div style={{ width: '100%', height: '6px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${Math.round(((uploadStage + 1) / UPLOAD_STAGES.length) * 100)}%`,
+                background: 'linear-gradient(90deg, #7c3aed 0%, #a855f7 100%)',
+                borderRadius: '99px',
+                transition: 'width 300ms ease'
+              }} />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              <span>Step {uploadStage + 1} of {UPLOAD_STAGES.length}</span>
+              <span>Fast bulk ingest & caching</span>
+            </div>
           </div>
         )}
 
@@ -178,18 +254,18 @@ function Upload() {
         {uploadResult && (
           <div style={{
             background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '14px',
-            padding: '16px 20px', marginBottom: '16px'
+            padding: '16px 20px', marginBottom: '20px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
               <CheckCircle size={16} color="#16a34a" />
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#15803d' }}>Upload successful</p>
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#15803d' }}>Dataset uploaded & processed successfully</p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
               {[
-                { label: 'Total Rows', value: uploadResult.total_rows?.toLocaleString() ?? '—', icon: Database, color: '#7c3aed' },
-                { label: 'New Records', value: (uploadResult.new_records ?? uploadResult.inserted)?.toLocaleString() ?? '—', icon: TrendingUp, color: '#16a34a' },
+                { label: 'Total Rows in File', value: uploadResult.total_rows?.toLocaleString() ?? '—', icon: Database, color: '#7c3aed' },
+                { label: 'New Records Added', value: (uploadResult.new_records ?? uploadResult.inserted)?.toLocaleString() ?? '—', icon: TrendingUp, color: '#16a34a' },
                 { label: 'Duplicates Skipped', value: (uploadResult.duplicates_skipped ?? uploadResult.duplicate_rows)?.toLocaleString() ?? '0', icon: Copy, color: '#d97706' },
-                { label: 'Total in DB', value: (uploadResult.total_in_db ?? uploadResult.final_customer_count)?.toLocaleString() ?? '—', icon: Users, color: '#8b5cf6' },
+                { label: 'Total in Database', value: (uploadResult.total_in_db ?? uploadResult.final_customer_count)?.toLocaleString() ?? '—', icon: Users, color: '#8b5cf6' },
               ].map(({ label, value, icon: Icon, color }) => (
                 <div key={label} style={{ background: 'white', borderRadius: '10px', padding: '12px 16px', border: '1px solid #dcfce7' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
@@ -214,9 +290,16 @@ function Upload() {
             onClick={handleUpload}
             disabled={uploading}
             className="btn-primary"
-            style={{ width: '100%', padding: '12px', fontSize: '14px', justifyContent: 'center', marginBottom: '24px' }}
+            style={{ width: '100%', padding: '12px', fontSize: '14px', justifyContent: 'center', marginBottom: '24px', opacity: uploading ? 0.7 : 1 }}
           >
-            {uploading ? 'Uploading & Processing…' : 'Upload & Store Dataset'}
+            {uploading ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                Uploading & Storing Dataset…
+              </div>
+            ) : (
+              'Upload & Store Dataset'
+            )}
           </button>
         )}
 
@@ -226,7 +309,7 @@ function Upload() {
             <div>
               <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Dataset Preview</h3>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                {preview ? 'First record from the stored dataset' : 'No dataset currently stored'}
+                {preview ? 'Sample record from the stored dataset' : 'No dataset currently stored'}
               </p>
             </div>
             {preview && (

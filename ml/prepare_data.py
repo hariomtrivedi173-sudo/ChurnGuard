@@ -10,13 +10,23 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
 from database import telco_collection
 
 
-async def load_data():
-    cursor = telco_collection.find()
+import time
+
+async def load_data(company_id: str = None):
+    import time
+    t0 = time.perf_counter()
+    query = {} if company_id is None else {"company_id": company_id}
+    cursor = telco_collection.find(query)
     records = await cursor.to_list(length=None)
 
     df = pd.DataFrame(records)
-    df = df.drop(columns=["_id"])
+    if "_id" in df.columns:
+        df = df.drop(columns=["_id"])
+    if "company_id" in df.columns:
+        df = df.drop(columns=["company_id"])
 
+    elapsed = (time.perf_counter() - t0) * 1000
+    print(f"[load_data] {len(records)} records loaded in {elapsed:.1f}ms (company_id={company_id!r})")
     return df
 
 

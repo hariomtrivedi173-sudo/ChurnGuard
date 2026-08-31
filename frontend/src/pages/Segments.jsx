@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import { getSegments } from '../api/segments'
-import { PieChart, Users, DollarSign, Clock, Layers } from 'lucide-react'
+import { DollarSign, Clock, Layers } from 'lucide-react'
 
 const SEGMENT_NAMES = {
   0: 'New & Low Spend',

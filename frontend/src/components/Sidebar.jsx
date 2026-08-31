@@ -22,10 +22,14 @@ const accountMenu = [
 function Sidebar() {
   const navigate = useNavigate()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [showLogoutModal,  setShowLogoutModal]  = useState(false)
 
-  function handleLogout() {
+  function handleConfirmLogout() {
     localStorage.removeItem('token')
-    toast.success('Logged out successfully')
+    localStorage.removeItem('company_id')
+    localStorage.removeItem('user_profile')
+    setShowLogoutModal(false)
+    toast.success('You have been logged out.')
     navigate('/')
   }
 
@@ -123,9 +127,9 @@ function Sidebar() {
         {/* Footer Logout */}
         <div style={{ padding: '16px 12px', borderTop: '1px solid var(--border)' }}>
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             className="sidebar-nav-item"
-            style={{ width: '100%', color: '#e11d48', border: 'none', background: 'transparent' }}
+            style={{ width: '100%', color: '#e11d48', border: 'none', background: 'transparent', cursor: 'pointer' }}
           >
             <LogOut size={17} />
             <span>Logout</span>
@@ -133,6 +137,62 @@ function Sidebar() {
         </div>
 
       </aside>
+
+      {/* ── Logout Confirmation Modal ── */}
+      {showLogoutModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="sidebar-logout-title"
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 2000, padding: '20px'
+          }}
+        >
+          <div className="card" style={{
+            width: '100%', maxWidth: '420px', padding: '28px', borderRadius: '16px',
+            background: 'var(--surface)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '12px',
+                background: '#fff1f2', color: '#e11d48',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+              }}>
+                <LogOut size={20} />
+              </div>
+              <h3 id="sidebar-logout-title" style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                Log out of ChurnGuard?
+              </h3>
+            </div>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '24px' }}>
+              You will need to sign in again to access your ChurnGuard dashboard and workspace.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setShowLogoutModal(false)}
+                className="btn-secondary"
+                style={{ fontSize: '13px', padding: '8px 16px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmLogout}
+                style={{
+                  background: '#e11d48', color: '#ffffff', border: 'none',
+                  borderRadius: '10px', fontWeight: 700, fontSize: '13px',
+                  padding: '8px 18px', cursor: 'pointer'
+                }}
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Upgrade Modal ── */}
       {showUpgradeModal && (

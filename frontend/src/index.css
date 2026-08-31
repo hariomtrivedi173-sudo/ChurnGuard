@@ -290,3 +290,32 @@ body {
     transform: rotate(360deg);
   }
 }
+
+/* Accessibility high-contrast focus rings */
+:focus-visible {
+  outline: 2px solid var(--purple-500);
+  outline-offset: 2px;
+}
+
+/* Auth Responsive Breakpoint (< 1024px) */
+@media (max-width: 1023px) {
+  .auth-left-panel {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    padding: 24px 20px !important;
+    position: relative !important;
+  }
+  
+  .auth-left-panel > div:nth-child(2) {
+    display: none !important;
+  }
+  
+  .auth-left-panel > div:last-child {
+    display: none !important;
+  }
+
+  div[style*="flexDirection: row"] {
+    flex-direction: column !important;
+  }
+}

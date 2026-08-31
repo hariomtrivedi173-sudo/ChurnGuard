@@ -1,40 +1,42 @@
-const API_URL = "http://127.0.0.1:8000"
+import { apiRequest } from './client'
 
 export async function loginUser(email, password) {
-  const response = await fetch(`${API_URL}/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+  return apiRequest('/login', {
+    method: 'POST',
     body: JSON.stringify({ email, password }),
   })
-
-  if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(errorData.detail || "Login failed")
-  }
-
-  return response.json()
 }
 
 export async function registerUser(email, password, profileData = {}) {
-  const response = await fetch(`${API_URL}/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+  return apiRequest('/register', {
+    method: 'POST',
     body: JSON.stringify({
       email,
       password,
-      first_name: profileData.first_name || "",
-      last_name:  profileData.last_name  || "",
-      company:    profileData.company    || "",
-      phone:      profileData.phone      || "",
-      role:       profileData.role       || "Analyst",
-      country:    profileData.country    || "India",
+      first_name:   profileData.first_name   || '',
+      last_name:    profileData.last_name    || '',
+      company:      profileData.company      || '',
+      company_type: profileData.company_type || 'Private Limited Company',
+      industry:     profileData.industry     || 'Information Technology',
+      department:   profileData.department   || 'Analytics',
+      company_size: profileData.company_size || '11–50 employees',
+      phone:        profileData.phone        || '',
+      role:         profileData.role         || 'Analyst',
+      country:      profileData.country      || 'India',
     }),
   })
+}
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(errorData.detail || `Registration failed (${response.status})`)
-  }
+export async function requestPasswordOtp({ current_password, new_password, confirm_password }) {
+  return apiRequest('/api/auth/password/request-otp', {
+    method: 'POST',
+    body: JSON.stringify({ current_password, new_password, confirm_password }),
+  })
+}
 
-  return response.json()
+export async function verifyPasswordOtp({ otp, new_password, current_password }) {
+  return apiRequest('/api/auth/password/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ otp, new_password, current_password }),
+  })
 }

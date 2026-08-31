@@ -1,25 +1,32 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
 import toast from 'react-hot-toast'
 import { downloadReport } from '../api/reports'
-import { Download, Printer, Eye, Calendar, FileText, Plus, Clock, X, Save, Edit2 } from 'lucide-react'
-
-const initialScheduledReports = [
-  { id: '1', name: 'Weekly Churn Digest', schedule: 'Every Monday 9:00 AM', nextRun: 'Aug 11, 2026', format: 'PDF' },
-  { id: '2', name: 'Monthly Executive Summary', schedule: '1st of every month', nextRun: 'Sep 01, 2026', format: 'PDF' },
-  { id: '3', name: 'Daily Risk Alert', schedule: 'Every day 7:00 AM', nextRun: 'Tomorrow', format: 'CSV' },
-]
+import { getDashboardStats } from '../api/dashboard'
+import { Download, Printer, Eye, FileText, Clock, X, AlertCircle, RefreshCw, Users, BarChart2, DollarSign } from 'lucide-react'
 
 function Reports() {
   const [downloading, setDownloading] = useState('')
-  const [scheduledReports, setScheduledReports] = useState(initialScheduledReports)
+  const [stats,       setStats]       = useState(null)
+  const [loadingStats, setLoadingStats] = useState(true)
+  const [previewModal, setPreviewModal] = useState(null)
 
-  // Preview Modal State
-  const [previewModal, setPreviewModal] = useState(null) // { title: string, rows: [] }
+  const loadStats = useCallback(async () => {
+    setLoadingStats(true)
+    try {
+      const data = await getDashboardStats()
+      if (data?.available) setStats(data)
+    } catch (err) {
+      console.warn('Could not load dashboard stats for reports preview:', err.message)
+    } finally {
+      setLoadingStats(false)
+    }
+  }, [])
 
-  // Edit Schedule Modal State
-  const [editingSchedule, setEditingSchedule] = useState(null) // report object or null
+  useEffect(() => {
+    loadStats()
+  }, [loadStats])
 
   async function handleDownload(riskLevel) {
     setDownloading(riskLevel)
@@ -37,31 +44,109 @@ function Reports() {
     window.print()
   }
 
-  function handleSaveSchedule(e) {
-    e.preventDefault()
-    if (!editingSchedule) return
-    setScheduledReports(prev => prev.map(item => item.id === editingSchedule.id ? editingSchedule : item))
-    toast.success(`Updated schedule for ${editingSchedule.name}`)
-    setEditingSchedule(null)
+  // Build preview rows from real API data
+  function openRevenuePreview() {
+    if (!stats) {
+      toast.error('No analysis data available. Run batch analysis from Dashboard first.')
+      return
+    }
+    const rows = (stats.results ?? []).slice(0, 5).map(r => ({
+      customerID:  r.customerID || '—',
+      contract:    r.Contract   || '—',
+      churnProb:   `${Math.round(r.churn_probability ?? 0)}%`,
+      riskLevel:   r.risk_level || '—',
+    }))
+    if (rows.length === 0) {
+      toast.error('No prediction results available. Run batch analysis first.')
+      return
+    }
+    setPreviewModal({
+      title: 'Revenue Impact Analysis — Top At-Risk Customers',
+      type:  'Real data from last batch analysis',
+      rows,
+    })
   }
 
-  function handleAddNewSchedule() {
-    const newId = String(Date.now())
-    const newItem = { id: newId, name: 'Custom Risk Digest', schedule: 'Every Friday 5:00 PM', nextRun: 'Aug 15, 2026', format: 'PDF' }
-    setScheduledReports(prev => [...prev, newItem])
-    toast.success('Added new scheduled report')
+  function openExecutivePreview() {
+    if (!stats) {
+      toast.error('No analysis data available. Run batch analysis from Dashboard first.')
+      return
+    }
+    const rows = [
+      { metric: 'Total Customers Analyzed', value: stats.total_analyzed?.toLocaleString() ?? '—' },
+      { metric: 'High-Risk Customers',       value: stats.high_risk_count?.toLocaleString() ?? '—' },
+      { metric: 'Average Churn Rate',        value: stats.avg_churn_rate != null ? `${stats.avg_churn_rate}%` : '—' },
+      { metric: 'Total Monthly Revenue',     value: stats.total_mrr != null ? `$${Math.round(stats.total_mrr).toLocaleString()}` : '—' },
+    ]
+    setPreviewModal({
+      title: 'Executive Summary — Real Metrics',
+      type:  'From /dashboard/stats API',
+      rows,
+    })
   }
+
+  const hasStats = !!stats && stats.total_analyzed > 0
 
   return (
     <div className="page-layout">
       <Sidebar />
       <div className="page-content" style={{ padding: '24px 32px' }}>
 
-        <Header title="Reports" subtitle="Download and schedule churn analysis reports." />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+          <Header title="Reports" subtitle="Download and preview churn analysis reports." />
+          <button
+            onClick={loadStats}
+            disabled={loadingStats}
+            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: loadingStats ? 'not-allowed' : 'pointer', borderRadius: '10px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', opacity: loadingStats ? 0.5 : 1 }}
+          >
+            <RefreshCw size={14} style={{ animation: loadingStats ? 'spin 0.8s linear infinite' : 'none' }} />
+            Refresh
+          </button>
+        </div>
 
-        {/* ── Top Section: Available Reports (Matching Image 1 & 2) ── */}
+        {/* Live data summary strip */}
+        {!loadingStats && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
+            <div className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Users size={18} color="var(--purple-600)" />
+              <div>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Customers Analyzed</p>
+                <p style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {hasStats ? stats.total_analyzed.toLocaleString() : '—'}
+                </p>
+              </div>
+            </div>
+            <div className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <BarChart2 size={18} color="#e11d48" />
+              <div>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>High-Risk Accounts</p>
+                <p style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {hasStats ? stats.high_risk_count.toLocaleString() : '—'}
+                </p>
+              </div>
+            </div>
+            <div className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <DollarSign size={18} color="#16a34a" />
+              <div>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Monthly Revenue</p>
+                <p style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {hasStats && stats.total_mrr != null ? `$${Math.round(stats.total_mrr).toLocaleString()}` : '—'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!hasStats && !loadingStats && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.2)', borderRadius: '12px', padding: '12px 16px', marginBottom: '20px', fontSize: '13px', color: '#d97706' }}>
+            <AlertCircle size={16} />
+            No analysis data yet. Run batch analysis from the Dashboard first to generate reports with real data.
+          </div>
+        )}
+
+        {/* ── Available Reports ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '28px' }}>
-          
+
           {/* Card 1: Revenue Impact Analysis */}
           <div className="card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
@@ -70,19 +155,13 @@ function Reports() {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Revenue Impact Analysis</h3>
-                  <span className="badge badge-green" style={{ fontSize: '10px' }}>Excel</span>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Customer Risk Export</h3>
+                  <span className="badge badge-green" style={{ fontSize: '10px' }}>CSV</span>
                 </div>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Projected MRR impact from predicted churn over the next 90 days.
+                  Full ML risk report for all customers — exported from live predictions.
                 </p>
               </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '20px' }}>
-              <span>📅 Aug 02, 2026</span>
-              <span>📦 2.4 MB</span>
-              <span>📊 6,240 rows</span>
             </div>
 
             <div style={{ display: 'flex', gap: '12px' }}>
@@ -92,23 +171,34 @@ function Reports() {
                 className="btn-primary"
                 style={{ flex: 1, padding: '10px', fontSize: '13px', justifyContent: 'center' }}
               >
-                <Download size={15} /> {downloading === 'All' ? 'Downloading…' : 'Download'}
+                <Download size={15} /> {downloading === 'All' ? 'Downloading…' : 'Download All'}
               </button>
               <button
-                onClick={() => setPreviewModal({
-                  title: 'Revenue Impact Analysis Preview',
-                  type: 'Excel Data',
-                  rows: [
-                    { customer: 'Lumen Health', mrr: '$2,400', risk: 'High (100%)', impact: '$28,800/yr' },
-                    { customer: 'Skyline Media', mrr: '$1,300', risk: 'High (107%)', impact: '$15,600/yr' },
-                    { customer: 'Pulse Fitness', mrr: '$470', risk: 'High (131%)', impact: '$5,640/yr' },
-                    { customer: 'Northwind Labs', mrr: '$840', risk: 'Medium (45%)', impact: '$10,080/yr' },
-                  ]
-                })}
+                onClick={() => handleDownload('High')}
+                disabled={downloading === 'High'}
                 className="btn-secondary"
                 style={{ padding: '10px 16px', fontSize: '13px' }}
               >
-                <Eye size={15} /> Preview
+                {downloading === 'High' ? 'Downloading…' : 'High Risk Only'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <button
+                onClick={() => handleDownload('Medium')}
+                disabled={downloading === 'Medium'}
+                className="btn-secondary"
+                style={{ flex: 1, padding: '8px', fontSize: '12px', justifyContent: 'center' }}
+              >
+                Medium Risk
+              </button>
+              <button
+                onClick={() => handleDownload('Low')}
+                disabled={downloading === 'Low'}
+                className="btn-secondary"
+                style={{ flex: 1, padding: '8px', fontSize: '12px', justifyContent: 'center' }}
+              >
+                Low Risk
               </button>
             </div>
           </div>
@@ -117,21 +207,17 @@ function Reports() {
           <div className="card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
               <div style={{ width: '42px', height: '42px', background: 'var(--purple-50)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Printer size={22} color="var(--purple-600)" />
+                <FileText size={22} color="var(--purple-600)" />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Executive Print Report</h3>
-                  <span className="badge badge-purple" style={{ fontSize: '10px' }}>Print</span>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Executive Summary</h3>
+                  <span className="badge badge-purple" style={{ fontSize: '10px' }}>Preview / Print</span>
                 </div>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Print-ready executive summary with charts and recommendations.
+                  Key metrics summary from real backend data.
                 </p>
               </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '20px' }}>
-              <span>📅 Aug 03, 2026</span>
             </div>
 
             <div style={{ display: 'flex', gap: '12px' }}>
@@ -143,90 +229,58 @@ function Reports() {
                 <Printer size={15} /> Print
               </button>
               <button
-                onClick={() => setPreviewModal({
-                  title: 'Executive Summary Executive Overview',
-                  type: 'Print Document',
-                  rows: [
-                    { metric: 'Total Active Customer Accounts', value: '10,842' },
-                    { metric: 'High-Risk Retention Targets', value: '1,747 Accounts' },
-                    { metric: 'Model Prediction Accuracy', value: '94.2% AUC' },
-                    { metric: 'Projected MRR Saved This Quarter', value: '$48,200' },
-                  ]
-                })}
+                onClick={openExecutivePreview}
                 className="btn-secondary"
                 style={{ padding: '10px 16px', fontSize: '13px' }}
               >
                 <Eye size={15} /> Preview
               </button>
             </div>
+
+            <div style={{ marginTop: '10px' }}>
+              <button
+                onClick={openRevenuePreview}
+                className="btn-secondary"
+                style={{ width: '100%', padding: '8px', fontSize: '12px', justifyContent: 'center' }}
+              >
+                <Eye size={14} /> Preview Top At-Risk Customers
+              </button>
+            </div>
           </div>
 
         </div>
 
-        {/* ── Bottom Section: Scheduled Reports ── */}
+        {/* ── Scheduled Reports — honest "not yet available" notice ── */}
         <div className="card" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div>
               <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Scheduled Reports</h3>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Automated reports delivered to your inbox</p>
             </div>
-            <button
-              onClick={handleAddNewSchedule}
-              className="btn-secondary"
-              style={{ padding: '8px 14px', fontSize: '12px' }}
-            >
-              <Plus size={14} /> New Schedule
-            </button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {scheduledReports.map(item => (
-              <div
-                key={item.id}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '14px 18px', borderRadius: '12px', background: 'var(--surface-hover)',
-                  border: '1px solid var(--border)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'var(--purple-50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Clock size={18} color="var(--purple-600)" />
-                  </div>
-                  <div>
-                    <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{item.name}</p>
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.schedule}</p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                  <div style={{ textAlign: 'right' }}>
-                    <p style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>Next run</p>
-                    <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{item.nextRun}</p>
-                  </div>
-
-                  <span className="badge badge-purple" style={{ fontSize: '11px' }}>
-                    {item.format}
-                  </span>
-
-                  <button
-                    onClick={() => setEditingSchedule({ ...item })}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                  >
-                    <Edit2 size={13} /> Edit
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 20px', textAlign: 'center', gap: '12px' }}>
+            <div style={{ width: '56px', height: '56px', background: 'var(--surface-hover)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Clock size={26} color="var(--text-muted)" style={{ opacity: 0.5 }} />
+            </div>
+            <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Report Scheduling Not Yet Available</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '400px', lineHeight: 1.7 }}>
+              Automated scheduled reports require backend cron infrastructure that is not yet implemented.
+              Use the manual download buttons above to export reports on demand.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.2)', borderRadius: '10px', padding: '10px 16px', fontSize: '12px', color: '#d97706' }}>
+              <AlertCircle size={14} />
+              This feature will be available in a future release.
+            </div>
           </div>
         </div>
 
       </div>
 
-      {/* ── Report Preview Modal ── */}
+      {/* ── Report Preview Modal — real data only ── */}
       {previewModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="card" style={{ width: '560px', maxWidth: '100%', padding: '24px', position: 'relative' }}>
+          <div className="card" style={{ width: '580px', maxWidth: '100%', padding: '24px', position: 'relative' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{previewModal.title}</h3>
@@ -237,13 +291,13 @@ function Reports() {
               </button>
             </div>
 
-            <div style={{ background: 'var(--surface-hover)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+            <div style={{ background: 'var(--surface-hover)', borderRadius: '12px', padding: '16px', marginBottom: '20px', overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <tbody>
                   {previewModal.rows.map((row, idx) => (
                     <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
                       {Object.entries(row).map(([k, v]) => (
-                        <td key={k} style={{ padding: '8px 10px', color: 'var(--text-primary)', fontWeight: k === 'customer' || k === 'metric' ? 700 : 500 }}>
+                        <td key={k} style={{ padding: '8px 10px', color: 'var(--text-primary)', fontWeight: k === 'metric' || k === 'customerID' ? 700 : 500 }}>
                           {v}
                         </td>
                       ))}
@@ -258,64 +312,6 @@ function Reports() {
                 Close Preview
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Edit Schedule Modal ── */}
-      {editingSchedule && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="card" style={{ width: '460px', maxWidth: '100%', padding: '24px', position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Edit Scheduled Report</h3>
-              <button onClick={() => setEditingSchedule(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveSchedule} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Report Name</label>
-                <input
-                  type="text"
-                  value={editingSchedule.name}
-                  onChange={e => setEditingSchedule({ ...editingSchedule, name: e.target.value })}
-                  className="input-base"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Schedule Frequency</label>
-                <input
-                  type="text"
-                  value={editingSchedule.schedule}
-                  onChange={e => setEditingSchedule({ ...editingSchedule, schedule: e.target.value })}
-                  className="input-base"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>File Format</label>
-                <select
-                  value={editingSchedule.format}
-                  onChange={e => setEditingSchedule({ ...editingSchedule, format: e.target.value })}
-                  className="input-base"
-                >
-                  <option value="PDF">PDF Document</option>
-                  <option value="CSV">CSV Spreadsheet</option>
-                  <option value="EXCEL">Excel Document</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button type="button" onClick={() => setEditingSchedule(null)} className="btn-secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }}>
-                  <Save size={14} /> Save Schedule
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
