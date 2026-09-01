@@ -5,7 +5,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, Tooltip,
   ResponsiveContainer, XAxis, YAxis, CartesianGrid
 } from 'recharts'
-import { TrendingDown, TrendingUp, DollarSign, Users, RefreshCw, BarChart2, AlertCircle } from 'lucide-react'
+import { TrendingDown, TrendingUp, DollarSign, Users, BarChart2, AlertCircle } from 'lucide-react'
 import { getDashboardStats } from '../api/dashboard'
 import { getMLMetrics } from '../api/metrics'
 import toast from 'react-hot-toast'
@@ -58,9 +58,9 @@ function Analytics() {
   // Risk breakdown bar data (real from backend)
   const riskBarData = hasData
     ? [
-        { name: 'High',   count: stats.high_risk_count,   fill: '#e11d48' },
-        { name: 'Medium', count: stats.medium_risk_count, fill: '#d97706' },
-        { name: 'Low',    count: stats.low_risk_count,    fill: '#22c55e' },
+        { name: 'High',   count: stats.high_risk_count,   fill: '#EF4444' },
+        { name: 'Medium', count: stats.medium_risk_count, fill: '#F59E0B' },
+        { name: 'Low',    count: stats.low_risk_count,    fill: '#10B981' },
       ]
     : []
 
@@ -95,23 +95,19 @@ function Analytics() {
       <Sidebar />
       <div className="page-content" style={{ padding: '24px 32px' }}>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-          <Header title="Analytics" subtitle="Churn intelligence and segment analysis from your real data." />
-          <button
-            onClick={loadAll}
-            disabled={loading}
-            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: loading ? 'not-allowed' : 'pointer', borderRadius: '10px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', opacity: loading ? 0.5 : 1 }}
-          >
-            <RefreshCw size={14} style={{ animation: loading ? 'spin 0.8s linear infinite' : 'none' }} />
-            Refresh
-          </button>
-        </div>
+        {/* ── Top Navbar ── */}
+        <Header
+          title="Analytics"
+          subtitle="Churn intelligence and segment analysis from your real data."
+          onRefresh={loadAll}
+          isRefreshing={loading}
+        />
 
         {/* Error */}
         {error && !loading && (
-          <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', color: '#e11d48', fontSize: '13px', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ background: 'rgba(248, 113, 113, 0.12)', border: '1px solid rgba(248, 113, 113, 0.25)', color: 'var(--danger)', fontSize: '13px', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>{error}</span>
-            <button onClick={loadAll} style={{ background: 'none', border: 'none', color: '#e11d48', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>Retry</button>
+            <button onClick={loadAll} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>Retry</button>
           </div>
         )}
 
@@ -124,8 +120,8 @@ function Analytics() {
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '6px' }}>Avg Churn Rate</p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-              <div style={{ width: '36px', height: '36px', background: 'rgba(225, 29, 72, 0.12)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <TrendingDown size={18} color="#e11d48" />
+              <div style={{ width: '36px', height: '36px', background: 'rgba(248, 113, 113, 0.12)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TrendingDown size={18} color="var(--danger)" />
               </div>
               <span className="badge badge-green" style={{ fontSize: '10px' }}>Live</span>
             </div>
@@ -137,8 +133,8 @@ function Analytics() {
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '6px' }}>Retention Rate</p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-              <div style={{ width: '36px', height: '36px', background: 'rgba(34, 197, 94, 0.12)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <TrendingUp size={18} color="#16a34a" />
+              <div style={{ width: '36px', height: '36px', background: 'rgba(52, 211, 153, 0.12)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TrendingUp size={18} color="var(--success)" />
               </div>
               <span className="badge badge-green" style={{ fontSize: '10px' }}>Live</span>
             </div>
@@ -281,9 +277,9 @@ function Analytics() {
                         <span style={{ fontWeight: 700, color: 'var(--text-primary)', flex: 1, fontSize: '13px' }}>{r.customerID || `Customer #${i + 1}`}</span>
                         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{r.Contract ?? '—'}</span>
                         <div style={{ width: '120px', height: '6px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${prob}%`, background: '#e11d48', borderRadius: '99px' }} />
+                          <div style={{ height: '100%', width: `${prob}%`, background: 'var(--danger)', borderRadius: '99px' }} />
                         </div>
-                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#e11d48', width: '42px', textAlign: 'right' }}>{prob}%</span>
+                        <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--danger)', width: '42px', textAlign: 'right' }}>{prob}%</span>
                         <span className="badge badge-red" style={{ fontSize: '10px' }}>● {r.risk_level}</span>
                       </div>
                     )

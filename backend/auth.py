@@ -1,18 +1,32 @@
 import os
 import re
 from datetime import datetime, timedelta
+# pyrefly: ignore [missing-import]
 from passlib.context import CryptContext
 from jose import jwt
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from database import user_collection
 
-load_dotenv()
+# Load .env from backend directory or fallback to current directory
+_backend_dir = os.path.dirname(os.path.abspath(__file__))
+_env_path = os.path.join(_backend_dir, ".env")
+if os.path.exists(_env_path):
+    load_dotenv(dotenv_path=_env_path, override=True)
+else:
+    load_dotenv(override=True)
 
-SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-random-string-change-this-later")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+# ── JWT Configuration ─────────────────────────────────────────────────────────
+# Reads JWT_SECRET_KEY first; falls back to legacy SECRET_KEY for backward compat
+SECRET_KEY = (
+    os.getenv("JWT_SECRET_KEY")
+    or os.getenv("SECRET_KEY")
+    or "INSECURE-PLACEHOLDER-CHANGE-IN-DOT-ENV"
+)
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -92,4 +106,4 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload"
         )
-    return email
+    return email

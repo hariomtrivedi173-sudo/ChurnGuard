@@ -38,9 +38,9 @@ function buildPayload(record) {
 }
 
 function riskColor(level) {
-  if (level === 'High')   return '#e11d48'
-  if (level === 'Medium') return '#d97706'
-  return '#16a34a'
+  if (level === 'High')   return '#EF4444'
+  if (level === 'Medium') return '#F59E0B'
+  return '#10B981'
 }
 
 function Predict() {
@@ -261,7 +261,7 @@ function Predict() {
             {/* Error state — no fallback data shown */}
             {predError && !loading && !result && (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '40px 20px' }}>
-                <AlertCircle size={32} color="#e11d48" style={{ marginBottom: '12px', opacity: 0.6 }} />
+                <AlertCircle size={32} color="#F87171" style={{ marginBottom: '12px', opacity: 0.6 }} />
                 <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>Prediction failed</p>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '280px', lineHeight: 1.5 }}>{predError}</p>
               </div>
@@ -273,15 +273,15 @@ function Predict() {
 
                 {/* Risk score */}
                 <div style={{
-                  background: `rgba(${result.risk_level === 'High' ? '225,29,72' : result.risk_level === 'Medium' ? '217,119,6' : '34,197,94'}, 0.1)`,
-                  border: `1px solid rgba(${result.risk_level === 'High' ? '225,29,72' : result.risk_level === 'Medium' ? '217,119,6' : '34,197,94'}, 0.2)`,
+                  background: `rgba(${result.risk_level === 'High' ? '248,113,113' : result.risk_level === 'Medium' ? '251,191,36' : '52,211,153'}, 0.12)`,
+                  border: `1px solid rgba(${result.risk_level === 'High' ? '248,113,113' : result.risk_level === 'Medium' ? '251,191,36' : '52,211,153'}, 0.3)`,
                   borderRadius: '14px', padding: '16px 20px'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <p style={{ fontSize: '16px', fontWeight: 800, color: riskColor(result.risk_level) }}>{result.risk_level} Churn Risk</p>
                     <span style={{ fontSize: '20px', fontWeight: 800, color: riskColor(result.risk_level) }}>{result.churn_probability}%</span>
                   </div>
-                  <div style={{ height: '8px', background: `rgba(${result.risk_level === 'High' ? '225,29,72' : result.risk_level === 'Medium' ? '217,119,6' : '34,197,94'}, 0.2)`, borderRadius: '99px', overflow: 'hidden' }}>
+                  <div style={{ height: '8px', background: `rgba(${result.risk_level === 'High' ? '248,113,113' : result.risk_level === 'Medium' ? '251,191,36' : '52,211,153'}, 0.25)`, borderRadius: '99px', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${result.churn_probability}%`, background: riskColor(result.risk_level), borderRadius: '99px' }} />
                   </div>
                   {result.priority && (
@@ -312,7 +312,7 @@ function Predict() {
                     <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Recommended Actions</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       {result.recommended_actions.map((a, i) => (
-                        <div key={i} style={{ fontSize: '12px', background: 'var(--purple-50)', padding: '8px 12px', borderRadius: '8px', borderLeft: '3px solid var(--purple-600)' }}>
+                        <div key={i} style={{ fontSize: '12px', background: 'var(--purple-50)', padding: '8px 12px', borderRadius: '8px', borderLeft: '3px solid var(--accent)' }}>
                           <p style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{a.action}</p>
                           {a.reason && <p style={{ color: 'var(--text-muted)', marginTop: '2px' }}>{a.reason}</p>}
                         </div>

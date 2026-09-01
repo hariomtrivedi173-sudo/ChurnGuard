@@ -1,15 +1,17 @@
 import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   LayoutDashboard, Users, Zap, UploadCloud, BarChart2, FileText,
-  Settings as SettingsIcon, LogOut, Shield, Sparkles, X, Check
+  Settings as SettingsIcon, LogOut, Shield, X,
+  ChevronLeft, ChevronRight
 } from 'lucide-react'
+import { useSidebar } from './useSidebar'
 
 const navMenu = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/customers', label: 'Customers', icon: Users },
-  { path: '/predict', label: 'Predictions', icon: Zap },
+  { path: '/predict', label: 'Predict Churn', icon: Zap },
   { path: '/upload', label: 'Upload Dataset', icon: UploadCloud },
   { path: '/analytics', label: 'Analytics', icon: BarChart2 },
   { path: '/reports', label: 'Reports', icon: FileText },
@@ -21,51 +23,294 @@ const accountMenu = [
 
 function Sidebar() {
   const navigate = useNavigate()
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [showLogoutModal,  setShowLogoutModal]  = useState(false)
+  const { isCollapsed, toggleSidebar, isMobileOpen, closeMobileSidebar } = useSidebar()
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   function handleConfirmLogout() {
     localStorage.removeItem('token')
     localStorage.removeItem('company_id')
     localStorage.removeItem('user_profile')
     setShowLogoutModal(false)
+    if (isMobileOpen) closeMobileSidebar()
     toast.success('You have been logged out.')
     navigate('/')
   }
 
-  function handleUpgradePlan(planName) {
-    toast.success(`Successfully upgraded to ${planName} Plan!`)
-    setShowUpgradeModal(false)
-  }
-
   return (
     <>
-      <aside className="sidebar">
-        
-        {/* Brand Header */}
-        <div style={{ padding: '24px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '36px', height: '36px',
-            background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
-            borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)', flexShrink: 0
-          }}>
-            <Shield size={20} color="#fff" />
-          </div>
+      {/* ─────────────────────────────────────────────────────────────
+          1. DESKTOP SIDEBAR (Sticky, Collapsible 256px ↔ 80px)
+         ───────────────────────────────────────────────────────────── */}
+      <aside
+        className={`sidebar desktop-sidebar ${isCollapsed ? 'collapsed' : ''}`}
+        aria-label="Main sidebar navigation"
+      >
+        {/* Brand & Toggle Header */}
+        <div
+          style={{
+            padding: isCollapsed ? '8px 8px 10px 8px' : '18px 16px',
+            display: 'flex',
+            flexDirection: isCollapsed ? 'column' : 'row',
+            alignItems: 'center',
+            justifyContent: isCollapsed ? 'center' : 'space-between',
+            gap: isCollapsed ? '6px' : '10px',
+            borderBottom: '1px solid var(--border)',
+            minHeight: '73px',
+            position: 'relative',
+            boxSizing: 'border-box',
+          }}
+        >
+          {/* Logo & Brand text (Clickable -> /dashboard) */}
+          <Link
+            to="/dashboard"
+            className="sidebar-brand"
+            aria-label="ChurnGuard - Go to Dashboard"
+            title="ChurnGuard Dashboard"
+            style={{
+              order: isCollapsed ? 2 : 1,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              textDecoration: 'none',
+              color: 'inherit',
+              overflow: 'hidden',
+              borderRadius: '10px',
+              maxWidth: isCollapsed ? '36px' : 'calc(100% - 36px)',
+              flexShrink: 0,
+            }}
+          >
+            <div
+              className="sidebar-brand-icon"
+              style={{
+                width: '36px',
+                height: '36px',
+                background: 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 50%, #7C3AED 100%)',
+                borderRadius: '10px',
+                border: '1px solid rgba(167, 139, 250, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.35)',
+                flexShrink: 0,
+              }}
+            >
+              <Shield size={20} color="#EDE9FE" />
+            </div>
+
+            {!isCollapsed && (
+              <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                <h1 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.15, margin: 0 }}>
+                  ChurnGuard
+                </h1>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, margin: 0, marginTop: '2px' }}>
+                  AI Churn Intelligence
+                </p>
+              </div>
+            )}
+          </Link>
+
+          {/* Toggle Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleSidebar()
+            }}
+            className="sidebar-toggle-btn"
+            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            style={{
+              order: isCollapsed ? 1 : 2,
+              flexShrink: 0,
+            }}
+          >
+            {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={15} />}
+          </button>
+        </div>
+
+        {/* Navigation Section */}
+        <div
+          className="sidebar-nav-container"
+          style={{
+            flex: 1,
+            padding: isCollapsed ? '16px 8px' : '16px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px',
+            overflowY: isCollapsed ? 'visible' : 'auto',
+            overflowX: 'visible',
+          }}
+        >
+          {/* MENU Group */}
           <div>
-            <h1 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1 }}>
-              ChurnGuard
-            </h1>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>
-              AI Churn Intelligence
-            </p>
+            {!isCollapsed && <p className="sidebar-group-title">MENU</p>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {navMenu.map(item => {
+                const Icon = item.icon
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={({ isActive }) =>
+                      `sidebar-nav-item ${isActive ? 'active' : ''} ${isCollapsed ? 'icon-only' : ''}`
+                    }
+                    aria-label={item.label}
+                  >
+                    <Icon size={18} />
+                    {!isCollapsed && <span className="sidebar-nav-label">{item.label}</span>}
+                    {isCollapsed && (
+                      <span className="sidebar-tooltip" role="tooltip">
+                        {item.label}
+                      </span>
+                    )}
+                  </NavLink>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* ACCOUNT Group */}
+          <div>
+            {!isCollapsed && <p className="sidebar-group-title">ACCOUNT</p>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {accountMenu.map(item => {
+                const Icon = item.icon
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={({ isActive }) =>
+                      `sidebar-nav-item ${isActive ? 'active' : ''} ${isCollapsed ? 'icon-only' : ''}`
+                    }
+                    aria-label={item.label}
+                  >
+                    <Icon size={18} />
+                    {!isCollapsed && <span className="sidebar-nav-label">{item.label}</span>}
+                    {isCollapsed && (
+                      <span className="sidebar-tooltip" role="tooltip">
+                        {item.label}
+                      </span>
+                    )}
+                  </NavLink>
+                )
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Navigation Sections */}
-        <div style={{ flex: 1, padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
-          
-          {/* MENU section */}
+        {/* Footer Logout */}
+        <div
+          style={{
+            padding: isCollapsed ? '14px 8px' : '14px 12px',
+            borderTop: '1px solid var(--border)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setShowLogoutModal(true)}
+            className={`sidebar-nav-item logout-nav-item ${isCollapsed ? 'icon-only' : ''}`}
+            style={{
+              width: '100%',
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              color: '#e11d48',
+            }}
+            aria-label="Logout"
+          >
+            <LogOut size={18} />
+            {!isCollapsed && <span className="sidebar-nav-label">Logout</span>}
+            {isCollapsed && (
+              <span className="sidebar-tooltip" role="tooltip">
+                Logout
+              </span>
+            )}
+          </button>
+        </div>
+      </aside>
+
+      {/* ─────────────────────────────────────────────────────────────
+          2. MOBILE DRAWER SIDEBAR (Slide-over for screens < 1024px)
+         ───────────────────────────────────────────────────────────── */}
+      {isMobileOpen && (
+        <div
+          className={`mobile-sidebar-backdrop ${isMobileOpen ? 'open' : ''}`}
+          onClick={closeMobileSidebar}
+          aria-hidden="true"
+        />
+      )}
+
+      <div
+        className={`mobile-sidebar-drawer ${isMobileOpen ? 'open' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mobile navigation drawer"
+      >
+        {/* Drawer Header */}
+        <div
+          style={{
+            padding: '20px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid var(--border)',
+          }}
+        >
+          <Link
+            to="/dashboard"
+            onClick={closeMobileSidebar}
+            className="sidebar-brand"
+            aria-label="ChurnGuard - Go to Dashboard"
+            title="ChurnGuard Dashboard"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              textDecoration: 'none',
+              color: 'inherit',
+              borderRadius: '10px',
+            }}
+          >
+            <div
+              className="sidebar-brand-icon"
+              style={{
+                width: '36px',
+                height: '36px',
+                background: 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 50%, #7C3AED 100%)',
+                borderRadius: '10px',
+                border: '1px solid rgba(167, 139, 250, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.35)',
+                flexShrink: 0,
+              }}
+            >
+              <Shield size={20} color="#EDE9FE" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                ChurnGuard
+              </h2>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, marginTop: '2px' }}>
+                AI Churn Intelligence
+              </p>
+            </div>
+          </Link>
+
+          <button
+            type="button"
+            onClick={closeMobileSidebar}
+            className="sidebar-toggle-btn"
+            aria-label="Close navigation menu"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Drawer Links */}
+        <div style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '18px', overflowY: 'auto' }}>
           <div>
             <p className="sidebar-group-title">MENU</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -75,9 +320,10 @@ function Sidebar() {
                   <NavLink
                     key={item.path}
                     to={item.path}
+                    onClick={closeMobileSidebar}
                     className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
                   >
-                    <Icon size={17} />
+                    <Icon size={18} />
                     <span>{item.label}</span>
                   </NavLink>
                 )
@@ -85,7 +331,6 @@ function Sidebar() {
             </div>
           </div>
 
-          {/* ACCOUNT section */}
           <div>
             <p className="sidebar-group-title">ACCOUNT</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -95,74 +340,85 @@ function Sidebar() {
                   <NavLink
                     key={item.path}
                     to={item.path}
+                    onClick={closeMobileSidebar}
                     className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
                   >
-                    <Icon size={17} />
+                    <Icon size={18} />
                     <span>{item.label}</span>
                   </NavLink>
                 )
               })}
             </div>
           </div>
-
-          {/* Soft Purple Upgrade Card */}
-          <div className="upgrade-card" style={{ marginTop: 'auto', marginBottom: '8px' }}>
-            <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--purple-600)', marginBottom: '4px' }}>
-              Need more power?
-            </p>
-            <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: 1.4 }}>
-              Upgrade to Enterprise for unlimited predictions & live exports.
-            </p>
-            <button
-              onClick={() => setShowUpgradeModal(true)}
-              className="btn-primary"
-              style={{ width: '100%', padding: '9px', fontSize: '12px', justifyContent: 'center' }}
-            >
-              Upgrade
-            </button>
-          </div>
-
         </div>
 
-        {/* Footer Logout */}
-        <div style={{ padding: '16px 12px', borderTop: '1px solid var(--border)' }}>
+        {/* Drawer Footer Logout */}
+        <div style={{ padding: '14px 12px', borderTop: '1px solid var(--border)' }}>
           <button
+            type="button"
             onClick={() => setShowLogoutModal(true)}
-            className="sidebar-nav-item"
-            style={{ width: '100%', color: '#e11d48', border: 'none', background: 'transparent', cursor: 'pointer' }}
+            className="sidebar-nav-item logout-nav-item"
+            style={{ width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', color: '#e11d48' }}
           >
-            <LogOut size={17} />
+            <LogOut size={18} />
             <span>Logout</span>
           </button>
         </div>
+      </div>
 
-      </aside>
-
-      {/* ── Logout Confirmation Modal ── */}
+      {/* ─────────────────────────────────────────────────────────────
+          3. LOGOUT CONFIRMATION MODAL
+         ───────────────────────────────────────────────────────────── */}
       {showLogoutModal && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-labelledby="sidebar-logout-title"
+          aria-labelledby="sidebar-logout-dialog-title"
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 2000, padding: '20px'
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2500,
+            padding: '20px',
+            backdropFilter: 'blur(2px)',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowLogoutModal(false)
           }}
         >
-          <div className="card" style={{
-            width: '100%', maxWidth: '420px', padding: '28px', borderRadius: '16px',
-            background: 'var(--surface)'
-          }}>
+          <div
+            className="card"
+            style={{
+              width: '100%',
+              maxWidth: '420px',
+              padding: '28px',
+              borderRadius: '16px',
+              background: 'var(--surface)',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-              <div style={{
-                width: '40px', height: '40px', borderRadius: '12px',
-                background: '#fff1f2', color: '#e11d48',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-              }}>
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  background: '#fff1f2',
+                  color: '#e11d48',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
                 <LogOut size={20} />
               </div>
-              <h3 id="sidebar-logout-title" style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+              <h3
+                id="sidebar-logout-dialog-title"
+                style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}
+              >
                 Log out of ChurnGuard?
               </h3>
             </div>
@@ -182,72 +438,19 @@ function Sidebar() {
                 type="button"
                 onClick={handleConfirmLogout}
                 style={{
-                  background: '#e11d48', color: '#ffffff', border: 'none',
-                  borderRadius: '10px', fontWeight: 700, fontSize: '13px',
-                  padding: '8px 18px', cursor: 'pointer'
+                  background: '#e11d48',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  padding: '8px 18px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(225, 29, 72, 0.3)',
                 }}
               >
                 Log Out
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Upgrade Modal ── */}
-      {showUpgradeModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="card" style={{ width: '640px', maxWidth: '100%', padding: '28px', position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <Sparkles size={20} color="var(--purple-600)" />
-                  <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>Choose Your Plan</h3>
-                </div>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Scale your churn intelligence with advanced AI features</p>
-              </div>
-              <button onClick={() => setShowUpgradeModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-              
-              {/* Pro Plan */}
-              <div style={{ border: '1px solid var(--border)', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <div>
-                  <h4 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Pro Growth</h4>
-                  <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', margin: '10px 0' }}>$49 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>/mo</span></p>
-                  <ul style={{ listStyle: 'none', padding: 0, fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={14} color="#16a34a" /> Up to 50,000 customers</li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={14} color="#16a34a" /> Automated daily predictions</li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={14} color="#16a34a" /> Standard CSV & PDF reports</li>
-                  </ul>
-                </div>
-                <button onClick={() => handleUpgradePlan('Pro Growth')} className="btn-secondary" style={{ marginTop: '20px', width: '100%', justifyContent: 'center' }}>
-                  Select Pro
-                </button>
-              </div>
-
-              {/* Enterprise Plan */}
-              <div style={{ border: '2px solid var(--purple-600)', borderRadius: '16px', padding: '20px', background: 'var(--purple-50)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h4 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Enterprise</h4>
-                    <span className="badge badge-purple">Recommended</span>
-                  </div>
-                  <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--purple-600)', margin: '10px 0' }}>$199 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>/mo</span></p>
-                  <ul style={{ listStyle: 'none', padding: 0, fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={14} color="var(--purple-600)" /> Unlimited customer records</li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={14} color="var(--purple-600)" /> Custom ML model training</li>
-                    <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={14} color="var(--purple-600)" /> 24/7 Priority Support & API</li>
-                  </ul>
-                </div>
-                <button onClick={() => handleUpgradePlan('Enterprise')} className="btn-primary" style={{ marginTop: '20px', width: '100%', justifyContent: 'center' }}>
-                  Upgrade to Enterprise
-                </button>
-              </div>
-
             </div>
           </div>
         </div>

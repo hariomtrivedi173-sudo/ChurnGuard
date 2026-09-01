@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
+import Header from '../components/Header'
 import { getSegments } from '../api/segments'
 import { DollarSign, Clock, Layers } from 'lucide-react'
 
@@ -11,10 +12,10 @@ const SEGMENT_NAMES = {
 }
 
 const SEGMENT_COLORS = {
-  0: '#3b82f6', // blue
-  1: '#10b981', // green
-  2: '#8b5cf6', // purple
-  3: '#f59e0b', // amber
+  0: '#7C3AED', // Purple
+  1: '#10B981', // Green
+  2: '#3B82F6', // Blue
+  3: '#F59E0B', // Amber
 }
 
 function Segments() {
@@ -41,32 +42,31 @@ function Segments() {
   return (
     <div className="page-layout">
       <Sidebar />
-      <div className="page-content">
+      <div className="page-content" style={{ padding: '24px 32px' }}>
 
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px' }}>
-          <div>
-            <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-              Customer Segments
-            </h1>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              AI clustering (K-Means) based on tenure, monthly charges, and total spend
-            </p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f5f3ff', border: '1px solid #e8e4f8', padding: '8px 12px', borderRadius: '10px' }}>
-            <Layers size={16} color="var(--purple-600)" />
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--purple-700)' }}>4 Clusters Identified</span>
-          </div>
-        </div>
+        {/* ── Top Navbar ── */}
+        <Header
+          title="Customer Segments"
+          subtitle="AI clustering (K-Means) based on tenure, monthly charges, and total spend."
+          onRefresh={loadSegments}
+          isRefreshing={loading}
+          extraActions={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--purple-50)', border: '1px solid var(--purple-200)', padding: '6px 12px', borderRadius: '10px' }}>
+              <Layers size={15} color="var(--purple-600)" />
+              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--purple-700)' }}>4 Clusters Identified</span>
+            </div>
+          }
+        />
 
         {error && (
-          <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', color: '#e11d48', fontSize: '13px', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px' }}>
+          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', fontSize: '13px', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px' }}>
             {error}
           </div>
         )}
 
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-muted)', fontSize: '14px', padding: '60px 0', justifyContent: 'center' }}>
-            <div style={{ width: '18px', height: '18px', border: '2px solid #c4b5fd', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ width: '18px', height: '18px', border: '2px solid var(--purple-200)', borderTopColor: 'var(--purple-600)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             Running K-Means clustering…
           </div>
         ) : (
@@ -75,7 +75,7 @@ function Segments() {
               // Map dynamic clusters based on average tenure & charges (simple heuristic mapping)
               // K-Means cluster IDs are non-deterministic per run, so we assign visual themes dynamically.
               const isHighChurn = s.churn_rate_percent > 35
-              const color = isHighChurn ? '#e11d48' : SEGMENT_COLORS[idx % 4]
+              const color = isHighChurn ? '#DC2626' : SEGMENT_COLORS[idx % 4]
               const name = `Segment ${s.segment}` // Fallback name
 
               return (

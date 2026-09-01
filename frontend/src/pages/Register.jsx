@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { registerUser } from '../api/auth'
+import { registerUser, verifyRegistrationOtp, resendRegistrationOtp } from '../api/auth'
 import {
   Shield, UserPlus, CheckCircle2, ArrowRight, Building2,
   Briefcase, Mail, Lock, Eye, EyeOff, ArrowLeft, Phone,
-  Check, AlertCircle
+  Check, AlertCircle, RefreshCw
 } from 'lucide-react'
 
 const bulletPoints = [
@@ -115,6 +115,22 @@ function Register() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const navigate = useNavigate()
+
+  // ── Step 3: OTP Verification ───────────────────────────────────────────────
+  const [otpDigits,      setOtpDigits]      = useState(['', '', '', '', '', ''])
+  const [maskedEmail,    setMaskedEmail]    = useState('')
+  const [otpError,       setOtpError]       = useState('')
+  const [otpLoading,     setOtpLoading]     = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [resendLoading,  setResendLoading]  = useState(false)
+  const otpRefs = useRef([])
+
+  // Countdown timer for resend cooldown
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const timer = setInterval(() => setResendCooldown(prev => prev - 1), 1000)
+    return () => clearInterval(timer)
+  }, [resendCooldown])
 
   // ── Password Requirement Criteria ──
   const passwordCriteria = useMemo(() => ({
@@ -301,7 +317,7 @@ function Register() {
 
     setLoading(true)
     try {
-      await registerUser(
+      const data = await registerUser(
         email.trim().toLowerCase(),
         password,
         {
@@ -318,14 +334,98 @@ function Register() {
         }
       )
 
-      setSuccess(true)
-      toast.success('Account created successfully! Redirecting to login…')
-      setTimeout(() => navigate('/'), 2200)
+      // Store email for VerifyOTP page fallback
+      localStorage.setItem('pending_verify_email', email.trim().toLowerCase())
+      setMaskedEmail(data.masked_email || email.trim().toLowerCase())
+      setResendCooldown(60)
+      setStep(3)       // ← Advance to OTP verification step
+      setOtpDigits(['', '', '', '', '', ''])
+      setOtpError('')
+      setTimeout(() => otpRefs.current[0]?.focus(), 100)
+
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.')
       toast.error(err.message || 'Registration failed')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // ── OTP input handlers ─────────────────────────────────────────────────────
+  function handleOtpChange(index, value) {
+    const digit = value.replace(/\D/g, '').slice(-1)
+    const next = [...otpDigits]
+    next[index] = digit
+    setOtpDigits(next)
+    setOtpError('')
+    if (digit && index < 5) {
+      otpRefs.current[index + 1]?.focus()
+    }
+  }
+
+  function handleOtpKeyDown(index, e) {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus()
+    }
+    if (e.key === 'ArrowLeft' && index > 0)  otpRefs.current[index - 1]?.focus()
+    if (e.key === 'ArrowRight' && index < 5) otpRefs.current[index + 1]?.focus()
+  }
+
+  function handleOtpPaste(e) {
+    e.preventDefault()
+    const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6)
+    if (pasted.length === 6) {
+      setOtpDigits(pasted.split(''))
+      setOtpError('')
+      otpRefs.current[5]?.focus()
+    }
+  }
+
+  async function handleOtpVerify(e) {
+    e.preventDefault()
+    const otp = otpDigits.join('')
+    if (otp.length < 6) {
+      setOtpError('Please enter all 6 digits of the verification code.')
+      return
+    }
+    setOtpLoading(true)
+    setOtpError('')
+    try {
+      await verifyRegistrationOtp({ email: email.trim().toLowerCase(), otp })
+      localStorage.removeItem('pending_verify_email')
+      setSuccess(true)
+      toast.success('Email verified! Welcome to ChurnGuard.')
+      setTimeout(() => navigate('/'), 2000)
+    } catch (err) {
+      const msg = err.message || 'Invalid or expired OTP. Please try again.'
+      setOtpError(msg)
+      setOtpDigits(['', '', '', '', '', ''])
+      setTimeout(() => otpRefs.current[0]?.focus(), 50)
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
+  async function handleResendOtp() {
+    if (resendCooldown > 0 || resendLoading) return
+    setResendLoading(true)
+    setOtpError('')
+    try {
+      await resendRegistrationOtp({ email: email.trim().toLowerCase() })
+      toast.success('A new verification code has been sent to your email.')
+      setResendCooldown(60)
+      setOtpDigits(['', '', '', '', '', ''])
+      setTimeout(() => otpRefs.current[0]?.focus(), 50)
+    } catch (err) {
+      const msg = err.message || 'Could not resend code. Please try again.'
+      setOtpError(msg)
+      if (err.message?.includes('wait')) {
+        // Extract seconds from backend message if present
+        const match = err.message.match(/(\d+)\s*seconds?/)
+        if (match) setResendCooldown(parseInt(match[1], 10))
+      }
+    } finally {
+      setResendLoading(false)
     }
   }
 
@@ -345,7 +445,7 @@ function Register() {
         width: '39%',
         minWidth: '380px',
         maxWidth: '500px',
-        background: 'linear-gradient(160deg, #1e1b4b 0%, #312e81 35%, #4c1d95 70%, #6d28d9 100%)',
+        background: 'linear-gradient(160deg, #1E1B4B 0%, #312E81 45%, #4C1D95 100%)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -357,7 +457,7 @@ function Register() {
         {/* Ambient glow */}
         <div style={{
           position: 'absolute', top: '-10%', right: '-10%', width: '320px', height: '320px',
-          background: 'radial-gradient(circle, rgba(167,139,250,0.35) 0%, rgba(124,58,237,0) 70%)',
+          background: 'radial-gradient(circle, rgba(167, 139, 250, 0.25) 0%, rgba(30, 27, 75, 0) 70%)',
           borderRadius: '50%', pointerEvents: 'none', filter: 'blur(35px)',
         }} />
 
@@ -365,22 +465,22 @@ function Register() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', zIndex: 1 }}>
           <div style={{
             width: '44px', height: '44px',
-            background: 'rgba(255, 255, 255, 0.12)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            background: 'linear-gradient(135deg, #312E81 0%, #4C1D95 100%)',
+            border: '1px solid rgba(167, 139, 250, 0.4)',
             borderRadius: '12px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
             backdropFilter: 'blur(8px)',
           }}>
-            <Shield size={24} color="#ffffff" strokeWidth={2.5} />
+            <Shield size={24} color="#EDE9FE" strokeWidth={2.5} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontWeight: 800, fontSize: '20px', letterSpacing: '-0.02em', color: '#ffffff' }}>ChurnGuard</span>
               <span style={{
                 fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
-                background: 'rgba(167, 139, 250, 0.25)', color: '#ddd6fe', padding: '2px 8px',
-                borderRadius: '99px', border: '1px solid rgba(196, 181, 253, 0.3)'
+                background: 'rgba(167, 139, 250, 0.2)', color: '#EDE9FE', padding: '2px 8px',
+                borderRadius: '99px', border: '1px solid rgba(167, 139, 250, 0.4)'
               }}>
                 AI Intelligence
               </span>
@@ -415,7 +515,7 @@ function Register() {
                   background: 'rgba(167, 139, 250, 0.25)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                 }}>
-                  <Check size={14} color="#ddd6fe" strokeWidth={2.5} />
+                  <Check size={14} color="#EDE9FE" strokeWidth={2.5} />
                 </div>
                 <span style={{ fontSize: '13px', fontWeight: 600, color: '#ffffff' }}>{point}</span>
               </div>
@@ -459,19 +559,174 @@ function Register() {
             {success ? (
               <div style={{ textAlign: 'center', padding: '24px 0' }}>
                 <div style={{
-                  width: '64px', height: '64px', background: '#f0fdf4', borderRadius: '50%',
+                  width: '64px', height: '64px', background: '#F0FDF4', borderRadius: '50%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  margin: '0 auto 16px', border: '1px solid #bbf7d0'
+                  margin: '0 auto 16px', border: '1px solid #BBF7D0'
                 }}>
-                  <CheckCircle2 size={36} color="#16a34a" />
+                  <CheckCircle2 size={36} color="#22C55E" />
                 </div>
                 <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
-                  Account Created!
+                  Email Verified!
                 </h2>
                 <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  Your organization account has been set up. Redirecting to sign in…
+                  Your account is active. Redirecting to sign in…
                 </p>
               </div>
+
+            ) : step === 3 ? (
+              /* ── STEP 3: OTP VERIFICATION ── */
+              <form onSubmit={handleOtpVerify} noValidate>
+                {/* Header */}
+                <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+                  <div style={{
+                    width: '56px', height: '56px',
+                    background: 'var(--soft-aqua)',
+                    borderRadius: '16px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    margin: '0 auto 16px',
+                    border: '1px solid var(--border)'
+                  }}>
+                    <Mail size={28} color="var(--accent)" strokeWidth={2} />
+                  </div>
+                  <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+                    Verify your email
+                  </h2>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                    We've sent a 6-digit code to<br />
+                    <strong style={{ color: 'var(--text-primary)' }}>{maskedEmail}</strong>
+                  </p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                    Check your inbox and spam folder. The code expires in 10 minutes.
+                  </p>
+                </div>
+
+                {/* OTP Boxes */}
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '20px' }}>
+                  {otpDigits.map((digit, i) => (
+                    <input
+                      key={i}
+                      id={`otp-digit-${i}`}
+                      ref={el => otpRefs.current[i] = el}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]"
+                      maxLength={1}
+                      value={digit}
+                      autoComplete="one-time-code"
+                      onChange={e => handleOtpChange(i, e.target.value)}
+                      onKeyDown={e => handleOtpKeyDown(i, e)}
+                      onPaste={i === 0 ? handleOtpPaste : undefined}
+                      style={{
+                        width: '48px', height: '56px',
+                        textAlign: 'center',
+                        fontSize: '22px', fontWeight: 700,
+                        fontFamily: 'SFMono-Regular, Consolas, monospace',
+                        border: `2px solid ${otpError ? 'var(--danger)' : digit ? 'var(--accent)' : 'var(--border)'}`,
+                        borderRadius: '10px',
+                        background: 'var(--surface)',
+                        color: 'var(--text-primary)',
+                        outline: 'none',
+                        transition: 'border-color 0.15s, box-shadow 0.15s',
+                        boxShadow: digit ? '0 0 0 3px rgba(45, 212, 191, 0.25)' : 'none',
+                        caretColor: 'var(--accent)',
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* Error */}
+                {otpError && (
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '8px',
+                    background: 'rgba(248, 113, 113, 0.12)', border: '1px solid rgba(248, 113, 113, 0.25)',
+                    borderRadius: '10px', padding: '10px 14px',
+                    marginBottom: '16px'
+                  }}>
+                    <AlertCircle size={16} color="var(--danger)" style={{ flexShrink: 0, marginTop: '1px' }} />
+                    <span style={{ fontSize: '13px', color: 'var(--danger)', lineHeight: 1.4 }}>{otpError}</span>
+                  </div>
+                )}
+
+                {/* Verify Button */}
+                <button
+                  id="verify-otp-btn"
+                  type="submit"
+                  disabled={otpLoading || otpDigits.join('').length < 6}
+                  style={{
+                    width: '100%', padding: '13px 24px',
+                    background: otpLoading || otpDigits.join('').length < 6
+                      ? 'var(--border)'
+                      : 'var(--accent)',
+                    color: otpLoading || otpDigits.join('').length < 6 ? 'var(--text-muted)' : 'var(--bg)',
+                    border: '1px solid var(--accent)', borderRadius: '10px',
+                    fontSize: '15px', fontWeight: 700, cursor: otpLoading ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    transition: 'all 0.2s', marginBottom: '16px',
+                    opacity: otpDigits.join('').length < 6 ? 0.6 : 1,
+                  }}
+                >
+                  {otpLoading ? (
+                    <>
+                      <span style={{
+                        width: '18px', height: '18px', borderRadius: '50%',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderTopColor: '#fff',
+                        animation: 'spin 0.7s linear infinite',
+                        display: 'inline-block'
+                      }} />
+                      Verifying…
+                    </>
+                  ) : (
+                    <><CheckCircle2 size={18} /> Verify Email</>
+                  )}
+                </button>
+
+                {/* Resend OTP */}
+                <div style={{ textAlign: 'center' }}>
+                  {resendCooldown > 0 ? (
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
+                      Resend available in{' '}
+                      <strong style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+                        {resendCooldown}s
+                      </strong>
+                    </p>
+                  ) : (
+                    <button
+                      id="resend-otp-btn"
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={resendLoading}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        fontSize: '13px', color: 'var(--accent)', fontWeight: 600,
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                        padding: '4px 8px', borderRadius: '6px',
+                        opacity: resendLoading ? 0.6 : 1,
+                      }}
+                    >
+                      {resendLoading
+                        ? <><RefreshCw size={14} style={{ animation: 'spin 0.7s linear infinite' }} /> Sending…</>
+                        : <><RefreshCw size={14} /> Resend verification code</>
+                      }
+                    </button>
+                  )}
+                </div>
+
+                {/* Back link */}
+                <div style={{ textAlign: 'center', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setStep(2); setOtpError('') }}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      fontSize: '12px', color: 'var(--text-muted)',
+                      display: 'inline-flex', alignItems: 'center', gap: '4px'
+                    }}
+                  >
+                    <ArrowLeft size={12} /> Wrong email? Go back
+                  </button>
+                </div>
+              </form>
 
             ) : step === 1 ? (
               /* ── STEP 1: ACCOUNT INFORMATION ── */

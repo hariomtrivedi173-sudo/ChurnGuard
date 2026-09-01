@@ -674,10 +674,11 @@ function Settings() {
 
               <div style={{
                 width: '104px', height: '104px', borderRadius: '24px',
-                background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
-                color: '#ffffff', fontWeight: 800, fontSize: '34px',
+                background: 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 50%, #7C3AED 100%)',
+                border: '1px solid rgba(167, 139, 250, 0.4)',
+                color: '#EDE9FE', fontWeight: 800, fontSize: '34px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(124, 58, 237, 0.25)',
+                margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(124, 58, 237, 0.35)',
                 overflow: 'hidden'
               }}>
                 {effectiveAvatarSrc ? (
@@ -1355,17 +1356,17 @@ function Settings() {
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.sub}</p>
                   </div>
                   
-                  <div
-                    onClick={() => toggleNotification(item.key)}
-                    role="switch"
-                    aria-checked={notifications[item.key]}
-                    style={{
-                      width: '44px', height: '24px', borderRadius: '99px',
-                      background: notifications[item.key] ? 'var(--purple-600)' : 'var(--border)',
-                      padding: '2px', cursor: 'pointer', transition: 'background 200ms ease',
-                      display: 'flex', alignItems: 'center'
-                    }}
-                  >
+                    <div
+                      onClick={() => toggleNotification(item.key)}
+                      role="switch"
+                      aria-checked={notifications[item.key]}
+                      style={{
+                        width: '44px', height: '24px', borderRadius: '99px',
+                        background: notifications[item.key] ? 'var(--accent)' : 'var(--border)',
+                        padding: '2px', cursor: 'pointer', transition: 'background 200ms ease',
+                        display: 'flex', alignItems: 'center'
+                      }}
+                    >
                     <div style={{
                       width: '20px', height: '20px', borderRadius: '50%', background: '#ffffff',
                       transform: notifications[item.key] ? 'translateX(20px)' : 'translateX(0)',
@@ -1393,13 +1394,13 @@ function Settings() {
                 onClick={() => handleThemeChange('light')}
                 style={{
                   padding: '22px', borderRadius: '14px',
-                  border: currentTheme === 'light' ? '2px solid var(--purple-600)' : '1px solid var(--border)',
-                  background: '#ffffff', cursor: 'pointer', textAlign: 'center',
+                  border: currentTheme === 'light' ? '2px solid var(--purple-primary)' : '1px solid var(--border)',
+                  background: '#FFFFFF', cursor: 'pointer', textAlign: 'center',
                   boxShadow: currentTheme === 'light' ? '0 4px 16px rgba(124, 58, 237, 0.15)' : 'none'
                 }}
               >
-                <p style={{ fontSize: '15px', fontWeight: 800, color: '#111827' }}>Light Mode ☀️</p>
-                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>Default enterprise theme</p>
+                <p style={{ fontSize: '15px', fontWeight: 800, color: '#1E1B4B' }}>Light Mode ☀️</p>
+                <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>Clean SaaS purple theme</p>
                 {currentTheme === 'light' && <span className="badge badge-purple" style={{ marginTop: '12px' }}>Active</span>}
               </div>
 
@@ -1407,13 +1408,13 @@ function Settings() {
                 onClick={() => handleThemeChange('dark')}
                 style={{
                   padding: '22px', borderRadius: '14px',
-                  border: currentTheme === 'dark' ? '2px solid var(--purple-600)' : '1px solid var(--border)',
-                  background: '#181924', cursor: 'pointer', textAlign: 'center',
-                  boxShadow: currentTheme === 'dark' ? '0 4px 16px rgba(124, 58, 237, 0.25)' : 'none'
+                  border: currentTheme === 'dark' ? '2px solid #A78BFA' : '1px solid var(--border)',
+                  background: '#18132B', cursor: 'pointer', textAlign: 'center',
+                  boxShadow: currentTheme === 'dark' ? '0 4px 16px rgba(0, 0, 0, 0.5)' : 'none'
                 }}
               >
-                <p style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>Dark Mode 🌙</p>
-                <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>High-contrast dark theme</p>
+                <p style={{ fontSize: '15px', fontWeight: 800, color: '#F5F3FF' }}>Dark Mode 🌙</p>
+                <p style={{ fontSize: '12px', color: '#A5A1B8', marginTop: '4px' }}>Deep purple-blue dark theme</p>
                 {currentTheme === 'dark' && <span className="badge badge-purple" style={{ marginTop: '12px' }}>Active</span>}
               </div>
             </div>

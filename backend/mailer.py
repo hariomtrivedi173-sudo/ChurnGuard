@@ -1,19 +1,44 @@
 import os
 import smtplib
 import ssl
+import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
+from dotenv import load_dotenv
 
-SMTP_HOST = os.getenv("SMTP_HOST")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
-SMTP_FROM = os.getenv("SMTP_FROM", "no-reply@churnguard.io")
+# Load .env: first check backend directory, then fallback to current working directory
+_backend_dir = os.path.dirname(os.path.abspath(__file__))
+_env_path = os.path.join(_backend_dir, ".env")
+if os.path.exists(_env_path):
+    load_dotenv(dotenv_path=_env_path, override=True)
+else:
+    load_dotenv(override=True)
+
+logger = logging.getLogger(__name__)
+
+# ── Module-level SMTP config diagnostic ──────────────────────────────────────
+# Printed at import time to verify environment variables are configured.
+# Values are NEVER printed — only whether each variable is set (True/False).
+def _print_smtp_diagnostic() -> None:
+    host     = os.getenv("SMTP_HOST")
+    port     = os.getenv("SMTP_PORT")
+    username = os.getenv("SMTP_USERNAME") or os.getenv("SMTP_USER")
+    password = os.getenv("SMTP_PASSWORD") or os.getenv("SMTP_PASS")
+    from_    = os.getenv("SMTP_FROM_EMAIL") or os.getenv("SMTP_FROM")
+
+    print("[Mailer] SMTP configuration check:", flush=True)
+    print(f"SMTP_HOST configured: {bool(host)}", flush=True)
+    print(f"SMTP_PORT configured: {bool(port)}", flush=True)
+    print(f"SMTP_USERNAME configured: {bool(username)}", flush=True)
+    print(f"SMTP_PASSWORD configured: {bool(password)}", flush=True)
+    print(f"SMTP_FROM_EMAIL configured: {bool(from_)}", flush=True)
+
+_print_smtp_diagnostic()
 
 
 def mask_email(email: str) -> str:
-    """Mask email address for privacy display, e.g. j***e@company.com"""
+    """Return masked email for privacy display — e.g. j***e@company.com"""
     if not email or "@" not in email:
         return "your registered email"
     user, domain = email.split("@", 1)
@@ -24,80 +49,430 @@ def mask_email(email: str) -> str:
     return f"{masked_user}@{domain}"
 
 
+def _get_smtp_config() -> dict:
+    """
+    Read SMTP credentials fresh from env at call time.
+    This means changes to .env are picked up without a restart.
+    """
+    if os.path.exists(_env_path):
+        load_dotenv(dotenv_path=_env_path, override=True)
+    else:
+        load_dotenv(override=True)
+
+    return {
+        "host":     os.getenv("SMTP_HOST"),
+        "port":     int(os.getenv("SMTP_PORT", "587")),
+        "user":     os.getenv("SMTP_USERNAME") or os.getenv("SMTP_USER"),
+        "password": os.getenv("SMTP_PASSWORD") or os.getenv("SMTP_PASS"),
+        "from_":    os.getenv("SMTP_FROM_EMAIL") or os.getenv("SMTP_FROM", "no-reply@churnguard.io"),
+    }
+
+
+def _dispatch_email(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
+    """
+    Low-level SMTP dispatch.
+    Reads credentials fresh at call time.
+    Returns True on success.
+    Raises RuntimeError if SMTP is not configured or if send fails.
+    """
+    cfg = _get_smtp_config()
+
+    if not (cfg["host"] and cfg["user"] and cfg["password"]):
+        logger.error(
+            "[Mailer] SMTP not configured — host_set=%s user_set=%s password_set=%s",
+            bool(cfg["host"]),
+            bool(cfg["user"]),
+            bool(cfg["password"]),
+        )
+        raise RuntimeError("SMTP credentials are not configured in .env (SMTP_HOST, SMTP_USERNAME, or SMTP_PASSWORD missing)")
+
+    logger.info(
+        "[Mailer] Attempting SMTP connection to %s:%s as %s",
+        cfg["host"], cfg["port"],
+        mask_email(cfg["user"]) if cfg["user"] else "(none)",
+    )
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"]    = cfg["from_"]
+        msg["To"]      = to_email
+
+        msg.attach(MIMEText(text_content, "plain"))
+        msg.attach(MIMEText(html_content, "html"))
+
+        context = ssl.create_default_context()
+        with smtplib.SMTP(cfg["host"], cfg["port"], timeout=15) as server:
+            server.set_debuglevel(0)          # set to 1 for raw SMTP transcript
+            server.ehlo()
+            server.starttls(context=context)
+            server.ehlo()
+            server.login(cfg["user"], cfg["password"])
+            server.sendmail(cfg["from_"], to_email, msg.as_string())
+
+        logger.info("[Mailer] Email dispatched successfully to %s", mask_email(to_email))
+        print(f"[Mailer] Email dispatched successfully to {mask_email(to_email)}", flush=True)
+        return True
+
+    except smtplib.SMTPAuthenticationError as exc:
+        logger.error(
+            "[Mailer] SMTP authentication failed (%s: %s) — check SMTP_USERNAME and SMTP_PASSWORD. "
+            "For Gmail use an App Password, not your account password.",
+            type(exc).__name__, exc,
+        )
+        print(f"[Mailer] SMTP authentication failed: {type(exc).__name__}: {exc}", flush=True)
+        raise RuntimeError(f"SMTP authentication failed ({type(exc).__name__}: {exc})") from exc
+
+    except smtplib.SMTPConnectError as exc:
+        logger.error("[Mailer] Cannot connect to SMTP server %s:%s — %s: %s", cfg["host"], cfg["port"], type(exc).__name__, exc)
+        print(f"[Mailer] SMTP connect error: {type(exc).__name__}: {exc}", flush=True)
+        raise RuntimeError(f"Cannot connect to SMTP server ({type(exc).__name__}: {exc})") from exc
+
+    except smtplib.SMTPException as exc:
+        logger.error("[Mailer] SMTP error: %s: %s", type(exc).__name__, exc)
+        print(f"[Mailer] SMTP error: {type(exc).__name__}: {exc}", flush=True)
+        raise RuntimeError(f"SMTP error ({type(exc).__name__}: {exc})") from exc
+
+    except OSError as exc:
+        logger.error(
+            "[Mailer] Network/OS error connecting to %s:%s — %s: %s",
+            cfg["host"], cfg["port"], type(exc).__name__, exc,
+        )
+        print(f"[Mailer] Network error: {type(exc).__name__}: {exc}", flush=True)
+        raise RuntimeError(f"Network error ({type(exc).__name__}: {exc})") from exc
+
+    except Exception as exc:
+        logger.exception("[Mailer] Unexpected error during email dispatch: %s", exc)
+        print(f"[Mailer] Unexpected error: {type(exc).__name__}: {exc}", flush=True)
+        raise RuntimeError(f"Unexpected email error ({type(exc).__name__}: {exc})") from exc
+
+
+def send_registration_otp_email(to_email: str, first_name: Optional[str] = None) -> bool:
+    """
+    Send the registration / email-verification OTP email.
+
+    IMPORTANT: The OTP code is NOT passed into this function intentionally.
+    The OTP is already stored in MongoDB. The email simply instructs the user
+    to check their inbox — the OTP comes from the DB, not from the email subject.
+
+    Returns True on success, False on failure.
+    Raises RuntimeError if SMTP is not configured.
+    """
+    greeting_name = first_name.strip().title() if first_name else "there"
+
+    subject = "Verify your ChurnGuard account"
+
+    text_content = (
+        f"Hello {greeting_name},\n\n"
+        "Welcome to ChurnGuard! To complete your registration, please enter "
+        "the 6-digit verification code shown in this email.\n\n"
+        "This code expires in 10 minutes.\n\n"
+        "If you did not create a ChurnGuard account, you can ignore this email.\n\n"
+        "— The ChurnGuard Team"
+    )
+
+    # NOTE: The OTP is injected by the caller via the `otp_display` parameter below.
+    # This function signature is intentionally separate so the OTP is only
+    # ever rendered in the email body — never in logs or subjects.
+    raise RuntimeError(
+        "Use send_registration_otp_email_with_code() — this stub should not be called directly."
+    )
+
+
+def send_registration_otp_email_with_code(
+    to_email: str,
+    otp_code: str,
+    first_name: Optional[str] = None
+) -> bool:
+    """
+    Send registration verification email containing the OTP code in the body.
+
+    - OTP is rendered in the HTML body only.
+    - OTP is NOT logged to console.
+    - OTP is NOT placed in the email subject line.
+    - Returns True on success, False on failure.
+    - Raises RuntimeError if SMTP is not configured.
+    """
+    greeting_name = first_name.strip().title() if first_name else "there"
+
+    subject = "Verify your ChurnGuard account"
+
+    text_content = (
+        f"Hello {greeting_name},\n\n"
+        f"Your ChurnGuard email verification code is: {otp_code}\n\n"
+        "This code expires in 10 minutes. Do not share it with anyone.\n\n"
+        "If you did not sign up for ChurnGuard, please ignore this email.\n\n"
+        "— The ChurnGuard Team"
+    )
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8fafc;
+      margin: 0;
+      padding: 20px;
+      color: #1e293b;
+    }}
+    .container {{
+      max-width: 520px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 36px 32px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    }}
+    .badge {{
+      display: inline-block;
+      background: #f3e8ff;
+      color: #7c3aed;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 20px;
+    }}
+    h2 {{
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 8px;
+    }}
+    p {{
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.6;
+      margin: 0 0 16px;
+    }}
+    .otp-box {{
+      background: #faf5ff;
+      border: 2px dashed #a855f7;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      margin: 24px 0;
+    }}
+    .otp-label {{
+      font-size: 12px;
+      font-weight: 600;
+      color: #7c3aed;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }}
+    .otp-code {{
+      font-size: 38px;
+      font-weight: 900;
+      color: #6b21a8;
+      letter-spacing: 10px;
+      margin: 0;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    }}
+    .warning {{
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.6;
+      background: #f8fafc;
+      border-left: 3px solid #e2e8f0;
+      padding: 10px 14px;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0;
+    }}
+    .footer {{
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 28px;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 16px;
+      line-height: 1.5;
+    }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">ChurnGuard · Account Verification</span>
+
+    <h2>Verify your email address</h2>
+    <p>
+      Hello {greeting_name},<br>
+      Thank you for signing up for ChurnGuard. Use the verification code below
+      to complete your registration. The code expires in <strong>10 minutes</strong>.
+    </p>
+
+    <div class="otp-box">
+      <div class="otp-label">Your verification code</div>
+      <p class="otp-code">{otp_code}</p>
+    </div>
+
+    <div class="warning">
+      🔒 <strong>Never share this code.</strong> ChurnGuard will never ask for your
+      verification code by phone or chat. If you did not sign up, please ignore this email.
+    </div>
+
+    <div class="footer">
+      This is an automated message from ChurnGuard Enterprise AI Platform.<br>
+      Do not reply to this email.
+    </div>
+  </div>
+</body>
+</html>"""
+
+    print(f"[Mailer] Dispatching registration verification email to {mask_email(to_email)}")
+    return _dispatch_email(to_email, subject, html_content, text_content)
+
+
+def send_password_otp_email(
+    to_email: str,
+    otp_code: str,
+    first_name: Optional[str] = None
+) -> bool:
+    """
+    Send password-change OTP email.
+
+    - OTP is rendered in the HTML body only.
+    - OTP is NOT logged to console.
+    - OTP is NOT placed in the email subject line.
+    - Returns True on success, False on failure.
+    - Raises RuntimeError if SMTP is not configured.
+    """
+    greeting_name = first_name.strip().title() if first_name else "there"
+
+    subject = "ChurnGuard – Password Change Verification"
+
+    text_content = (
+        f"Hello {greeting_name},\n\n"
+        f"Your ChurnGuard password change verification code is: {otp_code}\n\n"
+        "This code expires in 10 minutes. If you did not request this, "
+        "contact your workspace administrator immediately.\n\n"
+        "— The ChurnGuard Security Team"
+    )
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8fafc;
+      margin: 0;
+      padding: 20px;
+      color: #1e293b;
+    }}
+    .container {{
+      max-width: 520px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 36px 32px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    }}
+    .badge {{
+      display: inline-block;
+      background: #fff7ed;
+      color: #c2410c;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 20px;
+    }}
+    h2 {{ font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 8px; }}
+    p {{ font-size: 14px; color: #475569; line-height: 1.6; margin: 0 0 16px; }}
+    .otp-box {{
+      background: #fff7ed;
+      border: 2px dashed #f97316;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      margin: 24px 0;
+    }}
+    .otp-label {{
+      font-size: 12px;
+      font-weight: 600;
+      color: #c2410c;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }}
+    .otp-code {{
+      font-size: 38px;
+      font-weight: 900;
+      color: #9a3412;
+      letter-spacing: 10px;
+      margin: 0;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    }}
+    .warning {{
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.6;
+      background: #f8fafc;
+      border-left: 3px solid #e2e8f0;
+      padding: 10px 14px;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0;
+    }}
+    .footer {{
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 28px;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 16px;
+      line-height: 1.5;
+    }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">ChurnGuard · Security</span>
+
+    <h2>Verify password change</h2>
+    <p>
+      Hello {greeting_name},<br>
+      We received a request to change your ChurnGuard account password.
+      Use the verification code below to complete this change.
+    </p>
+
+    <div class="otp-box">
+      <div class="otp-label">Password change code</div>
+      <p class="otp-code">{otp_code}</p>
+    </div>
+
+    <div class="warning">
+      ⚠️ <strong>This code expires in 10 minutes.</strong> If you did not request
+      a password change, contact your workspace administrator immediately.
+    </div>
+
+    <div class="footer">
+      This is an automated security message from ChurnGuard Enterprise AI Platform.<br>
+      Do not reply to this email.
+    </div>
+  </div>
+</body>
+</html>"""
+
+    print(f"[Mailer] Dispatching password-change verification email to {mask_email(to_email)}")
+    return _dispatch_email(to_email, subject, html_content, text_content)
+
+
+# ── Backward compatibility alias ──────────────────────────────────────────────
+# The old `send_otp_email` was used for password-change OTP only.
+# Existing callers in main.py will continue to work unchanged.
 def send_otp_email(to_email: str, otp_code: str, first_name: Optional[str] = None) -> bool:
     """
-    Send OTP verification email.
-    If SMTP credentials are provided, attempts SMTP dispatch.
-    Always logs cleanly to system console for observability and development.
+    Backward-compatible alias → routes to send_password_otp_email().
+    New code should call send_registration_otp_email_with_code() or send_password_otp_email() directly.
     """
-    greeting_name = first_name.strip() if first_name else "Valued User"
-    subject = f"ChurnGuard Security — Verification Code: {otp_code}"
-
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }}
-        .container {{ max-width: 520px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 16px rgba(0,0,0,0.04); }}
-        .badge {{ display: inline-block; background: #f3e8ff; color: #7c3aed; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.05em; }}
-        .otp-box {{ background: #faf5ff; border: 2px dashed #a855f7; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }}
-        .otp-code {{ font-size: 34px; font-weight: 800; color: #6b21a8; letter-spacing: 8px; margin: 0; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; }}
-        .footer {{ font-size: 11px; color: #94a3b8; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px; line-height: 1.5; }}
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <span class="badge">ChurnGuard Security</span>
-        <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 14px 0 8px;">Verify Password Change</h2>
-        <p style="font-size: 13px; color: #475569; line-height: 1.5; margin-bottom: 16px;">
-          Hello {greeting_name},<br>
-          We received a request to update your ChurnGuard account password. Use the following single-use verification code to complete this change:
-        </p>
-
-        <div class="otp-box">
-          <p class="otp-code">{otp_code}</p>
-        </div>
-
-        <p style="font-size: 12px; color: #64748b; line-height: 1.5;">
-          ⏱️ This code will expire in <strong>10 minutes</strong>. If you did not initiate this request, please contact your workspace administrator immediately and ensure your account credentials remain secure.
-        </p>
-
-        <div class="footer">
-          This is an automated security transmission from ChurnGuard Enterprise AI Platform.<br>
-          Do not reply to this email.
-        </div>
-      </div>
-    </body>
-    </html>
-    """
-
-    print(f"\n[ChurnGuard Security Mailer] OTP generated for {to_email}: ====> {otp_code} <====\n")
-
-    if SMTP_HOST and SMTP_USER and SMTP_PASSWORD:
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"] = SMTP_FROM
-            msg["To"] = to_email
-
-            text_part = MIMEText(
-                f"Your ChurnGuard password change verification code is: {otp_code}\nThis code expires in 10 minutes.",
-                "plain"
-            )
-            html_part = MIMEText(html_content, "html")
-            msg.attach(text_part)
-            msg.attach(html_part)
-
-            context = ssl.create_default_context()
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-                server.starttls(context=context)
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.sendmail(SMTP_FROM, to_email, msg.as_string())
-            return True
-        except Exception as e:
-            print(f"[ChurnGuard Security Mailer] SMTP dispatch error (falling back to log): {e}")
-            return False
-
-    return True
+    return send_password_otp_email(to_email, otp_code, first_name)

@@ -4,11 +4,23 @@ import math
 import time
 import re
 import secrets
+import logging
 from collections import Counter
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Query
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+# Load .env from backend directory or fallback to current directory
+_backend_dir = os.path.dirname(os.path.abspath(__file__))
+_env_path = os.path.join(_backend_dir, ".env")
+if os.path.exists(_env_path):
+    load_dotenv(dotenv_path=_env_path, override=True)
+else:
+    load_dotenv(override=True)
+
+logger = logging.getLogger(__name__)
 # pyrefly: ignore [missing-import]
 from bson import ObjectId
 import pandas as pd
@@ -17,7 +29,7 @@ from datetime import datetime, timezone, timedelta
 
 from database import customer_collection, user_collection, telco_collection, notification_collection, otp_collection, database
 from auth import hash_password, verify_password, create_access_token, get_current_user, get_current_user_doc, get_company_id_for_name
-from mailer import send_otp_email, mask_email
+from mailer import send_otp_email, send_registration_otp_email_with_code, mask_email
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ml.predict import predict_churn
@@ -576,36 +588,347 @@ class PasswordOtpVerify(BaseModel):
 
 # ---------- Phase 1: Authentication & Profile ----------
 
+# ── Registration field validators ─────────────────────────────────────────────
+_EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
+_NAME_RE  = re.compile(r'^[a-zA-Z\s\'-]{2,50}$')
+_PHONE_RE = re.compile(r'^[6-9][0-9]{9}$')
+
+
+def _validate_registration_fields(user: 'RegisterUser') -> None:
+    """Raises HTTPException 422 for any invalid registration field."""
+    norm_email = user.email.strip().lower()
+
+    # First name — required, letters only
+    fn = user.first_name.strip()
+    if not fn:
+        raise HTTPException(status_code=422, detail="First name is required.")
+    if not _NAME_RE.match(fn):
+        raise HTTPException(
+            status_code=422,
+            detail="First name must contain letters only (2–50 characters)."
+        )
+
+    # Last name — optional, but if provided must be letters only
+    ln = user.last_name.strip()
+    if ln and not re.match(r'^[a-zA-Z\s\'-]{1,50}$', ln):
+        raise HTTPException(status_code=422, detail="Last name can contain letters only.")
+
+    # Email — required, valid format
+    if not norm_email:
+        raise HTTPException(status_code=422, detail="Email address is required.")
+    if not _EMAIL_RE.match(norm_email):
+        raise HTTPException(status_code=422, detail="Please enter a valid email address.")
+
+    # Phone — required, 10-digit Indian format
+    ph = re.sub(r'\D', '', user.phone.strip())
+    if not ph:
+        raise HTTPException(status_code=422, detail="Phone number is required.")
+    if not _PHONE_RE.match(ph):
+        raise HTTPException(
+            status_code=422,
+            detail="Phone must be a 10-digit number starting with 6, 7, 8, or 9."
+        )
+
+    # Password — min 8, max 72, must contain upper + lower + digit
+    pw = user.password
+    if not pw:
+        raise HTTPException(status_code=422, detail="Password is required.")
+    if len(pw) < 8 or len(pw) > 72:
+        raise HTTPException(status_code=422, detail="Password must be 8–72 characters.")
+    if not re.search(r'[A-Z]', pw):
+        raise HTTPException(status_code=422, detail="Password must contain at least one uppercase letter.")
+    if not re.search(r'[a-z]', pw):
+        raise HTTPException(status_code=422, detail="Password must contain at least one lowercase letter.")
+    if not re.search(r'[0-9]', pw):
+        raise HTTPException(status_code=422, detail="Password must contain at least one digit.")
+
+
 @app.post("/register")
 async def register_user(user: RegisterUser):
-    norm_email = user.email.strip().lower()
-    existing = await user_collection.find_one({"email": norm_email})
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+    """
+    Step 1 of registration: validate fields, create a *pending* (unverified) user,
+    generate a 6-digit OTP, hash it, store it in otp_codes, and send it by email.
 
+    The account is NOT usable until /auth/verify-registration is called successfully.
+    """
+    # 1. Server-side field validation
+    _validate_registration_fields(user)
+
+    norm_email   = user.email.strip().lower()
     company_name = user.company.strip()
     company_id   = get_company_id_for_name(company_name, norm_email)
     hashed_pw    = hash_password(user.password)
+    now          = datetime.now(timezone.utc)
 
-    await user_collection.insert_one({
-        "email":        norm_email,
-        "password":     hashed_pw,
-        "first_name":   user.first_name.strip(),
-        "last_name":    user.last_name.strip(),
-        "company":      company_name,
-        "company_type": (user.company_type or "Private Limited").strip(),
-        "industry":     (user.industry or "Information Technology").strip(),
-        "department":   (user.department or "Analytics").strip(),
-        "company_size": (user.company_size or "11–50").strip(),
-        "company_id":   company_id,
-        "role":         user.role.strip() or "Analyst",
-        "phone":        user.phone.strip(),
-        "country":      user.country.strip() or "India",
-        "language":     "en",
-        "photo_url":    None,
-        "created_at":   datetime.now(timezone.utc).isoformat()
+    # 2. Duplicate check — block only verified accounts
+    existing = await user_collection.find_one({"email": norm_email})
+    if existing:
+        if existing.get("email_verified", True):  # verified accounts block duplicates
+            raise HTTPException(status_code=400, detail="An account with this email already exists.")
+        # Unverified pending account — replace it so the user can retry registration
+        await user_collection.delete_one({"_id": existing["_id"]})
+        await otp_collection.delete_many({"email": norm_email, "purpose": "email_verification"})
+
+    # 3. OTP rate-limit check — prevent spamming even before account exists
+    latest_otp = await otp_collection.find_one(
+        {"email": norm_email, "purpose": "email_verification"},
+        sort=[("created_at", -1)]
+    )
+    if latest_otp and latest_otp.get("created_at"):
+        created_at = latest_otp["created_at"]
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        elapsed = (now - created_at).total_seconds()
+        if elapsed < 60:
+            remaining = max(1, int(math.ceil(60 - elapsed)))
+            raise HTTPException(
+                status_code=429,
+                detail=f"Please wait {remaining} seconds before requesting a new verification code."
+            )
+
+    # 4. Create pending user (email_verified=False)
+    ph_clean = re.sub(r'\D', '', user.phone.strip())
+    result = await user_collection.insert_one({
+        "email":          norm_email,
+        "password":       hashed_pw,
+        "first_name":     user.first_name.strip(),
+        "last_name":      user.last_name.strip(),
+        "company":        company_name,
+        "company_type":   (user.company_type or "Private Limited").strip(),
+        "industry":       (user.industry or "Information Technology").strip(),
+        "department":     (user.department or "Analytics").strip(),
+        "company_size":   (user.company_size or "11–50").strip(),
+        "company_id":     company_id,
+        "role":           user.role.strip() or "Analyst",
+        "phone":          ph_clean,
+        "country":        user.country.strip() or "India",
+        "language":       "en",
+        "photo_url":      None,
+        "email_verified": False,
+        "created_at":     now,
     })
-    return {"message": f"User {norm_email} registered successfully", "company_id": company_id}
+    user_id = result.inserted_id
+    print(f"[Register] Pending user created for {mask_email(norm_email)}")
+
+    # 5. Generate 6-digit secure OTP and hash it
+    otp_code   = f"{secrets.randbelow(900000) + 100000}"
+    hashed_otp = hash_password(otp_code)
+    expires_at = now + timedelta(minutes=10)
+    print(f"[Register] OTP generated for {mask_email(norm_email)} — dispatching verification email")
+
+    # 6. Invalidate any previous OTP for this email, then store new one
+    await otp_collection.delete_many({"email": norm_email, "purpose": "email_verification"})
+    await otp_collection.insert_one({
+        "user_id":      user_id,
+        "email":        norm_email,
+        "otp_hash":     hashed_otp,
+        "purpose":      "email_verification",
+        "expires_at":   expires_at,
+        "created_at":   now,
+        "attempts":     0,
+        "max_attempts": 5,
+    })
+
+    # 7. Send OTP email — propagate failure to frontend (do NOT silently succeed)
+    try:
+        sent = send_registration_otp_email_with_code(
+            to_email=norm_email,
+            otp_code=otp_code,
+            first_name=user.first_name.strip()
+        )
+        if not sent:
+            raise RuntimeError("Email dispatch returned False")
+    except Exception as exc:
+        # SMTP not configured or send failed — clean up and log actionable error
+        logger.exception("OTP email sending failed: %s", exc)
+        await user_collection.delete_one({"_id": user_id})
+        await otp_collection.delete_many({"email": norm_email, "purpose": "email_verification"})
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"Registration failed: could not send verification email ({type(exc).__name__}: {exc}). "
+                "Please ensure SMTP is configured in the server environment, then try again."
+            )
+        )
+
+    print(f"[Register] Verification email sent to {mask_email(norm_email)}")
+    return {
+        "message": "Verification code sent to your email. Please check your inbox and spam folder.",
+        "masked_email": mask_email(norm_email),
+        "step": "verify_otp"
+    }
+
+
+class RegistrationOtpVerify(BaseModel):
+    email: str
+    otp: str
+
+
+class RegistrationResendOtp(BaseModel):
+    email: str
+
+
+@app.post("/auth/verify-registration")
+async def verify_registration(req: RegistrationOtpVerify):
+    """
+    Step 2 of registration: verify the 6-digit OTP and activate the account.
+    """
+    norm_email = req.email.strip().lower()
+    clean_otp  = req.otp.strip()
+
+    if not clean_otp or not re.match(r'^\d{6}$', clean_otp):
+        raise HTTPException(status_code=400, detail="Please enter a valid 6-digit verification code.")
+
+    # 1. Find OTP record
+    otp_doc = await otp_collection.find_one({
+        "email":   norm_email,
+        "purpose": "email_verification"
+    })
+    if not otp_doc:
+        raise HTTPException(
+            status_code=400,
+            detail="No pending verification code found. Please register again."
+        )
+
+    now = datetime.now(timezone.utc)
+
+    # 2. Check expiry
+    expires_at = otp_doc.get("expires_at")
+    if expires_at:
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < now:
+            await otp_collection.delete_one({"_id": otp_doc["_id"]})
+            raise HTTPException(
+                status_code=400,
+                detail="Verification code has expired. Please register again to get a new code."
+            )
+
+    # 3. Check attempt limit
+    current_attempts = otp_doc.get("attempts", 0)
+    max_attempts     = otp_doc.get("max_attempts", 5)
+    if current_attempts >= max_attempts:
+        await otp_collection.delete_one({"_id": otp_doc["_id"]})
+        raise HTTPException(
+            status_code=400,
+            detail="Maximum verification attempts exceeded. Please register again."
+        )
+
+    # 4. Verify OTP hash
+    if not verify_password(clean_otp, otp_doc.get("otp_hash", "")):
+        new_attempts = current_attempts + 1
+        if new_attempts >= max_attempts:
+            await otp_collection.delete_one({"_id": otp_doc["_id"]})
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid verification code. Maximum attempts reached. Please register again."
+            )
+        remaining = max_attempts - new_attempts
+        await otp_collection.update_one(
+            {"_id": otp_doc["_id"]},
+            {"$set": {"attempts": new_attempts}}
+        )
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid or expired OTP. {remaining} attempt(s) remaining."
+        )
+
+    # 5. Activate the user account
+    await user_collection.update_one(
+        {"email": norm_email},
+        {"$set": {"email_verified": True, "verified_at": now}}
+    )
+
+    # 6. Delete used OTP
+    await otp_collection.delete_one({"_id": otp_doc["_id"]})
+
+    print(f"[Register] Email verified for {mask_email(norm_email)}")
+    return {
+        "success": True,
+        "message": "Email verified successfully. You can now log in."
+    }
+
+
+@app.post("/auth/resend-registration-otp")
+async def resend_registration_otp(req: RegistrationResendOtp):
+    """
+    Resend the registration verification OTP.
+    Rate-limited to one request per 60 seconds.
+    """
+    norm_email = req.email.strip().lower()
+    now = datetime.now(timezone.utc)
+
+    # 1. Check the user exists and is still pending
+    user_doc = await user_collection.find_one({"email": norm_email})
+    if not user_doc:
+        # Generic message — do not reveal whether email exists
+        raise HTTPException(
+            status_code=400,
+            detail="No pending registration found for this email."
+        )
+    if user_doc.get("email_verified"):
+        raise HTTPException(
+            status_code=400,
+            detail="This email is already verified. Please log in."
+        )
+
+    # 2. Rate-limit check
+    latest_otp = await otp_collection.find_one(
+        {"email": norm_email, "purpose": "email_verification"},
+        sort=[("created_at", -1)]
+    )
+    if latest_otp and latest_otp.get("created_at"):
+        created_at = latest_otp["created_at"]
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        elapsed = (now - created_at).total_seconds()
+        if elapsed < 60:
+            remaining = max(1, int(math.ceil(60 - elapsed)))
+            raise HTTPException(
+                status_code=429,
+                detail=f"Please wait {remaining} seconds before requesting a new code."
+            )
+
+    # 3. Generate new OTP
+    otp_code   = f"{secrets.randbelow(900000) + 100000}"
+    hashed_otp = hash_password(otp_code)
+    expires_at = now + timedelta(minutes=10)
+    print(f"[Resend] New OTP generated for {mask_email(norm_email)} — dispatching")
+
+    # 4. Invalidate old OTPs, store new one
+    await otp_collection.delete_many({"email": norm_email, "purpose": "email_verification"})
+    await otp_collection.insert_one({
+        "user_id":      user_doc["_id"],
+        "email":        norm_email,
+        "otp_hash":     hashed_otp,
+        "purpose":      "email_verification",
+        "expires_at":   expires_at,
+        "created_at":   now,
+        "attempts":     0,
+        "max_attempts": 5,
+    })
+
+    # 5. Send email
+    try:
+        sent = send_registration_otp_email_with_code(
+            to_email=norm_email,
+            otp_code=otp_code,
+            first_name=user_doc.get("first_name", "")
+        )
+        if not sent:
+            raise RuntimeError("Email dispatch returned False")
+    except Exception as exc:
+        logger.exception("OTP email sending failed: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail=f"Could not send verification email ({type(exc).__name__}: {exc}). Please check SMTP configuration."
+        )
+
+    print(f"[Resend] Verification email resent to {mask_email(norm_email)}")
+    return {
+        "message": "A new verification code has been sent to your email.",
+        "masked_email": mask_email(norm_email)
+    }
 
 
 @app.post("/login")
@@ -617,6 +940,13 @@ async def login_user(user: User):
 
     if not verify_password(user.password, existing["password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    # Block unverified accounts — give a clear, actionable message
+    if not existing.get("email_verified", False):
+        raise HTTPException(
+            status_code=403,
+            detail="Please verify your email before logging in. Check your inbox for the verification code."
+        )
 
     company_id = existing.get("company_id")
     if not company_id:
@@ -862,11 +1192,18 @@ async def _handle_request_password_otp(req: PasswordOtpRequest, user_doc: dict):
     })
 
     # 5. Dispatch OTP email
-    send_otp_email(
-        to_email=user_doc["email"],
-        otp_code=otp_code,
-        first_name=user_doc.get("first_name")
-    )
+    try:
+        send_otp_email(
+            to_email=user_doc["email"],
+            otp_code=otp_code,
+            first_name=user_doc.get("first_name")
+        )
+    except Exception as exc:
+        logger.exception("Password reset OTP email sending failed: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail=f"Could not send verification email ({type(exc).__name__}: {exc}). Please check SMTP configuration."
+        )
 
     return {
         "success": True,

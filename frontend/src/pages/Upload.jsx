@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { uploadDataset, getDatasetInfo, getUploadHistory } from '../api/dataset'
 import {
   UploadCloud, FileText, CheckCircle, AlertCircle, X, Clock,
-  Database, TrendingUp, Copy, Users, Loader2, Check
+  Database, TrendingUp, Copy, Users
 } from 'lucide-react'
 
 function timeAgo(isoString) {
@@ -237,7 +237,7 @@ function Upload() {
               <div style={{
                 height: '100%',
                 width: `${Math.round(((uploadStage + 1) / UPLOAD_STAGES.length) * 100)}%`,
-                background: 'linear-gradient(90deg, #7c3aed 0%, #a855f7 100%)',
+                background: 'linear-gradient(90deg, #7C3AED 0%, #3B82F6 100%)',
                 borderRadius: '99px',
                 transition: 'width 300ms ease'
               }} />
@@ -253,24 +253,24 @@ function Upload() {
         {/* Upload Result Summary */}
         {uploadResult && (
           <div style={{
-            background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '14px',
+            background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '14px',
             padding: '16px 20px', marginBottom: '20px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-              <CheckCircle size={16} color="#16a34a" />
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#15803d' }}>Dataset uploaded & processed successfully</p>
+              <CheckCircle size={16} color="var(--success)" />
+              <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--success)' }}>Dataset uploaded & processed successfully</p>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
               {[
-                { label: 'Total Rows in File', value: uploadResult.total_rows?.toLocaleString() ?? '—', icon: Database, color: '#7c3aed' },
-                { label: 'New Records Added', value: (uploadResult.new_records ?? uploadResult.inserted)?.toLocaleString() ?? '—', icon: TrendingUp, color: '#16a34a' },
-                { label: 'Duplicates Skipped', value: (uploadResult.duplicates_skipped ?? uploadResult.duplicate_rows)?.toLocaleString() ?? '0', icon: Copy, color: '#d97706' },
-                { label: 'Total in Database', value: (uploadResult.total_in_db ?? uploadResult.final_customer_count)?.toLocaleString() ?? '—', icon: Users, color: '#8b5cf6' },
+                { label: 'Total Rows in File', value: uploadResult.total_rows?.toLocaleString() ?? '—', icon: Database, color: 'var(--text-primary)' },
+                { label: 'New Records Added', value: (uploadResult.new_records ?? uploadResult.inserted)?.toLocaleString() ?? '—', icon: TrendingUp, color: 'var(--success)' },
+                { label: 'Duplicates Skipped', value: (uploadResult.duplicates_skipped ?? uploadResult.duplicate_rows)?.toLocaleString() ?? '0', icon: Copy, color: 'var(--warning)' },
+                { label: 'Total in Database', value: (uploadResult.total_in_db ?? uploadResult.final_customer_count)?.toLocaleString() ?? '—', icon: Users, color: 'var(--purple-primary)' },
               ].map(({ label, value, icon: Icon, color }) => (
-                <div key={label} style={{ background: 'white', borderRadius: '10px', padding: '12px 16px', border: '1px solid #dcfce7' }}>
+                <div key={label} style={{ background: 'var(--surface)', borderRadius: '10px', padding: '12px 16px', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                     <Icon size={14} color={color} />
-                    <p style={{ fontSize: '11px', color: '#6b7280', fontWeight: 600 }}>{label}</p>
+                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>{label}</p>
                   </div>
                   <p style={{ fontSize: '20px', fontWeight: 800, color }}>{value}</p>
                 </div>
@@ -280,7 +280,7 @@ function Upload() {
         )}
 
         {error && (
-          <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', color: '#e11d48', fontSize: '13px', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px' }}>
+          <div style={{ background: 'rgba(248, 113, 113, 0.12)', border: '1px solid rgba(248, 113, 113, 0.25)', color: 'var(--danger)', fontSize: '13px', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px' }}>
             {error}
           </div>
         )}

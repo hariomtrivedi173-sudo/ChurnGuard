@@ -4,7 +4,7 @@ import Header from '../components/Header'
 import toast from 'react-hot-toast'
 import { downloadReport } from '../api/reports'
 import { getDashboardStats } from '../api/dashboard'
-import { Download, Printer, Eye, FileText, Clock, X, AlertCircle, RefreshCw, Users, BarChart2, DollarSign } from 'lucide-react'
+import { Download, Printer, Eye, FileText, Clock, X, AlertCircle, Users, BarChart2, DollarSign } from 'lucide-react'
 
 function Reports() {
   const [downloading, setDownloading] = useState('')
@@ -92,17 +92,13 @@ function Reports() {
       <Sidebar />
       <div className="page-content" style={{ padding: '24px 32px' }}>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-          <Header title="Reports" subtitle="Download and preview churn analysis reports." />
-          <button
-            onClick={loadStats}
-            disabled={loadingStats}
-            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: loadingStats ? 'not-allowed' : 'pointer', borderRadius: '10px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', opacity: loadingStats ? 0.5 : 1 }}
-          >
-            <RefreshCw size={14} style={{ animation: loadingStats ? 'spin 0.8s linear infinite' : 'none' }} />
-            Refresh
-          </button>
-        </div>
+        {/* ── Top Navbar ── */}
+        <Header
+          title="Reports"
+          subtitle="Download and preview churn analysis reports."
+          onRefresh={loadStats}
+          isRefreshing={loadingStats}
+        />
 
         {/* Live data summary strip */}
         {!loadingStats && (
@@ -117,7 +113,7 @@ function Reports() {
               </div>
             </div>
             <div className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <BarChart2 size={18} color="#e11d48" />
+              <BarChart2 size={18} color="#DC2626" />
               <div>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>High-Risk Accounts</p>
                 <p style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
@@ -126,7 +122,7 @@ function Reports() {
               </div>
             </div>
             <div className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <DollarSign size={18} color="#16a34a" />
+              <DollarSign size={18} color="#22C55E" />
               <div>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Monthly Revenue</p>
                 <p style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
@@ -138,7 +134,7 @@ function Reports() {
         )}
 
         {!hasStats && !loadingStats && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.2)', borderRadius: '12px', padding: '12px 16px', marginBottom: '20px', fontSize: '13px', color: '#d97706' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.2)', borderRadius: '12px', padding: '12px 16px', marginBottom: '20px', fontSize: '13px', color: '#D97706' }}>
             <AlertCircle size={16} />
             No analysis data yet. Run batch analysis from the Dashboard first to generate reports with real data.
           </div>
@@ -150,8 +146,8 @@ function Reports() {
           {/* Card 1: Revenue Impact Analysis */}
           <div className="card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-              <div style={{ width: '42px', height: '42px', background: '#f0fdf4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <FileText size={22} color="#16a34a" />
+              <div style={{ width: '42px', height: '42px', background: '#F0FDF4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FileText size={22} color="#22C55E" />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

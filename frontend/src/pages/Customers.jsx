@@ -5,10 +5,10 @@ import toast from 'react-hot-toast'
 import { getTelcoCustomers, deleteTelcoCustomer, addTelcoCustomer, updateTelcoCustomer } from '../api/customers'
 import {
   Search, ChevronLeft, ChevronRight, Trash2, Users, Database,
-  RefreshCw, UserPlus, Edit3, X, Check, AlertCircle, Sparkles
+  UserPlus, Edit3, X, Check
 } from 'lucide-react'
 
-const AVATAR_COLORS = ['#7c3aed', '#6b7280', '#16a34a', '#ea580c', '#8b5cf6', '#2563eb', '#d97706', '#059669']
+const AVATAR_COLORS = ['#7C3AED', '#3B82F6', '#6366F1', '#8B5CF6', '#10B981', '#F59E0B', '#EC4899', '#14B8A6']
 
 // Format a telco record into a display row
 function mapRecord(r, i = 0) {
@@ -297,32 +297,24 @@ function Customers() {
       <Sidebar />
       <div className="page-content" style={{ padding: '24px 32px' }}>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-          <Header title="Customers" subtitle="Manage and inspect all customer records in your dataset." />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+        {/* ── Top Navbar ── */}
+        <Header
+          title="Customers"
+          subtitle="Manage and inspect all customer records in your dataset."
+          onRefresh={() => load(currentPage, search)}
+          isRefreshing={loading}
+          extraActions={
             <button
+              type="button"
               onClick={() => setShowAddModal(true)}
               className="btn-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '9px 16px', borderRadius: '10px' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '8px 14px', borderRadius: '10px' }}
             >
               <UserPlus size={15} />
-              Add Customer
+              <span>Add Customer</span>
             </button>
-            <button
-              onClick={() => load(currentPage, search)}
-              disabled={loading}
-              title="Refresh"
-              style={{
-                background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)',
-                cursor: loading ? 'not-allowed' : 'pointer', borderRadius: '10px', padding: '8px 12px',
-                display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', opacity: loading ? 0.5 : 1
-              }}
-            >
-              <RefreshCw size={14} style={{ animation: loading ? 'spin 0.8s linear infinite' : 'none' }} />
-              Refresh
-            </button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Search + Stats Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '16px', flexWrap: 'wrap' }}>
@@ -345,9 +337,9 @@ function Customers() {
 
         {/* Error banner */}
         {error && !loading && (
-          <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', color: '#e11d48', fontSize: '13px', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', fontSize: '13px', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>{error}</span>
-            <button onClick={() => load(currentPage, search)} style={{ background: 'none', border: 'none', color: '#e11d48', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>Retry</button>
+            <button onClick={() => load(currentPage, search)} style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>Retry</button>
           </div>
         )}
 
@@ -464,14 +456,14 @@ function Customers() {
                           title={deletingId === c.id ? 'Deleting…' : 'Delete customer'}
                           style={{
                             background: 'none', border: 'none', cursor: deletingId === c.id ? 'not-allowed' : 'pointer',
-                            color: deletingId === c.id ? 'var(--text-muted)' : '#e11d48',
+                            color: deletingId === c.id ? 'var(--text-muted)' : '#DC2626',
                             padding: '5px', borderRadius: '6px',
                             opacity: deletingId === c.id ? 0.5 : 1, transition: 'opacity 150ms',
                             display: 'flex', alignItems: 'center',
                           }}
                         >
                           {deletingId === c.id
-                            ? <div style={{ width: '14px', height: '14px', border: '2px solid var(--text-muted)', borderTopColor: '#e11d48', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                            ? <div style={{ width: '14px', height: '14px', border: '2px solid var(--text-muted)', borderTopColor: '#DC2626', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                             : <Trash2 size={14} />}
                         </button>
                       </div>
@@ -508,10 +500,12 @@ function Customers() {
                     key={p}
                     onClick={() => setCurrentPage(p)}
                     style={{
-                      width: '32px', height: '32px', borderRadius: '8px', border: 'none',
-                      background: currentPage === p ? 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)' : 'transparent',
-                      color: currentPage === p ? '#fff' : 'var(--text-secondary)',
-                      fontWeight: 600, fontSize: '13px', cursor: 'pointer',
+                      width: '32px', height: '32px', borderRadius: '8px',
+                      border: currentPage === p ? '1px solid var(--accent)' : 'none',
+                      background: currentPage === p ? 'var(--accent)' : 'transparent',
+                      color: currentPage === p ? 'var(--bg)' : 'var(--text-secondary)',
+                      fontWeight: 700, fontSize: '13px', cursor: 'pointer',
+                      boxShadow: currentPage === p ? '0 2px 8px rgba(45, 212, 191, 0.25)' : 'none',
                     }}
                   >
                     {p}

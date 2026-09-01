@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { loginUser } from '../api/auth'
 import {
-  Shield, TrendingDown, Users, BarChart3, Lock, Mail, Eye, EyeOff,
-  CheckCircle2, Zap, ArrowRight, X, AlertCircle, HelpCircle, Check
+  Shield, Lock, Mail, Eye, EyeOff,
+  CheckCircle2, ArrowRight, X, AlertCircle, HelpCircle, Check
 } from 'lucide-react'
 
 const bulletPoints = [
@@ -67,7 +67,7 @@ function Login() {
       navigate('/dashboard')
     } catch (err) {
       // Standard generic error on failure
-      const msg = 'Invalid email or password.'
+      const msg = err?.message || 'Invalid email or password.'
       setError(msg)
       toast.error(msg)
     } finally {
@@ -98,7 +98,7 @@ function Login() {
         width: '39%',
         minWidth: '380px',
         maxWidth: '500px',
-        background: 'linear-gradient(160deg, #1e1b4b 0%, #312e81 35%, #4c1d95 70%, #6d28d9 100%)',
+        background: 'linear-gradient(160deg, #1E1B4B 0%, #312E81 45%, #4C1D95 100%)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -110,7 +110,7 @@ function Login() {
         {/* Ambient glow */}
         <div style={{
           position: 'absolute', top: '-10%', right: '-10%', width: '320px', height: '320px',
-          background: 'radial-gradient(circle, rgba(167,139,250,0.35) 0%, rgba(124,58,237,0) 70%)',
+          background: 'radial-gradient(circle, rgba(167, 139, 250, 0.25) 0%, rgba(30, 27, 75, 0) 70%)',
           borderRadius: '50%', pointerEvents: 'none', filter: 'blur(35px)',
         }} />
 
@@ -118,22 +118,22 @@ function Login() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', zIndex: 1 }}>
           <div style={{
             width: '44px', height: '44px',
-            background: 'rgba(255, 255, 255, 0.12)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            background: 'linear-gradient(135deg, #312E81 0%, #4C1D95 100%)',
+            border: '1px solid rgba(167, 139, 250, 0.4)',
             borderRadius: '12px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
             backdropFilter: 'blur(8px)',
           }}>
-            <Shield size={24} color="#ffffff" strokeWidth={2.5} />
+            <Shield size={24} color="#EDE9FE" strokeWidth={2.5} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontWeight: 800, fontSize: '20px', letterSpacing: '-0.02em', color: '#ffffff' }}>ChurnGuard</span>
               <span style={{
                 fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
-                background: 'rgba(167, 139, 250, 0.25)', color: '#ddd6fe', padding: '2px 8px',
-                borderRadius: '99px', border: '1px solid rgba(196, 181, 253, 0.3)'
+                background: 'rgba(167, 139, 250, 0.2)', color: '#EDE9FE', padding: '2px 8px',
+                borderRadius: '99px', border: '1px solid rgba(167, 139, 250, 0.4)'
               }}>
                 AI Intelligence
               </span>
@@ -168,7 +168,7 @@ function Login() {
                   background: 'rgba(167, 139, 250, 0.25)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                 }}>
-                  <Check size={14} color="#ddd6fe" strokeWidth={2.5} />
+                  <Check size={14} color="#EDE9FE" strokeWidth={2.5} />
                 </div>
                 <span style={{ fontSize: '13px', fontWeight: 600, color: '#ffffff' }}>{point}</span>
               </div>
@@ -232,7 +232,7 @@ function Login() {
                 role="alert"
                 aria-live="assertive"
                 style={{
-                  background: '#fff1f2', border: '1px solid #fecdd3', color: '#e11d48',
+                  background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626',
                   fontSize: '13px', padding: '12px 14px', borderRadius: '10px',
                   marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px'
                 }}

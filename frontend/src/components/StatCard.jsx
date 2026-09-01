@@ -1,10 +1,15 @@
 function StatCard({ label, value, icon: Icon, color = 'purple', subtitle }) {
   const palette = {
-    purple: { bg: '#f5f3ff', accent: '#7c3aed', iconBg: '#ede9fe', text: '#5b21b6' },
-    rose:   { bg: '#fff1f2', accent: '#e11d48', iconBg: '#ffe4e6', text: '#be123c' },
-    amber:  { bg: '#fffbeb', accent: '#d97706', iconBg: '#fef3c7', text: '#b45309' },
-    green:  { bg: '#f0fdf4', accent: '#16a34a', iconBg: '#dcfce7', text: '#15803d' },
-    blue:   { bg: '#eff6ff', accent: '#2563eb', iconBg: '#dbeafe', text: '#1d4ed8' },
+    purple:    { bg: 'var(--purple-light)', accent: 'var(--purple-primary)', iconBg: 'rgba(124, 58, 237, 0.12)', text: 'var(--text-primary)' },
+    blue:      { bg: 'var(--blue-soft)', accent: 'var(--blue-primary)', iconBg: 'rgba(59, 130, 246, 0.12)', text: 'var(--text-primary)' },
+    cyan:      { bg: 'var(--blue-soft)', accent: 'var(--blue-primary)', iconBg: 'rgba(59, 130, 246, 0.12)', text: 'var(--text-primary)' },
+    aqua:      { bg: 'var(--blue-soft)', accent: 'var(--blue-primary)', iconBg: 'rgba(59, 130, 246, 0.12)', text: 'var(--text-primary)' },
+    navy:      { bg: 'var(--surface-hover)', accent: 'var(--purple-primary)', iconBg: 'var(--surface-hover)', text: 'var(--text-primary)' },
+    burgundy:  { bg: 'var(--purple-light)', accent: 'var(--purple-primary)', iconBg: 'rgba(124, 58, 237, 0.12)', text: 'var(--text-primary)' },
+    champagne: { bg: 'var(--purple-light)', accent: 'var(--purple-primary)', iconBg: 'rgba(124, 58, 237, 0.12)', text: 'var(--text-primary)' },
+    rose:      { bg: 'rgba(239, 68, 68, 0.12)', accent: 'var(--danger)', iconBg: 'rgba(239, 68, 68, 0.15)', text: 'var(--text-primary)' },
+    amber:     { bg: 'rgba(245, 158, 11, 0.12)', accent: 'var(--warning)', iconBg: 'rgba(245, 158, 11, 0.15)', text: 'var(--text-primary)' },
+    green:     { bg: 'rgba(16, 185, 129, 0.12)', accent: 'var(--success)', iconBg: 'rgba(16, 185, 129, 0.15)', text: 'var(--text-primary)' },
   }
   const p = palette[color] || palette.purple
 
