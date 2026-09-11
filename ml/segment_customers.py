@@ -51,21 +51,20 @@ def profile_segments(df: pd.DataFrame):
     return profile
 
 
-async def get_segment_profiles():
-    df = await load_data()
-    if df.empty:
+async def get_segment_profiles(company_id: str = None):
+    if not company_id:
+        return []
+    df = await load_data(company_id=company_id)
+    if df.empty or len(df) < 4:
         return []
         
     df_prepared = prepare_features(df)
-    df_segmented, _, _ = segment_customers(df_prepared, n_clusters=4)
+    n_clusters = min(4, len(df_prepared))
+    df_segmented, _, _ = segment_customers(df_prepared, n_clusters=n_clusters)
     profile = profile_segments(df_segmented)
     
     # Convert DataFrame index 'segment' to a column and format as dicts
     profile = profile.reset_index()
-    
-    # Add descriptive names to segments based on K-Means common patterns
-    # We will map segment index to names in the frontend, or we can do it here.
-    # Let's just return the data, frontend will style it.
     return profile.to_dict(orient='records')
 
 

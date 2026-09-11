@@ -49,6 +49,7 @@ async def test_profile_update_and_password_change_lifecycle():
             "role": "Analyst"
         })
         assert reg_res.status_code == 200
+        await user_collection.update_one({"email": test_email}, {"$set": {"email_verified": True}})
 
         # Login
         login_res = await client.post("/login", json={
@@ -116,13 +117,16 @@ async def test_avatar_photo_lifecycle_and_security():
         await user_collection.delete_many({"email": test_email})
 
         # Register & Login
-        await client.post("/register", json={
+        reg_res = await client.post("/register", json={
             "email": test_email,
             "password": "Password123",
+            "phone": "9876543210",
             "first_name": "Avatar",
             "last_name": "Tester",
             "company": "Avatar Corp"
         })
+        assert reg_res.status_code == 200
+        await user_collection.update_one({"email": test_email}, {"$set": {"email_verified": True}})
         login_res = await client.post("/login", json={"email": test_email, "password": "Password123"})
         token = login_res.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
@@ -160,14 +164,18 @@ async def test_notifications_lifecycle_and_tenant_isolation():
         # Create User 1 in Company Alpha
         u1_email = "user1_alpha@churnguard.io"
         await user_collection.delete_many({"email": u1_email})
-        await client.post("/register", json={"email": u1_email, "password": "Password123", "company": "Alpha Corp"})
+        r1 = await client.post("/register", json={"email": u1_email, "password": "Password123", "phone": "9876543210", "first_name": "User", "company": "Alpha Corp"})
+        assert r1.status_code == 200
+        await user_collection.update_one({"email": u1_email}, {"$set": {"email_verified": True}})
         l1 = await client.post("/login", json={"email": u1_email, "password": "Password123"})
         h1 = {"Authorization": f"Bearer {l1.json()['access_token']}"}
 
         # Create User 2 in Company Beta
         u2_email = "user2_beta@churnguard.io"
         await user_collection.delete_many({"email": u2_email})
-        await client.post("/register", json={"email": u2_email, "password": "Password123", "company": "Beta Inc"})
+        r2 = await client.post("/register", json={"email": u2_email, "password": "Password123", "phone": "9876543211", "first_name": "User", "company": "Beta Inc"})
+        assert r2.status_code == 200
+        await user_collection.update_one({"email": u2_email}, {"$set": {"email_verified": True}})
         l2 = await client.post("/login", json={"email": u2_email, "password": "Password123"})
         h2 = {"Authorization": f"Bearer {l2.json()['access_token']}"}
 

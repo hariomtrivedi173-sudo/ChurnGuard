@@ -116,9 +116,10 @@ function Customers() {
       // If this request was aborted by a newer one, ignore the result
       if (controller.signal.aborted) return
 
-      setRecords((data.records || []).map((r, i) => mapRecord(r, i)))
-      setTotal(data.total || 0)
-      setTotalPages(data.total_pages || 1)
+      const rawRecords = data.data || data.records || []
+      setRecords(rawRecords.map((r, i) => mapRecord(r, i)))
+      setTotal(typeof data.total === 'number' ? data.total : 0)
+      setTotalPages(typeof data.total_pages === 'number' ? data.total_pages : (Math.ceil((data.total || 0) / PAGE_SIZE) || 1))
     } catch (err) {
       if (err.name === 'AbortError' || controller.signal.aborted) return
       console.error(err)
@@ -136,12 +137,20 @@ function Customers() {
     return () => { if (abortRef.current) abortRef.current.abort() }
   }, [currentPage, search, load])
 
-  // Debounced search — 350ms (cancel on rapid typing)
+  const handleClearSearch = useCallback(() => {
+    setSearchInput('')
+    setSearch('')
+    setCurrentPage(1)
+    load(1, '')
+  }, [load])
+
+  // Debounced search — 300ms (cancel on rapid typing)
   useEffect(() => {
     const t = setTimeout(() => {
-      setSearch(searchInput)
+      const trimmed = searchInput.trim()
+      setSearch(trimmed)
       setCurrentPage(1)
-    }, 350)
+    }, 300)
     return () => clearTimeout(t)
   }, [searchInput])
 
@@ -247,47 +256,57 @@ function Customers() {
     }
   }
 
-  // ── OPTIMISTIC DELETE ──────────────────────────────────────────────────────
+  // ── DELETE CUSTOMER ────────────────────────────────────────────────────────
   async function handleDelete(customerId, displayName) {
-    if (!window.confirm(`Delete customer "${displayName}"? This cannot be undone.`)) return
-
-    // 1. Snapshot current state for rollback
-    const snapshotRecords    = records
-    const snapshotTotal      = total
-    const snapshotTotalPages = totalPages
-
-    // 2. Optimistically remove from UI immediately
-    const updatedRecords = records.filter(r => r.id !== customerId)
-    setRecords(updatedRecords)
-    setTotal(t => Math.max(0, t - 1))
-    if (updatedRecords.length === 0 && currentPage > 1) {
-      // Page became empty — go to previous page (will trigger load via useEffect)
-      setCurrentPage(p => p - 1)
-      return
+    if (typeof window !== 'undefined' && window.__SKIP_CONFIRM__ !== true) {
+      if (!window.confirm(`Delete customer "${displayName}"? This cannot be undone.`)) return
     }
-    // Recalculate total pages
-    setTotalPages(Math.max(1, Math.ceil((snapshotTotal - 1) / PAGE_SIZE)))
 
     setDeletingId(customerId)
     try {
-      await deleteTelcoCustomer(customerId)
+      const res = await deleteTelcoCustomer(customerId)
       toast.success(`Customer "${displayName}" deleted`)
-      // Silent background refresh to ensure count is accurate
-      load(currentPage, search, { silent: true })
+
+      if (res && typeof res.total === 'number') {
+        setTotal(res.total)
+        setTotalPages(Math.max(1, Math.ceil(res.total / PAGE_SIZE)))
+      }
+
+      // If this was the last record on a non-first page, move back 1 page
+      if (records.length === 1 && currentPage > 1) {
+        const prevPage = currentPage - 1
+        setCurrentPage(prevPage)
+        await load(prevPage, search, { silent: true })
+      } else {
+        await load(currentPage, search, { silent: true })
+      }
     } catch (err) {
-      // 3. API failed — restore the previous state
-      setRecords(snapshotRecords)
-      setTotal(snapshotTotal)
-      setTotalPages(snapshotTotalPages)
       toast.error(err.message || 'Delete failed')
     } finally {
       setDeletingId(null)
     }
   }
 
-  // Visible page numbers
-  const startPage    = Math.max(1, Math.min(currentPage - 2, totalPages - 4))
-  const visiblePages = Array.from({ length: Math.min(5, totalPages) }, (_, i) => startPage + i)
+  // Smart page numbers array
+  function getPageNumbers() {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1)
+    }
+    const pages = [1]
+    if (currentPage > 4) {
+      pages.push('...')
+    }
+    const start = Math.max(2, Math.min(currentPage - 1, totalPages - 4))
+    const end   = Math.min(totalPages - 1, Math.max(currentPage + 1, 5))
+    for (let p = start; p <= end; p++) {
+      pages.push(p)
+    }
+    if (currentPage < totalPages - 3) {
+      pages.push('...')
+    }
+    pages.push(totalPages)
+    return pages
+  }
 
   const showingFrom = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1
   const showingTo   = Math.min(currentPage * PAGE_SIZE, total)
@@ -318,16 +337,46 @@ function Customers() {
 
         {/* Search + Stats Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '16px', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: '1', maxWidth: '420px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <div style={{ position: 'relative', flex: '1', maxWidth: '440px', display: 'flex', alignItems: 'center' }}>
+            <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
             <input
+              id="search-customers-input"
               type="text"
               placeholder="Search by customer ID, contract type, or internet service…"
               value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
+              onChange={e => {
+                setSearchInput(e.target.value)
+                if (e.target.value === '') {
+                  setSearch('')
+                  setCurrentPage(1)
+                }
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Escape') {
+                  handleClearSearch()
+                }
+              }}
               className="input-base"
-              style={{ paddingLeft: '40px' }}
+              style={{ paddingLeft: '40px', paddingRight: searchInput ? '80px' : '14px', width: '100%' }}
             />
+            {searchInput && (
+              <button
+                id="clear-search-btn"
+                type="button"
+                onClick={handleClearSearch}
+                title="Clear search"
+                aria-label="Clear search"
+                style={{
+                  position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                  background: 'var(--surface-hover, #f3f4f6)', border: '1px solid var(--border)',
+                  color: 'var(--text-muted)', cursor: 'pointer', padding: '3px 8px', borderRadius: '6px',
+                  display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600
+                }}
+              >
+                <X size={12} />
+                <span>Clear</span>
+              </button>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
             <Database size={14} />
@@ -451,9 +500,11 @@ function Customers() {
                           <Edit3 size={14} />
                         </button>
                         <button
+                          id={`delete-btn-${c.id}`}
                           onClick={() => handleDelete(c.id, c.name)}
                           disabled={deletingId === c.id}
-                          title={deletingId === c.id ? 'Deleting…' : 'Delete customer'}
+                          title={deletingId === c.id ? 'Deleting…' : `Delete customer ${c.id}`}
+                          aria-label={`Delete customer ${c.id}`}
                           style={{
                             background: 'none', border: 'none', cursor: deletingId === c.id ? 'not-allowed' : 'pointer',
                             color: deletingId === c.id ? 'var(--text-muted)' : '#DC2626',
@@ -481,46 +532,67 @@ function Customers() {
               padding: '14px 16px', borderTop: '1px solid var(--border)',
               background: 'var(--surface)', flexWrap: 'wrap', gap: '10px'
             }}>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                 Showing <strong style={{ color: 'var(--text-primary)' }}>{showingFrom.toLocaleString('en-IN')}–{showingTo.toLocaleString('en-IN')}</strong> of{' '}
                 <strong style={{ color: 'var(--text-primary)' }}>{total.toLocaleString('en-IN')}</strong> customers
               </p>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <button
+                  id="prev-page-btn"
+                  aria-label="Previous page"
                   disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(p => p - 1)}
-                  style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', padding: '5px 8px', borderRadius: '6px', display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.4 : 1 }}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  style={{
+                    background: 'none', border: '1px solid var(--border)',
+                    color: currentPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                    padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '5px',
+                    fontSize: '13px', fontWeight: 600,
+                    opacity: currentPage === 1 ? 0.4 : 1, transition: 'all 150ms'
+                  }}
                 >
                   <ChevronLeft size={15} />
+                  <span>Previous</span>
                 </button>
 
-                {visiblePages.map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setCurrentPage(p)}
-                    style={{
-                      width: '32px', height: '32px', borderRadius: '8px',
-                      border: currentPage === p ? '1px solid var(--accent)' : 'none',
-                      background: currentPage === p ? 'var(--accent)' : 'transparent',
-                      color: currentPage === p ? 'var(--bg)' : 'var(--text-secondary)',
-                      fontWeight: 700, fontSize: '13px', cursor: 'pointer',
-                      boxShadow: currentPage === p ? '0 2px 8px rgba(45, 212, 191, 0.25)' : 'none',
-                    }}
-                  >
-                    {p}
-                  </button>
+                {getPageNumbers().map((p, idx) => (
+                  p === '...' ? (
+                    <span key={`dots-${idx}`} style={{ fontSize: '13px', color: 'var(--text-muted)', padding: '0 4px' }}>…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      id={`page-btn-${p}`}
+                      onClick={() => setCurrentPage(p)}
+                      style={{
+                        minWidth: '34px', height: '34px', padding: '0 8px', borderRadius: '8px',
+                        border: currentPage === p ? '1px solid var(--accent, #6366F1)' : '1px solid var(--border)',
+                        background: currentPage === p ? 'var(--accent, #6366F1)' : 'transparent',
+                        color: currentPage === p ? 'var(--bg, #fff)' : 'var(--text-secondary)',
+                        fontWeight: 700, fontSize: '13px', cursor: 'pointer',
+                        boxShadow: currentPage === p ? '0 2px 8px rgba(99, 102, 241, 0.25)' : 'none',
+                      }}
+                    >
+                      {p}
+                    </button>
+                  )
                 ))}
 
-                {totalPages > startPage + 5 && (
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', padding: '0 4px' }}>…{totalPages}</span>
-                )}
-
                 <button
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(p => p + 1)}
-                  style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', padding: '5px 8px', borderRadius: '6px', display: 'flex', alignItems: 'center', opacity: currentPage === totalPages ? 0.4 : 1 }}
+                  id="next-page-btn"
+                  aria-label="Next page"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  style={{
+                    background: 'none', border: '1px solid var(--border)',
+                    color: currentPage >= totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                    cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                    padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '5px',
+                    fontSize: '13px', fontWeight: 600,
+                    opacity: currentPage >= totalPages ? 0.4 : 1, transition: 'all 150ms'
+                  }}
                 >
+                  <span>Next</span>
                   <ChevronRight size={15} />
                 </button>
               </div>

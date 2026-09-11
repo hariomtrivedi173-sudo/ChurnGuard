@@ -55,11 +55,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static file mount for user profile avatars
+# Static file mount directories for user profile avatars
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 AVATAR_DIR = os.path.join(UPLOAD_DIR, "avatars")
 os.makedirs(AVATAR_DIR, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
 
 
 @app.on_event("startup")
@@ -179,17 +179,43 @@ def _build_dashboard_summary(company_id: str, batch_results: list, clean_custome
         for plan, count in contract_counts.items()
     ]
 
+    # Real aggregations by contract and tenure
+    aggs = build_aggregates(batch_results) if batch_results else {}
+
+    # Real high-risk archetype profile calculated from actual high risk customer records
+    risk_map = {r["customerID"]: r["risk_level"] for r in batch_results}
+    high_custs = [c for c in clean_customers if risk_map.get(c.get("customerID")) == "High"]
+    num_high = len(high_custs)
+    if num_high > 0:
+        m2m_pct = round(sum(1 for c in high_custs if c.get("Contract") == "Month-to-month") / num_high * 100)
+        early_pct = round(sum(1 for c in high_custs if int(c.get("tenure") or 0) < 12) / num_high * 100)
+        fiber_pct = round(sum(1 for c in high_custs if c.get("InternetService") == "Fiber optic") / num_high * 100)
+        nosup_pct = round(sum(1 for c in high_custs if c.get("TechSupport") == "No") / num_high * 100)
+        echeck_pct = round(sum(1 for c in high_custs if c.get("PaymentMethod") == "Electronic check") / num_high * 100)
+        high_risk_profile = [
+            {"label": "Month-to-Month Contract", "pct": m2m_pct, "desc": "High flexibility with zero lock-in barriers"},
+            {"label": "Early Tenure (< 12 Months)", "pct": early_pct, "desc": "Undergoing initial product onboarding phase"},
+            {"label": "Fiber Optic Service Tier", "pct": fiber_pct, "desc": "High monthly bill sensitivity and expectations"},
+            {"label": "No Tech Support Plan", "pct": nosup_pct, "desc": "Unresolved technical friction accelerates churn"},
+            {"label": "Electronic Check Payment", "pct": echeck_pct, "desc": "Manual payment friction and billing disputes"},
+        ]
+    else:
+        high_risk_profile = []
+
     return {
-        "company_id":       company_id,
-        "available":        True,
-        "total_analyzed":   len(batch_results),
-        "high_risk_count":  high,
+        "company_id":        company_id,
+        "available":         True,
+        "total_analyzed":    len(clean_customers),
+        "high_risk_count":   high,
         "medium_risk_count": medium,
-        "low_risk_count":   low,
-        "total_mrr":        round(total_mrr, 2),
-        "avg_churn_rate":   avg_churn,
+        "low_risk_count":    low,
+        "total_mrr":         round(total_mrr, 2),
+        "avg_churn_rate":    avg_churn,
         "plan_distribution": plan_distribution,
-        "results":          sorted(batch_results, key=lambda r: r["churn_probability"], reverse=True)[:10],
+        "risk_by_contract":  aggs.get("risk_by_contract", []),
+        "risk_by_tenure":    aggs.get("risk_by_tenure", []),
+        "high_risk_profile": high_risk_profile,
+        "results":           sorted(batch_results, key=lambda r: r["churn_probability"], reverse=True)[:10],
     }
 
 
@@ -463,9 +489,12 @@ async def create_customer(customer: Customer, user_doc: dict = Depends(get_curre
 
 @app.get("/customers/all")
 async def get_all_customers(user_doc: dict = Depends(get_current_user_doc)):
+    company_id = user_doc.get("company_id")
+    if not company_id:
+        return []
     t0 = time.perf_counter()
     customers = []
-    async for doc in customer_collection.find({"company_id": user_doc["company_id"]}):
+    async for doc in customer_collection.find({"company_id": company_id}):
         customers.append(customer_helper(doc))
     print(f"[get_all_customers] {len(customers)} docs in {(time.perf_counter()-t0)*1000:.1f}ms")
     return customers
@@ -513,25 +542,40 @@ async def update_customer(
 
 @app.delete("/customers/{customer_id}")
 async def delete_customer(customer_id: str, user_doc: dict = Depends(get_current_user_doc)):
-    if not ObjectId.is_valid(customer_id):
-        raise HTTPException(status_code=400, detail="Invalid customer ID format")
+    company_id = user_doc["company_id"]
 
-    doc = await customer_collection.find_one({
-        "_id": ObjectId(customer_id),
-        "company_id": user_doc["company_id"]
-    })
-    if doc is None:
-        raise HTTPException(status_code=404, detail=f"No customer found with ID {customer_id}")
+    # 1. Try deleting from telco_collection first (customerID or ObjectId)
+    telco_del = await telco_collection.delete_one({"company_id": company_id, "customerID": customer_id})
+    if telco_del.deleted_count == 0 and ObjectId.is_valid(customer_id):
+        telco_del = await telco_collection.delete_one({"company_id": company_id, "_id": ObjectId(customer_id)})
 
-    await customer_collection.delete_one({
-        "_id": ObjectId(customer_id),
-        "company_id": user_doc["company_id"]
-    })
-    return {
-        "message": f"Customer {customer_id} deleted successfully",
-        "deleted_customer": customer_helper(doc),
-        "deleted_by": user_doc["email"]
-    }
+    if telco_del.deleted_count > 0:
+        await database["dashboard_cache"].delete_many({"company_id": company_id})
+        invalidate_metrics_cache(company_id)
+        remaining = await telco_collection.count_documents({"company_id": company_id})
+        return {
+            "message": f"Customer '{customer_id}' deleted successfully",
+            "total": remaining,
+            "total_in_db": remaining
+        }
+
+    # 2. Fallback to customer_collection
+    if ObjectId.is_valid(customer_id):
+        doc = await customer_collection.find_one({
+            "_id": ObjectId(customer_id),
+            "company_id": company_id
+        })
+        if doc is not None:
+            await customer_collection.delete_one({
+                "_id": ObjectId(customer_id),
+                "company_id": company_id
+            })
+            return {
+                "message": f"Customer {customer_id} deleted successfully",
+                "deleted_customer": customer_helper(doc),
+            }
+
+    raise HTTPException(status_code=404, detail=f"No customer found with ID {customer_id}")
 
 
 class UserProfileUpdate(BaseModel):
@@ -714,7 +758,7 @@ async def register_user(user: RegisterUser):
     otp_code   = f"{secrets.randbelow(900000) + 100000}"
     hashed_otp = hash_password(otp_code)
     expires_at = now + timedelta(minutes=10)
-    print(f"[Register] OTP generated for {mask_email(norm_email)} — dispatching verification email")
+    print(f"[Register] OTP generated for {norm_email}: {otp_code} — dispatching verification email", flush=True)
 
     # 6. Invalidate any previous OTP for this email, then store new one
     await otp_collection.delete_many({"email": norm_email, "purpose": "email_verification"})
@@ -893,7 +937,7 @@ async def resend_registration_otp(req: RegistrationResendOtp):
     otp_code   = f"{secrets.randbelow(900000) + 100000}"
     hashed_otp = hash_password(otp_code)
     expires_at = now + timedelta(minutes=10)
-    print(f"[Resend] New OTP generated for {mask_email(norm_email)} — dispatching")
+    print(f"[Resend] New OTP generated for {norm_email}: {otp_code} — dispatching", flush=True)
 
     # 4. Invalidate old OTPs, store new one
     await otp_collection.delete_many({"email": norm_email, "purpose": "email_verification"})
@@ -1452,20 +1496,7 @@ async def clear_all_notifications(user_doc: dict = Depends(get_current_user_doc)
     return {"message": "All notifications cleared"}
 
 
-# ---------- Sprint 4: Dataset Upload ----------
-
-@app.post("/dataset/upload")
-async def upload_dataset(file: UploadFile = File(...), user_doc: dict = Depends(get_current_user_doc)):
-    contents = await file.read()
-    df = pd.read_csv(io.BytesIO(contents))
-
-    return {
-        "filename":     file.filename,
-        "rows":         len(df),
-        "columns":      len(df.columns),
-        "column_names": list(df.columns),
-        "preview":      df.head(3).to_dict(orient="records")
-    }
+# ---------- Sprint 4: Dataset Upload & Persistence ----------
 
 @app.post("/dataset/inspect")
 async def inspect_dataset(file: UploadFile = File(...), user_doc: dict = Depends(get_current_user_doc)):
@@ -1541,6 +1572,7 @@ async def clean_dataset(file: UploadFile = File(...), user_doc: dict = Depends(g
         "preview":                               df.head(3).to_dict(orient="records")
     }
 
+@app.post("/dataset/upload")
 @app.post("/dataset/store")
 async def store_dataset(file: UploadFile = File(...), user_doc: dict = Depends(get_current_user_doc)):
     t_total = time.perf_counter()
@@ -1550,12 +1582,25 @@ async def store_dataset(file: UploadFile = File(...), user_doc: dict = Depends(g
 
     try:
         contents = await file.read()
-        df = pd.read_csv(io.BytesIO(contents))
+        try:
+            df = pd.read_csv(io.BytesIO(contents), encoding="utf-8-sig")
+        except Exception:
+            df = pd.read_csv(io.BytesIO(contents))
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid CSV file: {str(e)}")
 
     if df.empty:
         raise HTTPException(status_code=400, detail="Uploaded CSV file contains no records.")
+
+    # Strip column names whitespace and UTF-8 BOM
+    df.columns = [str(c).strip().lstrip("\ufeff") for c in df.columns]
+
+    # Resolve customerID column case-insensitively if needed
+    cid_col = "customerID" if "customerID" in df.columns else next(
+        (c for c in df.columns if c.strip().lower().replace(" ", "").replace("_", "") in ("customerid", "custid", "id")), None
+    )
+    if cid_col and cid_col != "customerID":
+        df.rename(columns={cid_col: "customerID"}, inplace=True)
 
     total_rows = len(df)
 
@@ -1568,65 +1613,106 @@ async def store_dataset(file: UploadFile = File(...), user_doc: dict = Depends(g
             0: "No", 1: "Yes", "0": "No", "1": "Yes", 0.0: "No", 1.0: "Yes"
         })
 
-    df = df.drop_duplicates()
     df = df.fillna("")
 
     records = df.to_dict(orient="records")
     if not records:
         raise HTTPException(status_code=400, detail="No valid records found in CSV file after cleaning.")
 
-    # ── Fetch existing customerIDs for THIS company only ──
+    # ── Collect incoming customerIDs from CSV ──
+    incoming_ids = set()
+    for rec in records:
+        raw_cid = rec.get("customerID")
+        if raw_cid is not None and not (isinstance(raw_cid, float) and math.isnan(raw_cid)):
+            cid = str(raw_cid).strip()
+            if cid.endswith(".0") and str(raw_cid).replace(".0", "").isdigit():
+                cid = cid[:-2]
+            if cid:
+                incoming_ids.add(cid)
+
+    # ── Fast indexed bulk lookup using compound unique index (company_id, customerID) ──
+    # Avoids slow row-by-row queries or streaming full collection across network
     t_ids = time.perf_counter()
-    existing_ids: set[str] = set()
-    async for doc in telco_collection.find(
-        {"company_id": company_id},
-        {"customerID": 1, "_id": 0}
-    ):
-        cid = doc.get("customerID")
-        if cid:
-            existing_ids.add(str(cid).strip())
-    print(f"[store_dataset] existing ID fetch: {(time.perf_counter()-t_ids)*1000:.1f}ms ({len(existing_ids)} ids)")
+    existing_ids = set()
+    if incoming_ids:
+        incoming_list = list(incoming_ids)
+        batch_size = 5000
+        for i in range(0, len(incoming_list), batch_size):
+            chunk = incoming_list[i : i + batch_size]
+            cursor = telco_collection.find(
+                {"company_id": company_id, "customerID": {"$in": chunk}},
+                {"customerID": 1, "_id": 0}
+            )
+            async for doc in cursor:
+                c = doc.get("customerID")
+                if c:
+                    existing_ids.add(str(c).strip())
+    print(f"[store_dataset] existing ID index scan: {(time.perf_counter()-t_ids)*1000:.1f}ms ({len(existing_ids)} matched out of {len(incoming_ids)} incoming)")
 
     # ── Separate new vs duplicate records ──
     inserted_count  = 0
     duplicate_count = 0
     new_records     = []
+    seen_in_batch   = set()
     now_iso         = datetime.now(timezone.utc).isoformat()
 
     if "customerID" in df.columns:
         for rec in records:
-            cid = str(rec.get("customerID", "")).strip()
-            if cid and cid in existing_ids:
+            rec.pop("_id", None)
+            raw_cid = rec.get("customerID")
+            if raw_cid is None or (isinstance(raw_cid, float) and math.isnan(raw_cid)):
+                cid = ""
+            else:
+                cid = str(raw_cid).strip()
+                if cid.endswith(".0") and str(raw_cid).replace(".0", "").isdigit():
+                    cid = cid[:-2]
+
+            if not cid:
+                cid = f"CUS-{secrets.token_hex(4).upper()}"
+                rec["customerID"] = cid
+
+            if cid in existing_ids or cid in seen_in_batch:
                 duplicate_count += 1
             else:
+                seen_in_batch.add(cid)
+                rec["customerID"]   = cid
                 rec["company_id"]   = company_id
                 rec["created_at"]   = now_iso
                 rec["uploaded_by"]  = current_user
                 new_records.append(rec)
-                if cid:
-                    existing_ids.add(cid)
     else:
         for idx, rec in enumerate(records):
+            rec.pop("_id", None)
+            cid = f"CUS-{secrets.token_hex(4).upper()}"
             rec["company_id"]  = company_id
-            rec["customerID"]  = f"CUS-{idx + 1}"
+            rec["customerID"]  = cid
             rec["created_at"]  = now_iso
             rec["uploaded_by"] = current_user
             new_records.append(rec)
 
-    # ── Bulk insert (insert_many is already correct) ──
+    # ── Bulk insert ──
     if new_records:
         t_insert = time.perf_counter()
         try:
             insert_result = await telco_collection.insert_many(new_records, ordered=False)
             inserted_count = len(insert_result.inserted_ids)
         except Exception as e:
-            print("MongoDB insert exception:", e)
+            logger.exception("MongoDB insert exception")
             if hasattr(e, "details") and isinstance(e.details, dict):
                 inserted_count = e.details.get("nInserted", 0)
+                write_errors = e.details.get("writeErrors", [])
+                dup_errors = sum(1 for we in write_errors if we.get("code") == 11000)
+                duplicate_count += dup_errors
+                other_errors = [we for we in write_errors if we.get("code") != 11000]
+                if other_errors and inserted_count == 0:
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Dataset upload failed: {other_errors[0].get('errmsg', 'Write error')}"
+                    )
             else:
                 raise HTTPException(
                     status_code=500,
-                    detail="Dataset upload failed. No successful upload was recorded."
+                    detail=f"Dataset upload failed. No successful upload was recorded: {str(e)}"
                 )
         print(f"[store_dataset] insert_many {inserted_count} records: {(time.perf_counter()-t_insert)*1000:.1f}ms")
 
@@ -1708,7 +1794,9 @@ async def store_dataset(file: UploadFile = File(...), user_doc: dict = Depends(g
 
 @app.get("/dataset/info")
 async def dataset_info(user_doc: dict = Depends(get_current_user_doc)):
-    company_id = user_doc["company_id"]
+    company_id = user_doc.get("company_id")
+    if not company_id:
+        return {"stored": False, "message": "No dataset currently stored"}
     count = await telco_collection.count_documents({"company_id": company_id})
     if count == 0:
         return {"stored": False, "message": "No dataset currently stored"}
@@ -1830,17 +1918,8 @@ async def predict_all_customers(user_doc: dict = Depends(get_current_user_doc)):
 @app.get("/dashboard/stats")
 async def get_dashboard_stats(user_doc: dict = Depends(get_current_user_doc)):
     t0 = time.perf_counter()
-    company_id = user_doc["company_id"]
-
-    # ── Serve from cache when available ──
-    cached = await database["dashboard_cache"].find_one({"company_id": company_id})
-    if cached:
-        clean = {k: v for k, v in cached.items() if k != "_id"}
-        print(f"[dashboard/stats] cache HIT: {(time.perf_counter()-t0)*1000:.1f}ms")
-        return {"available": True, **clean}
-
-    count = await telco_collection.count_documents({"company_id": company_id})
-    if count == 0:
+    company_id = user_doc.get("company_id")
+    if not company_id:
         return {
             "available":         True,
             "total_analyzed":    0,
@@ -1850,10 +1929,39 @@ async def get_dashboard_stats(user_doc: dict = Depends(get_current_user_doc)):
             "total_mrr":         0.0,
             "avg_churn_rate":    0.0,
             "plan_distribution": [],
+            "risk_by_contract":  [],
+            "risk_by_tenure":    [],
+            "high_risk_profile": [],
             "results":           []
         }
 
-    # ── Cold path: fetch with projection and run batch predict ──
+    # 1. Always check real customer count in MongoDB for this company
+    actual_count = await telco_collection.count_documents({"company_id": company_id})
+    if actual_count == 0:
+        await database["dashboard_cache"].delete_many({"company_id": company_id})
+        return {
+            "available":         True,
+            "total_analyzed":    0,
+            "high_risk_count":   0,
+            "medium_risk_count": 0,
+            "low_risk_count":    0,
+            "total_mrr":         0.0,
+            "avg_churn_rate":    0.0,
+            "plan_distribution": [],
+            "risk_by_contract":  [],
+            "risk_by_tenure":    [],
+            "high_risk_profile": [],
+            "results":           []
+        }
+
+    # 2. Serve from cache only if total_analyzed in cache matches actual DB count
+    cached = await database["dashboard_cache"].find_one({"company_id": company_id})
+    if cached and cached.get("total_analyzed") == actual_count:
+        clean = {k: v for k, v in cached.items() if k != "_id"}
+        print(f"[dashboard/stats] cache HIT: {(time.perf_counter()-t0)*1000:.1f}ms | total={actual_count}")
+        return {"available": True, **clean}
+
+    # 3. Customer count changed or cold compute: recompute fresh summary from real DB records
     projection = {
         "customerID": 1, "company_id": 1,
         "gender": 1, "SeniorCitizen": 1, "Partner": 1, "Dependents": 1,
@@ -1875,13 +1983,15 @@ async def get_dashboard_stats(user_doc: dict = Depends(get_current_user_doc)):
         summary,
         upsert=True
     )
-    print(f"[dashboard/stats] cold compute: {(time.perf_counter()-t0)*1000:.1f}ms")
+    print(f"[dashboard/stats] freshly computed: {(time.perf_counter()-t0)*1000:.1f}ms | total={actual_count}")
     return summary
 
 
 @app.get("/uploads/history")
 async def get_upload_history(limit: int = 10, user_doc: dict = Depends(get_current_user_doc)):
-    company_id = user_doc["company_id"]
+    company_id = user_doc.get("company_id")
+    if not company_id:
+        return []
     cursor = (
         database["dataset_uploads"]
         .find({"company_id": company_id})
@@ -1900,7 +2010,18 @@ async def get_upload_history(limit: int = 10, user_doc: dict = Depends(get_curre
 @app.get("/ml/metrics")
 async def get_ml_metrics(user_doc: dict = Depends(get_current_user_doc)):
     t0 = time.perf_counter()
-    company_id = user_doc["company_id"]
+    company_id = user_doc.get("company_id")
+    if not company_id:
+        return {
+            "accuracy": 0.0, "precision": 0.0, "recall": 0.0,
+            "f1_score": 0.0, "auc": 0.0,
+            "confusion_matrix": {
+                "true_negative": 0, "false_positive": 0,
+                "false_negative": 0, "true_positive": 0
+            },
+            "roc_curve":          [],
+            "feature_importance": []
+        }
     count = await telco_collection.count_documents({"company_id": company_id})
     if count == 0:
         return {
@@ -1920,11 +2041,13 @@ async def get_ml_metrics(user_doc: dict = Depends(get_current_user_doc)):
 
 @app.get("/ml/segments")
 async def get_ml_segments(user_doc: dict = Depends(get_current_user_doc)):
-    company_id = user_doc["company_id"]
+    company_id = user_doc.get("company_id")
+    if not company_id:
+        return []
     count = await telco_collection.count_documents({"company_id": company_id})
     if count == 0:
         return []
-    return await get_segment_profiles()
+    return await get_segment_profiles(company_id=company_id)
 
 
 @app.get("/reports/export/csv")
@@ -1980,6 +2103,7 @@ async def export_reports_csv(
 # ---------- Telco Customers (CSV-uploaded dataset) — Paginated ----------
 
 @app.get("/telco/customers")
+@app.get("/customers")
 async def get_telco_customers(
     page:   int = Query(default=1,  ge=1),
     limit:  int = Query(default=50, ge=1, le=200),
@@ -1987,31 +2111,42 @@ async def get_telco_customers(
     user_doc: dict = Depends(get_current_user_doc)
 ):
     t0 = time.perf_counter()
-    company_id = user_doc["company_id"]
+    company_id = user_doc.get("company_id")
+    if not company_id:
+        return {
+            "total":       0,
+            "page":        page,
+            "limit":       limit,
+            "total_pages": 1,
+            "records":     []
+        }
     query = {"company_id": company_id}
     if search:
+        clean_search = search.strip()
         query["$or"] = [
-            {"customerID":     {"$regex": search, "$options": "i"}},
-            {"Contract":       {"$regex": search, "$options": "i"}},
-            {"InternetService": {"$regex": search, "$options": "i"}},
+            {"customerID":     {"$regex": re.escape(clean_search), "$options": "i"}},
+            {"Contract":       {"$regex": re.escape(clean_search), "$options": "i"}},
+            {"InternetService": {"$regex": re.escape(clean_search), "$options": "i"}},
         ]
 
-    total  = await telco_collection.count_documents(query)
-    skip   = (page - 1) * limit
-    cursor = telco_collection.find(query).skip(skip).limit(limit)
-    records = await cursor.to_list(length=limit)
+    total       = await telco_collection.count_documents(query)
+    total_pages = math.ceil(total / limit) if total > 0 else 1
+    skip        = (page - 1) * limit
+    cursor      = telco_collection.find(query).sort([("_id", 1)]).skip(skip).limit(limit)
+    records     = await cursor.to_list(length=limit)
 
     for r in records:
         r["_id"] = str(r["_id"])
 
-    print(f"[telco/customers] page={page} limit={limit} search={search!r} total={total} fetched={len(records)} time={( time.perf_counter()-t0)*1000:.1f}ms")
+    print(f"[telco/customers] page={page} limit={limit} search={search!r} total={total} fetched={len(records)} time={(time.perf_counter()-t0)*1000:.1f}ms")
 
     return {
-        "total":       total,
+        "data":        records,
+        "records":     records,
         "page":        page,
         "limit":       limit,
-        "total_pages": math.ceil(total / limit) if total > 0 else 1,
-        "records":     records
+        "total":       total,
+        "total_pages": total_pages
     }
 
 
@@ -2084,6 +2219,7 @@ async def update_telco_customer(
     company_id = user_doc["company_id"]
 
     update_fields = {k: v for k, v in customer_data.dict(exclude_unset=True).items() if v is not None}
+    update_fields.pop("company_id", None)
     if not update_fields:
         raise HTTPException(status_code=400, detail="No fields provided to update")
 
@@ -2134,5 +2270,15 @@ async def delete_telco_customer(customer_id: str, user_doc: dict = Depends(get_c
     await database["dashboard_cache"].delete_many({"company_id": company_id})
     invalidate_metrics_cache(company_id)
 
-    print(f"[delete_telco] customer_id={customer_id!r}: {(time.perf_counter()-t0)*1000:.1f}ms")
-    return {"message": f"Customer '{customer_id}' deleted successfully"}
+    remaining_count = await telco_collection.count_documents({"company_id": company_id})
+
+    print(f"[delete_telco] customer_id={customer_id!r}: {(time.perf_counter()-t0)*1000:.1f}ms | remaining={remaining_count}")
+    return {
+        "message": f"Customer '{customer_id}' deleted successfully",
+        "total": remaining_count,
+        "total_in_db": remaining_count
+    }
+
+
+# Static file mount for user profile avatars (mounted after all API routes so routes like /uploads/history take precedence)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")

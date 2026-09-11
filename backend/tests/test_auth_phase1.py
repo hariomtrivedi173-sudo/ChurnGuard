@@ -21,7 +21,8 @@ async def test_register_and_login_company_isolation():
         # Register User A
         reg_a = await client.post("/register", json={
             "email": email_a,
-            "password": "password123",
+            "password": "Password123",
+            "phone": "9876543210",
             "first_name": "User",
             "last_name": "A",
             "company": "Company A",
@@ -30,8 +31,12 @@ async def test_register_and_login_company_isolation():
         })
         assert reg_a.status_code == 200
 
+        # Activate User A
+        from database import user_collection
+        await user_collection.update_one({"email": email_a}, {"$set": {"email_verified": True}})
+
         # Login User A
-        login_resp_a = await client.post("/login", json={"email": email_a, "password": "password123"})
+        login_resp_a = await client.post("/login", json={"email": email_a, "password": "Password123"})
         assert login_resp_a.status_code == 200
         token_a = login_resp_a.json()["access_token"]
         assert login_resp_a.json()["company_id"] == "comp_company_a"
@@ -48,7 +53,8 @@ async def test_register_and_login_company_isolation():
         email_b = f"userb_{run_id}@example.com"
         reg_b = await client.post("/register", json={
             "email": email_b,
-            "password": "password123",
+            "password": "Password123",
+            "phone": "9876543211",
             "first_name": "User",
             "last_name": "B",
             "company": "Company B",
@@ -57,7 +63,9 @@ async def test_register_and_login_company_isolation():
         })
         assert reg_b.status_code == 200
 
-        login_resp_b = await client.post("/login", json={"email": email_b, "password": "password123"})
+        await user_collection.update_one({"email": email_b}, {"$set": {"email_verified": True}})
+
+        login_resp_b = await client.post("/login", json={"email": email_b, "password": "Password123"})
         assert login_resp_b.status_code == 200
         token_b = login_resp_b.json()["access_token"]
         assert login_resp_b.json()["company_id"] == "comp_company_b"

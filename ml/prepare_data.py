@@ -13,17 +13,19 @@ from database import telco_collection
 import time
 
 async def load_data(company_id: str = None):
-    import time
+    if not company_id:
+        return pd.DataFrame()
+
     t0 = time.perf_counter()
-    query = {} if company_id is None else {"company_id": company_id}
-    cursor = telco_collection.find(query)
+    cursor = telco_collection.find({"company_id": company_id})
     records = await cursor.to_list(length=None)
 
+    if not records:
+        return pd.DataFrame()
+
     df = pd.DataFrame(records)
-    if "_id" in df.columns:
-        df = df.drop(columns=["_id"])
-    if "company_id" in df.columns:
-        df = df.drop(columns=["company_id"])
+    meta_cols = ["_id", "company_id", "created_at", "uploaded_by", "uploaded_at"]
+    df = df.drop(columns=[c for c in meta_cols if c in df.columns])
 
     elapsed = (time.perf_counter() - t0) * 1000
     print(f"[load_data] {len(records)} records loaded in {elapsed:.1f}ms (company_id={company_id!r})")
@@ -31,7 +33,8 @@ async def load_data(company_id: str = None):
 
 
 def prepare_features(df: pd.DataFrame):
-    df = df.drop(columns=["customerID"])
+    meta_cols = ["customerID", "created_at", "uploaded_by", "uploaded_at", "_id", "company_id"]
+    df = df.drop(columns=[c for c in meta_cols if c in df.columns])
 
     # Simple 2-value Yes/No columns
     simple_yes_no = [

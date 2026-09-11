@@ -23,7 +23,7 @@ export async function apiRequest(endpoint, options = {}) {
     throw new Error(`Network error: ${networkError.message}`)
   }
 
-  if (response.status === 401) {
+  if (response.status === 401 && endpoint !== '/login') {
     localStorage.removeItem('token')
     if (window.location.pathname !== '/') {
       window.location.href = '/'
@@ -40,7 +40,7 @@ export async function apiRequest(endpoint, options = {}) {
 }
 
 // ── FormData request (file uploads) ────────────────────────────────────────
-export async function apiFormData(endpoint, formData) {
+export async function apiFormData(endpoint, formData, options = {}) {
   const token = localStorage.getItem('token')
 
   const headers = {}
@@ -54,8 +54,14 @@ export async function apiFormData(endpoint, formData) {
       method: 'POST',
       headers,
       body: formData,
+      signal: options.signal,
     })
   } catch (networkError) {
+    if (networkError.name === 'AbortError' || options?.signal?.aborted) {
+      const abortErr = new Error('Upload cancelled')
+      abortErr.name = 'AbortError'
+      throw abortErr
+    }
     throw new Error(`Network error: ${networkError.message}`)
   }
 

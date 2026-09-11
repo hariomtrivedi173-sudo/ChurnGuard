@@ -155,83 +155,48 @@ function Dashboard() {
   const lowMRRPct   = Math.max(0, 100 - highMRRPct - medMRRPct)
 
   // 2. Customer Tenure vs Churn Risk (Smooth Area Chart Data)
-  const tenureRiskData = (stats?.risk_by_tenure && stats.risk_by_tenure.length > 0)
+  const tenureRiskData = (hasData && stats?.risk_by_tenure && stats.risk_by_tenure.length > 0)
     ? stats.risk_by_tenure.map(t => ({
-        name: t.bucket.replace(' months', 'm'),
+        name: (t.bucket || '').replace(' months', 'm'),
         label: t.bucket,
-        'High Risk': t.High,
-        'Medium Risk': t.Medium,
-        'Low Risk': t.Low,
+        'High Risk': t.High || 0,
+        'Medium Risk': t.Medium || 0,
+        'Low Risk': t.Low || 0,
       }))
-    : [
-        { name: '0–12m',  label: '0–12 Months (Early)',  'High Risk': Math.round(high * 0.58), 'Medium Risk': Math.round(med * 0.32), 'Low Risk': Math.round(low * 0.12) },
-        { name: '13–24m', label: '13–24 Months',          'High Risk': Math.round(high * 0.22), 'Medium Risk': Math.round(med * 0.28), 'Low Risk': Math.round(low * 0.20) },
-        { name: '25–36m', label: '25–36 Months',          'High Risk': Math.round(high * 0.11), 'Medium Risk': Math.round(med * 0.20), 'Low Risk': Math.round(low * 0.22) },
-        { name: '37–48m', label: '37–48 Months',          'High Risk': Math.round(high * 0.05), 'Medium Risk': Math.round(med * 0.11), 'Low Risk': Math.round(low * 0.20) },
-        { name: '49–60m', label: '49–60 Months',          'High Risk': Math.round(high * 0.03), 'Medium Risk': Math.round(med * 0.06), 'Low Risk': Math.round(low * 0.14) },
-        { name: '61–72m', label: '61–72 Months (Mature)', 'High Risk': Math.round(high * 0.01), 'Medium Risk': Math.round(med * 0.03), 'Low Risk': Math.round(low * 0.12) },
-      ]
+    : []
 
   // 3. Churn Risk by Contract Type (Stacked Horizontal Bar Data)
-  const contractRiskData = (stats?.risk_by_contract && stats.risk_by_contract.length > 0)
+  const contractRiskData = (hasData && stats?.risk_by_contract && stats.risk_by_contract.length > 0)
     ? stats.risk_by_contract.map(c => {
-        const cTotal = c.High + c.Medium + c.Low || 1
+        const cTotal = (c.High || 0) + (c.Medium || 0) + (c.Low || 0) || 1
         return {
           contract: c.contract,
-          'High Risk': c.High,
-          'Medium Risk': c.Medium,
-          'Low Risk': c.Low,
+          'High Risk': c.High || 0,
+          'Medium Risk': c.Medium || 0,
+          'Low Risk': c.Low || 0,
           total: cTotal,
-          highPct: Math.round((c.High / cTotal) * 100),
+          highPct: Math.round(((c.High || 0) / cTotal) * 100),
         }
       })
-    : [
-        {
-          contract: 'Month-to-Month',
-          'High Risk': Math.round(high * 0.88),
-          'Medium Risk': Math.round(med * 0.65),
-          'Low Risk': Math.max(0, Math.round(total * 0.55) - Math.round(high * 0.88) - Math.round(med * 0.65)),
-          highPct: 88,
-        },
-        {
-          contract: 'One Year',
-          'High Risk': Math.round(high * 0.10),
-          'Medium Risk': Math.round(med * 0.25),
-          'Low Risk': Math.max(0, Math.round(total * 0.24) - Math.round(high * 0.10) - Math.round(med * 0.25)),
-          highPct: 10,
-        },
-        {
-          contract: 'Two Year',
-          'High Risk': Math.round(high * 0.02),
-          'Medium Risk': Math.round(med * 0.10),
-          'Low Risk': Math.max(0, Math.round(total * 0.21) - Math.round(high * 0.02) - Math.round(med * 0.10)),
-          highPct: 2,
-        },
-      ]
+    : []
 
   // 4. ML Model Performance Metrics
-  const accuracyPct  = mlMetrics?.accuracy  ? (mlMetrics.accuracy  * 100).toFixed(1) : null
-  const precisionPct = mlMetrics?.precision ? (mlMetrics.precision * 100).toFixed(1) : null
-  const recallPct    = mlMetrics?.recall    ? (mlMetrics.recall    * 100).toFixed(1) : null
-  const f1Pct        = mlMetrics?.f1_score  ? (mlMetrics.f1_score  * 100).toFixed(1) : null
-  const aucPct       = mlMetrics?.auc       ? (mlMetrics.auc       * 100).toFixed(1) : null
-  const hasMetrics   = accuracyPct !== null && parseFloat(accuracyPct) > 0
+  const accuracyPct  = (hasData && mlMetrics?.accuracy)  ? (mlMetrics.accuracy  * 100).toFixed(1) : null
+  const precisionPct = (hasData && mlMetrics?.precision) ? (mlMetrics.precision * 100).toFixed(1) : null
+  const recallPct    = (hasData && mlMetrics?.recall)    ? (mlMetrics.recall    * 100).toFixed(1) : null
+  const f1Pct        = (hasData && mlMetrics?.f1_score)  ? (mlMetrics.f1_score  * 100).toFixed(1) : null
+  const aucPct       = (hasData && mlMetrics?.auc)       ? (mlMetrics.auc       * 100).toFixed(1) : null
+  const hasMetrics   = hasData && accuracyPct !== null && parseFloat(accuracyPct) > 0
 
   const primaryScore = f1Pct || accuracyPct || '0'
   const CIRC = 251.2
   const dashOffset = hasMetrics ? CIRC * (1 - Math.min(100, parseFloat(primaryScore)) / 100) : CIRC
 
   // 5. Top Churn Drivers (from ML feature importance)
-  const rawFeatures = mlMetrics?.feature_importance ?? []
+  const rawFeatures = hasData ? (mlMetrics?.feature_importance ?? []) : []
   const maxImportance = rawFeatures.length > 0 ? Math.max(...rawFeatures.map(f => f.importance)) : 1
 
-  const topChurnDrivers = (rawFeatures.length > 0 ? rawFeatures : [
-    { feature: 'tenure', importance: 0.245 },
-    { feature: 'TotalCharges', importance: 0.198 },
-    { feature: 'MonthlyCharges', importance: 0.174 },
-    { feature: 'Contract_Two year', importance: 0.142 },
-    { feature: 'InternetService_Fiber optic', importance: 0.115 },
-  ]).slice(0, 5).map((f, i) => {
+  const topChurnDrivers = rawFeatures.slice(0, 5).map((f, i) => {
     const meta = FEATURE_INFO[f.feature] || {
       name: f.feature.replace(/_/g, ' '),
       dir: 'risk',
@@ -252,13 +217,9 @@ function Dashboard() {
   })
 
   // 6. High-Risk Customer Profile Archetype
-  const highRiskProfile = [
-    { label: 'Month-to-Month Contract', pct: 88, desc: 'High flexibility with zero lock-in barriers' },
-    { label: 'Early Tenure (< 12 Months)', pct: 72, desc: 'Undergoing initial product onboarding phase' },
-    { label: 'Fiber Optic Service Tier', pct: 64, desc: 'High monthly bill sensitivity and expectations' },
-    { label: 'No Tech Support Plan', pct: 78, desc: 'Unresolved technical friction accelerates churn' },
-    { label: 'Electronic Check Payment', pct: 56, desc: 'Manual payment friction and billing disputes' },
-  ]
+  const highRiskProfile = (hasData && stats?.high_risk_profile && stats.high_risk_profile.length > 0)
+    ? stats.high_risk_profile
+    : []
 
   // Highest-risk customer list
   const highRiskRows = (stats?.results ?? []).slice(0, 5).map((r, i) => ({
@@ -349,81 +310,145 @@ function Dashboard() {
         )}
 
         {/* ── KPI Stat Cards Row ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '14px', marginBottom: '20px' }}>
 
-          <div className="card" style={{ padding: '20px' }}>
+          {/* 1. Total Customers */}
+          <div className="card" style={{ padding: '18px 20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Total Customers
                 </p>
-                <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+                <p style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
                   {loading ? '—' : total.toLocaleString()}
                 </p>
               </div>
-              <div style={{ width: '40px', height: '40px', background: 'var(--purple-light)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Users size={20} color="var(--purple-primary)" />
+              <div style={{ width: '38px', height: '38px', background: 'var(--purple-light)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={18} color="var(--purple-primary)" />
               </div>
             </div>
-            <div style={{ marginTop: '14px', fontSize: '11px', color: 'var(--text-muted)' }}>
+            <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
               {hasData ? 'Active customer database' : 'No dataset analyzed'}
             </div>
           </div>
 
-          <div className="card" style={{ padding: '20px' }}>
+          {/* 2. Active Customers */}
+          <div className="card" style={{ padding: '18px 20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Active & Retained
+                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Active Customers
                 </p>
-                <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+                <p style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
                   {loading ? '—' : activeCount.toLocaleString()}
                 </p>
               </div>
-              <div style={{ width: '40px', height: '40px', background: 'rgba(16, 185, 129, 0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <UserCheck size={20} color="var(--success)" />
+              <div style={{ width: '38px', height: '38px', background: 'rgba(16, 185, 129, 0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <UserCheck size={18} color="var(--success)" />
               </div>
             </div>
-            <div style={{ marginTop: '14px', fontSize: '11px', color: 'var(--text-muted)' }}>
+            <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
               {hasData ? `${total.toLocaleString()} total − ${high.toLocaleString()} high risk` : 'No active records'}
             </div>
           </div>
 
-          <div className="card" style={{ padding: '20px' }}>
+          {/* 3. High Risk */}
+          <div className="card" style={{ padding: '18px 20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  High Risk Volume
+                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  High Risk
                 </p>
-                <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--danger)', lineHeight: 1 }}>
+                <p style={{ fontSize: '26px', fontWeight: 800, color: 'var(--danger)', lineHeight: 1 }}>
                   {loading ? '—' : high.toLocaleString()}
                 </p>
               </div>
-              <div style={{ width: '40px', height: '40px', background: 'rgba(239, 68, 68, 0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <AlertTriangle size={20} color="var(--danger)" />
+              <div style={{ width: '38px', height: '38px', background: 'rgba(239, 68, 68, 0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <AlertTriangle size={18} color="var(--danger)" />
               </div>
             </div>
-            <div style={{ marginTop: '14px', fontSize: '11px', color: hasData ? 'var(--danger)' : 'var(--text-muted)', fontWeight: 600 }}>
-              {hasData ? `${Math.round((high / total) * 100)}% of total accounts` : '0% risk'}
+            <div style={{ marginTop: '12px', fontSize: '11px', color: hasData ? 'var(--danger)' : 'var(--text-muted)', fontWeight: 600 }}>
+              {hasData ? `${Math.round((high / (total || 1)) * 100)}% of total accounts` : '0% risk'}
             </div>
           </div>
 
-          <div className="card" style={{ padding: '20px' }}>
+          {/* 4. Medium Risk */}
+          <div className="card" style={{ padding: '18px 20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Average Churn Rate
+                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Medium Risk
                 </p>
-                <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+                <p style={{ fontSize: '26px', fontWeight: 800, color: 'var(--warning)', lineHeight: 1 }}>
+                  {loading ? '—' : med.toLocaleString()}
+                </p>
+              </div>
+              <div style={{ width: '38px', height: '38px', background: 'rgba(245, 158, 11, 0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ShieldAlert size={18} color="var(--warning)" />
+              </div>
+            </div>
+            <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              {hasData ? `${Math.round((med / (total || 1)) * 100)}% of total accounts` : '0% risk'}
+            </div>
+          </div>
+
+          {/* 5. Low Risk */}
+          <div className="card" style={{ padding: '18px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Low Risk
+                </p>
+                <p style={{ fontSize: '26px', fontWeight: 800, color: 'var(--success)', lineHeight: 1 }}>
+                  {loading ? '—' : low.toLocaleString()}
+                </p>
+              </div>
+              <div style={{ width: '38px', height: '38px', background: 'rgba(16, 185, 129, 0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ShieldCheck size={18} color="var(--success)" />
+              </div>
+            </div>
+            <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              {hasData ? `${Math.round((low / (total || 1)) * 100)}% of total accounts` : '0% risk'}
+            </div>
+          </div>
+
+          {/* 6. Total MRR */}
+          <div className="card" style={{ padding: '18px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Total MRR
+                </p>
+                <p style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+                  {loading ? '—' : (totalMRRRaw > 0 ? formatCurrency(totalMRRRaw) : '₹0')}
+                </p>
+              </div>
+              <div style={{ width: '38px', height: '38px', background: 'var(--purple-light)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <DollarSign size={18} color="var(--purple-primary)" />
+              </div>
+            </div>
+            <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              {hasData ? 'Monthly Recurring Revenue' : '₹0 baseline'}
+            </div>
+          </div>
+
+          {/* 7. Churn Rate */}
+          <div className="card" style={{ padding: '18px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Churn Rate
+                </p>
+                <p style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
                   {loading ? '—' : `${churnRatePct}%`}
                 </p>
               </div>
-              <div style={{ width: '40px', height: '40px', background: 'rgba(245, 158, 11, 0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <TrendingUp size={20} color="var(--warning)" />
+              <div style={{ width: '38px', height: '38px', background: 'rgba(245, 158, 11, 0.12)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TrendingUp size={18} color="var(--warning)" />
               </div>
             </div>
-            <div style={{ marginTop: '14px', fontSize: '11px', color: 'var(--text-muted)' }}>
-              {hasData ? 'ML model average probability' : '0% baseline'}
+            <div style={{ marginTop: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              {hasData ? 'Average churn probability' : '0% baseline'}
             </div>
           </div>
 
@@ -460,36 +485,50 @@ function Dashboard() {
             </div>
 
             <div style={{ height: '230px', width: '100%', marginTop: 'auto' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={tenureRiskData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="highRiskAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#EF4444" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#EF4444" stopOpacity={0.0} />
-                    </linearGradient>
-                    <linearGradient id="medRiskAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#F59E0B" stopOpacity={0.0} />
-                    </linearGradient>
-                    <linearGradient id="lowRiskAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.6} />
-                  <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} />
-                  <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} />
-                  <Tooltip content={<CustomChartTooltip unit=" accounts" />} />
-                  <Area type="monotone" dataKey="High Risk" stroke="#EF4444" strokeWidth={2.5} fill="url(#highRiskAreaGrad)" />
-                  <Area type="monotone" dataKey="Medium Risk" stroke="#F59E0B" strokeWidth={2} fill="url(#medRiskAreaGrad)" />
-                  <Area type="monotone" dataKey="Low Risk" stroke="#10B981" strokeWidth={2} fill="url(#lowRiskAreaGrad)" />
-                </AreaChart>
-              </ResponsiveContainer>
+              {tenureRiskData.length === 0 ? (
+                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  <Clock size={32} style={{ opacity: 0.3, marginBottom: '8px' }} />
+                  <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>No tenure risk data</p>
+                  <p style={{ fontSize: '12px' }}>Upload a dataset to view customer tenure vs churn risk trends</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={tenureRiskData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="highRiskAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#EF4444" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#EF4444" stopOpacity={0.0} />
+                      </linearGradient>
+                      <linearGradient id="medRiskAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#F59E0B" stopOpacity={0.0} />
+                      </linearGradient>
+                      <linearGradient id="lowRiskAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.6} />
+                    <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} />
+                    <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} />
+                    <Tooltip content={<CustomChartTooltip unit=" accounts" />} />
+                    <Area type="monotone" dataKey="High Risk" stroke="#EF4444" strokeWidth={2.5} fill="url(#highRiskAreaGrad)" />
+                    <Area type="monotone" dataKey="Medium Risk" stroke="#F59E0B" strokeWidth={2} fill="url(#medRiskAreaGrad)" />
+                    <Area type="monotone" dataKey="Low Risk" stroke="#10B981" strokeWidth={2} fill="url(#lowRiskAreaGrad)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
 
             <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
-              <span>💡 <strong>Insight:</strong> 58% of churn happens in the first 12 months. Early onboarding intervention yields highest ROI.</span>
-              <span style={{ fontWeight: 700, color: 'var(--danger)' }}>Peak at 0–12m</span>
+              {hasData ? (
+                <>
+                  <span>💡 <strong>Insight:</strong> 58% of churn happens in the first 12 months. Early onboarding intervention yields highest ROI.</span>
+                  <span style={{ fontWeight: 700, color: 'var(--danger)' }}>Peak at 0–12m</span>
+                </>
+              ) : (
+                <span>No customer lifecycle insights yet. Upload a dataset to begin.</span>
+              )}
             </div>
           </div>
 
@@ -584,22 +623,36 @@ function Dashboard() {
             </div>
 
             <div style={{ height: '170px', width: '100%' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={contractRiskData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" opacity={0.6} />
-                  <XAxis type="number" stroke="var(--text-muted)" fontSize={11} tickLine={false} />
-                  <YAxis type="category" dataKey="contract" stroke="var(--text-primary)" fontSize={12} fontWeight={600} tickLine={false} width={95} />
-                  <Tooltip content={<CustomChartTooltip unit=" customers" />} />
-                  <Bar dataKey="High Risk" stackId="contractStack" fill="#EF4444" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="Medium Risk" stackId="contractStack" fill="#F59E0B" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="Low Risk" stackId="contractStack" fill="#10B981" radius={[0, 6, 6, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {contractRiskData.length === 0 ? (
+                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  <Layers size={32} style={{ opacity: 0.3, marginBottom: '8px' }} />
+                  <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>No contract data available</p>
+                  <p style={{ fontSize: '12px' }}>Upload a dataset to view risk breakdown by contract type</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={contractRiskData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" opacity={0.6} />
+                    <XAxis type="number" stroke="var(--text-muted)" fontSize={11} tickLine={false} />
+                    <YAxis type="category" dataKey="contract" stroke="var(--text-primary)" fontSize={12} fontWeight={600} tickLine={false} width={95} />
+                    <Tooltip content={<CustomChartTooltip unit=" customers" />} />
+                    <Bar dataKey="High Risk" stackId="contractStack" fill="#EF4444" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="Medium Risk" stackId="contractStack" fill="#F59E0B" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="Low Risk" stackId="contractStack" fill="#10B981" radius={[0, 6, 6, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
 
             <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
-              <span>Month-to-month contracts contain <strong>88%</strong> of all high-risk accounts. 2-Year contracts reduce churn risk by <strong>96%</strong>.</span>
-              <span className="badge badge-green" style={{ fontSize: '10px' }}>2-Year = 96% Safe</span>
+              {hasData ? (
+                <>
+                  <span>Month-to-month contracts contain the majority of all high-risk accounts. 2-Year contracts maximize customer retention.</span>
+                  <span className="badge badge-green" style={{ fontSize: '10px' }}>Multi-year = Safe</span>
+                </>
+              ) : (
+                <span>No contract risk exposure computed yet.</span>
+              )}
             </div>
           </div>
 
@@ -697,51 +750,57 @@ function Dashboard() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {topChurnDrivers.map(item => (
-                <div key={item.key} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{
-                        width: '20px', height: '20px', borderRadius: '6px',
-                        background: 'var(--surface-hover)', border: '1px solid var(--border)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '10px', fontWeight: 800, color: 'var(--text-primary)'
-                      }}>
-                        {item.rank}
-                      </span>
-                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.name}</span>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>({item.tag})</span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {item.dir === 'risk' ? (
-                        <span style={{ fontSize: '10px', color: '#EF4444', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                          <ArrowUpRight size={12} /> Increases Risk
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: '10px', color: '#10B981', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                          <ArrowDownRight size={12} /> Protects Retention
-                        </span>
-                      )}
-                      <span style={{ fontWeight: 800, color: 'var(--text-primary)', width: '36px', textAlign: 'right' }}>
-                        {item.relativePct}%
-                      </span>
-                    </div>
-                  </div>
-
-                  <div style={{ width: '100%', height: '6px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${item.relativePct}%`,
-                      background: item.dir === 'risk'
-                        ? 'linear-gradient(90deg, #F59E0B 0%, #EF4444 100%)'
-                        : 'linear-gradient(90deg, #3B82F6 0%, #7C3AED 100%)',
-                      borderRadius: '99px',
-                      transition: 'width 400ms ease'
-                    }} />
-                  </div>
+              {topChurnDrivers.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  Upload a dataset to evaluate feature importance
                 </div>
-              ))}
+              ) : (
+                topChurnDrivers.map(item => (
+                  <div key={item.key} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          width: '20px', height: '20px', borderRadius: '6px',
+                          background: 'var(--surface-hover)', border: '1px solid var(--border)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '10px', fontWeight: 800, color: 'var(--text-primary)'
+                        }}>
+                          {item.rank}
+                        </span>
+                        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.name}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>({item.tag})</span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {item.dir === 'risk' ? (
+                          <span style={{ fontSize: '10px', color: '#EF4444', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                            <ArrowUpRight size={12} /> Increases Risk
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '10px', color: '#10B981', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                            <ArrowDownRight size={12} /> Protects Retention
+                          </span>
+                        )}
+                        <span style={{ fontWeight: 800, color: 'var(--text-primary)', width: '36px', textAlign: 'right' }}>
+                          {item.relativePct}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ width: '100%', height: '6px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${item.relativePct}%`,
+                        background: item.dir === 'risk'
+                          ? 'linear-gradient(90deg, #F59E0B 0%, #EF4444 100%)'
+                          : 'linear-gradient(90deg, #3B82F6 0%, #7C3AED 100%)',
+                        borderRadius: '99px',
+                        transition: 'width 400ms ease'
+                      }} />
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -763,17 +822,23 @@ function Dashboard() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {highRiskProfile.map(item => (
-                  <div key={item.label} style={{ background: 'var(--surface-hover)', borderRadius: '10px', padding: '9px 12px', border: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.label}</span>
-                      <span style={{ fontWeight: 800, color: 'var(--danger)' }}>{item.pct}%</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)' }}>
-                      <span>{item.desc}</span>
-                    </div>
+                {highRiskProfile.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: '13px' }}>
+                    Upload a dataset to generate risk archetype attributes
                   </div>
-                ))}
+                ) : (
+                  highRiskProfile.map(item => (
+                    <div key={item.label} style={{ background: 'var(--surface-hover)', borderRadius: '10px', padding: '9px 12px', border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.label}</span>
+                        <span style={{ fontWeight: 800, color: 'var(--danger)' }}>{item.pct}%</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)' }}>
+                        <span>{item.desc}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -802,10 +867,15 @@ function Dashboard() {
             </div>
 
             {!hasData || highRiskRows.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontSize: '13px' }}>
-                {hasData
-                  ? 'No prediction results yet — click Run Analysis to generate risk scores'
-                  : 'Upload a dataset to see high-risk customers'}
+              <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)', fontSize: '13px' }}>
+                <p style={{ marginBottom: '14px' }}>Upload a dataset to see high-risk customers</p>
+                <button
+                  onClick={() => navigate('/upload')}
+                  className="btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '8px 16px', margin: '0 auto' }}
+                >
+                  <UploadCloud size={14} /> Upload Dataset
+                </button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -849,7 +919,14 @@ function Dashboard() {
             {activityItems.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: '12px' }}>
                 <Clock size={24} style={{ marginBottom: '8px', opacity: 0.4 }} />
-                <p>No uploads yet</p>
+                <p style={{ marginBottom: '14px' }}>No uploads yet</p>
+                <button
+                  onClick={() => navigate('/upload')}
+                  className="btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '8px 16px', margin: '0 auto' }}
+                >
+                  <UploadCloud size={14} /> Upload Dataset
+                </button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', position: 'relative' }}>

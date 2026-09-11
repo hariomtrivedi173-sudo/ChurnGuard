@@ -49,7 +49,8 @@ async def test_full_multi_tenant_isolation_and_upload_lifecycle():
         comp_a = f"Company Alpha {run_id}"
         reg_a = await client.post("/register", json={
             "email": email_a,
-            "password": "password123",
+            "password": "Password123",
+            "phone": "9876543210",
             "first_name": "Alice",
             "last_name": "Admin",
             "company": comp_a,
@@ -58,7 +59,10 @@ async def test_full_multi_tenant_isolation_and_upload_lifecycle():
         })
         assert reg_a.status_code == 200
 
-        login_a = await client.post("/login", json={"email": email_a, "password": "password123"})
+        from database import user_collection
+        await user_collection.update_one({"email": email_a}, {"$set": {"email_verified": True}})
+
+        login_a = await client.post("/login", json={"email": email_a, "password": "Password123"})
         assert login_a.status_code == 200
         token_a = login_a.json()["access_token"]
         headers_a = {"Authorization": f"Bearer {token_a}"}
@@ -117,7 +121,8 @@ async def test_full_multi_tenant_isolation_and_upload_lifecycle():
         comp_b = f"Company Beta {run_id}"
         reg_b = await client.post("/register", json={
             "email": email_b,
-            "password": "password123",
+            "password": "Password123",
+            "phone": "9876543211",
             "first_name": "Bob",
             "last_name": "Builder",
             "company": comp_b,
@@ -126,7 +131,9 @@ async def test_full_multi_tenant_isolation_and_upload_lifecycle():
         })
         assert reg_b.status_code == 200
 
-        login_b = await client.post("/login", json={"email": email_b, "password": "password123"})
+        await user_collection.update_one({"email": email_b}, {"$set": {"email_verified": True}})
+
+        login_b = await client.post("/login", json={"email": email_b, "password": "Password123"})
         assert login_b.status_code == 200
         token_b = login_b.json()["access_token"]
         headers_b = {"Authorization": f"Bearer {token_b}"}

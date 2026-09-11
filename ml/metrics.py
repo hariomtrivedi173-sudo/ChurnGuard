@@ -49,9 +49,23 @@ def invalidate_metrics_cache(company_id: str):
 
 
 async def compute_metrics(company_id: str = None) -> dict:
+    if not company_id:
+        return {
+            "accuracy": 0.0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1_score": 0.0,
+            "auc": 0.0,
+            "confusion_matrix": {
+                "true_negative": 0, "false_positive": 0,
+                "false_negative": 0, "true_positive": 0
+            },
+            "roc_curve": [],
+            "feature_importance": [],
+        }
+
     # ── 1. Check cache ──
-    cache_key = company_id or "__global__"
-    cached = _get_cached(cache_key)
+    cached = _get_cached(company_id)
     if cached is not None:
         print(f"[metrics] Cache HIT for company_id={company_id!r}")
         return cached
@@ -75,7 +89,7 @@ async def compute_metrics(company_id: str = None) -> dict:
             "roc_curve": [],
             "feature_importance": [],
         }
-        _set_cached(cache_key, result)
+        _set_cached(company_id, result)
         return result
 
     df_prepared = prepare_features(df)
@@ -130,5 +144,5 @@ async def compute_metrics(company_id: str = None) -> dict:
         "roc_curve":         roc_points,
         "feature_importance": feature_importance,
     }
-    _set_cached(cache_key, result)
+    _set_cached(company_id, result)
     return result

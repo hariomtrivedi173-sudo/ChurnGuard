@@ -35,30 +35,48 @@ function Upload() {
   const [history,       setHistory]       = useState([])
   const [dragging,      setDragging]      = useState(false)
   const [preview,       setPreview]       = useState(null)
-  const inputRef = useRef()
+  const abortControllerRef = useRef(null)
+  const isMountedRef       = useRef(true)
+  const timerRefs          = useRef([])
+  const inputRef           = useRef()
+
+  function clearTimers() {
+    timerRefs.current.forEach(t => clearTimeout(t))
+    timerRefs.current = []
+  }
 
   useEffect(() => {
+    isMountedRef.current = true
     loadInfo()
     loadHistory()
+
+    return () => {
+      isMountedRef.current = false
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+      clearTimers()
+    }
   }, [])
 
   async function loadInfo() {
     try {
       const d = await getDatasetInfo()
+      if (!isMountedRef.current) return
       setInfo(d)
       if (d?.sample_record) {
         const cols = Object.keys(d.sample_record).filter(k => k !== '_id')
         setPreview({ columns: cols, sample: d.sample_record })
       }
     } catch {
-      setInfo(null)
+      if (isMountedRef.current) setInfo(null)
     }
   }
 
   async function loadHistory() {
     try {
       const h = await getUploadHistory(5)
-      if (Array.isArray(h)) setHistory(h)
+      if (isMountedRef.current && Array.isArray(h)) setHistory(h)
     } catch { /* silent */ }
   }
 
@@ -75,6 +93,16 @@ function Upload() {
     }
   }
 
+  function handleCancelUpload() {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    clearTimers()
+    setUploading(false)
+    setUploadStage(0)
+    toast('Upload cancelled', { icon: 'ℹ️' })
+  }
+
   async function handleUpload() {
     if (!file || uploading) return
 
@@ -82,35 +110,65 @@ function Upload() {
     setError('')
     setResult(null)
     setUploadStage(0)
+    clearTimers()
+
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
 
     // Simulated progress stage progression while network request is active
-    const stageTimer1 = setTimeout(() => setUploadStage(1), 250)
-    const stageTimer2 = setTimeout(() => setUploadStage(2), 600)
-    const stageTimer3 = setTimeout(() => setUploadStage(3), 1100)
+    timerRefs.current.push(setTimeout(() => {
+      if (isMountedRef.current && !abortController.signal.aborted) setUploadStage(1)
+    }, 250))
+    timerRefs.current.push(setTimeout(() => {
+      if (isMountedRef.current && !abortController.signal.aborted) setUploadStage(2)
+    }, 600))
+    timerRefs.current.push(setTimeout(() => {
+      if (isMountedRef.current && !abortController.signal.aborted) setUploadStage(3)
+    }, 1100))
 
     try {
-      const result = await uploadDataset(file)
-      clearTimeout(stageTimer1)
-      clearTimeout(stageTimer2)
-      clearTimeout(stageTimer3)
-      setUploadStage(4) // complete
+      const result = await uploadDataset(file, abortController.signal)
+      clearTimers()
 
+      // Critical guard: If aborted, unmounted, or cancelled, do not display stale success popup
+      if (abortController.signal.aborted || !isMountedRef.current) {
+        return
+      }
+
+      setUploadStage(4) // complete
       setResult(result)
-      const newCount = result.inserted ?? result.rows_stored ?? 0
-      toast.success(`${newCount.toLocaleString()} new records added successfully!`)
+      const newCount = result.new_records ?? result.inserted ?? result.rows_stored ?? 0
+      const dupCount = result.duplicates_skipped ?? result.duplicate_rows ?? 0
+
+      if (newCount === 0 && dupCount > 0) {
+        toast(
+          `No new records added — all ${dupCount.toLocaleString()} rows already exist in database.`,
+          { icon: 'ℹ️', duration: 4000 }
+        )
+      } else if (newCount > 0 && dupCount > 0) {
+        toast.success(
+          `${newCount.toLocaleString()} new records added (${dupCount.toLocaleString()} duplicates skipped)!`
+        )
+      } else {
+        toast.success(`${newCount.toLocaleString()} new records added successfully!`)
+      }
+
       setFile(null)
 
       // Refresh in-memory state without full page reload
       await loadInfo()
       await loadHistory()
     } catch (err) {
-      clearTimeout(stageTimer1)
-      clearTimeout(stageTimer2)
-      clearTimeout(stageTimer3)
+      clearTimers()
+      if (abortController.signal.aborted || err.name === 'AbortError' || !isMountedRef.current) {
+        return
+      }
       setError(err.message)
       toast.error(err.message)
     } finally {
-      setUploading(false)
+      if (isMountedRef.current && !abortController.signal.aborted) {
+        setUploading(false)
+      }
     }
   }
 
@@ -227,9 +285,27 @@ function Upload() {
                   {UPLOAD_STAGES[uploadStage]?.label || 'Processing upload…'}
                 </span>
               </div>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--purple-600)' }}>
-                {Math.round(((uploadStage + 1) / UPLOAD_STAGES.length) * 100)}%
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--purple-600)' }}>
+                  {Math.round(((uploadStage + 1) / UPLOAD_STAGES.length) * 100)}%
+                </span>
+                <button
+                  onClick={handleCancelUpload}
+                  type="button"
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: 'var(--danger)',
+                    borderRadius: '6px',
+                    padding: '3px 9px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
 
             {/* Progress bar track */}
@@ -253,12 +329,18 @@ function Upload() {
         {/* Upload Result Summary */}
         {uploadResult && (
           <div style={{
-            background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '14px',
+            background: uploadResult.new_records === 0 ? 'rgba(59, 130, 246, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+            border: `1px solid ${uploadResult.new_records === 0 ? 'rgba(59, 130, 246, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
+            borderRadius: '14px',
             padding: '16px 20px', marginBottom: '20px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-              <CheckCircle size={16} color="var(--success)" />
-              <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--success)' }}>Dataset uploaded & processed successfully</p>
+              <CheckCircle size={16} color={uploadResult.new_records === 0 ? '#3b82f6' : 'var(--success)'} />
+              <p style={{ fontSize: '13px', fontWeight: 700, color: uploadResult.new_records === 0 ? '#2563eb' : 'var(--success)' }}>
+                {uploadResult.new_records === 0
+                  ? `Upload processed: All ${uploadResult.total_rows?.toLocaleString()} records already exist (0 duplicates created)`
+                  : 'Dataset uploaded & processed successfully'}
+              </p>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
               {[
