@@ -205,6 +205,14 @@ async def test_notifications_lifecycle_and_tenant_isolation():
         # 5. User 1 clears all notifications
         clear_res = await client.delete("/notifications", headers=h1)
         assert clear_res.status_code == 200
-        # User 2 notifications still exist!
+
+        # 6. User 1 fetches notifications again: must remain empty (no auto-reseeding)
+        n1_res_after_clear = await client.get("/notifications", headers=h1)
+        assert n1_res_after_clear.status_code == 200
+        assert len(n1_res_after_clear.json()["notifications"]) == 0
+        assert n1_res_after_clear.json()["unread_count"] == 0
+
+        # 7. User 2 notifications still exist in Beta Inc!
         n2_res = await client.get("/notifications", headers=h2)
         assert len(n2_res.json()["notifications"]) > 0
+

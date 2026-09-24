@@ -467,15 +467,15 @@ function Upload() {
                     <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>total rows</p>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontWeight: 700, color: '#16a34a' }}>{h.inserted_rows?.toLocaleString()}</p>
+                    <p style={{ fontWeight: 700, color: '#16a34a' }}>{(h.new_records ?? h.inserted_rows ?? 0)?.toLocaleString()}</p>
                     <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>inserted</p>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontWeight: 700, color: '#d97706' }}>{h.duplicate_rows?.toLocaleString()}</p>
+                    <p style={{ fontWeight: 700, color: '#d97706' }}>{(h.duplicates_skipped ?? h.duplicate_rows ?? 0)?.toLocaleString()}</p>
                     <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>duplicates</p>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{h.final_total?.toLocaleString()}</p>
+                    <p style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{(h.total_in_db ?? h.final_total)?.toLocaleString() ?? '—'}</p>
                     <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>total in DB</p>
                   </div>
                   <div style={{ textAlign: 'right' }}>

@@ -232,12 +232,17 @@ function Dashboard() {
   }))
 
   // Recent activity
-  const activityItems = uploadHistory.map(u => ({
-    title: `Dataset uploaded: ${u.filename}`,
-    sub:   `${u.inserted_rows?.toLocaleString() ?? 0} new records · ${u.duplicate_rows ?? 0} duplicates skipped · Total: ${u.final_total?.toLocaleString() ?? '—'}`,
-    time:  timeAgo(u.uploaded_at),
-    icon:  UploadCloud,
-  }))
+  const activityItems = uploadHistory.map(u => {
+    const inserted = (u.new_records ?? u.inserted_rows ?? 0).toLocaleString()
+    const duplicates = (u.duplicates_skipped ?? u.duplicate_rows ?? 0).toLocaleString()
+    const totalInDb = (u.total_in_db ?? u.final_total)?.toLocaleString() ?? '—'
+    return {
+      title: `Dataset uploaded: ${u.filename}`,
+      sub:   `${inserted} new records · ${duplicates} duplicates skipped · Total: ${totalInDb}`,
+      time:  timeAgo(u.uploaded_at),
+      icon:  UploadCloud,
+    }
+  })
 
   return (
     <div className="page-layout">
@@ -455,7 +460,7 @@ function Dashboard() {
         </div>
 
         {/* ── ROW 1: Customer Tenure vs Churn Risk & Revenue At Risk ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '16px', marginBottom: '16px' }}>
+        <div className="dashboard-split-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '16px', marginBottom: '16px' }}>
 
           {/* 1. Customer Tenure vs Churn Risk (Smooth Area Chart) */}
           <div className="card" style={{ padding: '22px', display: 'flex', flexDirection: 'column' }}>
@@ -592,7 +597,7 @@ function Dashboard() {
         </div>
 
         {/* ── ROW 2: Churn Risk by Contract Type & Model Performance ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '16px', marginBottom: '16px' }}>
+        <div className="dashboard-split-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '16px', marginBottom: '16px' }}>
 
           {/* 3. Churn Risk by Contract Type (Stacked Horizontal Bar Chart) */}
           <div className="card" style={{ padding: '22px', display: 'flex', flexDirection: 'column' }}>
@@ -731,7 +736,7 @@ function Dashboard() {
         </div>
 
         {/* ── ROW 3: Top Churn Drivers & High-Risk Customer Profile ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '16px', marginBottom: '20px' }}>
+        <div className="dashboard-split-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '16px', marginBottom: '20px' }}>
 
           {/* 5. Top Churn Drivers (ML Feature Impact) */}
           <div className="card" style={{ padding: '22px' }}>
@@ -850,7 +855,7 @@ function Dashboard() {
         </div>
 
         {/* ── ROW 4: Highest Risk Customer List & Recent Activity ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '20px' }}>
+        <div className="dashboard-split-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '20px' }}>
 
           <div className="card" style={{ padding: '22px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>

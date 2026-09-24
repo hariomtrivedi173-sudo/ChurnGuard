@@ -193,8 +193,10 @@ function Register() {
         }
       }
 
-      if (touched.lastName && lastName.trim()) {
-        if (!/^[a-zA-Z\s'-]{1,50}$/.test(lastName.trim())) {
+      if (touched.lastName) {
+        if (!lastName.trim()) {
+          errs.lastName = 'Last name is required.'
+        } else if (!/^[a-zA-Z\s'-]{1,50}$/.test(lastName.trim())) {
           errs.lastName = 'Last name can contain letters only.'
         }
       }
@@ -306,7 +308,11 @@ function Register() {
       setError('First name must contain letters only (2–50 characters).')
       return
     }
-    if (lastName.trim() && !/^[a-zA-Z\s'-]{1,50}$/.test(lastName.trim())) {
+    if (!lastName.trim()) {
+      setError('Last name is required.')
+      return
+    }
+    if (!/^[a-zA-Z\s'-]{1,50}$/.test(lastName.trim())) {
       setError('Last name can contain letters only.')
       return
     }

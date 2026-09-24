@@ -10,6 +10,14 @@ import { getDashboardStats } from '../api/dashboard'
 import { getMLMetrics } from '../api/metrics'
 import toast from 'react-hot-toast'
 
+function formatCurrency(val) {
+  if (!val && val !== 0) return '—'
+  if (val >= 10_000_000) return `₹${(val / 10_000_000).toFixed(1)}Cr`
+  if (val >= 100_000)    return `₹${(val / 100_000).toFixed(1)}L`
+  if (val >= 1_000)      return `₹${(val / 1_000).toFixed(1)}K`
+  return `₹${Math.round(val).toLocaleString('en-IN')}`
+}
+
 function Analytics() {
   const [activeTab, setActiveTab] = useState('Overview')
   const [stats,     setStats]     = useState(null)
@@ -44,13 +52,15 @@ function Analytics() {
   const hasMetrics = !!metrics && metrics.accuracy > 0
 
   // Derived real values
-  const churnRate   = stats?.avg_churn_rate != null ? `${stats.avg_churn_rate}%` : '—'
-  const retainRate  = stats?.avg_churn_rate != null ? `${(100 - stats.avg_churn_rate).toFixed(1)}%` : '—'
+  const churnRate   = stats ? (hasData ? `${stats.avg_churn_rate}%` : '0%') : '—'
+  const retainRate  = stats ? (hasData ? `${(100 - stats.avg_churn_rate).toFixed(1)}%` : '0%') : '—'
   const total       = stats?.total_analyzed ?? 0
   const high        = stats?.high_risk_count ?? 0
-  const totalMrr    = stats?.total_mrr ?? 0
-  const atRiskMrr   = hasData ? ((totalMrr * (high / (total || 1)))).toFixed(0) : null
-  const segCount    = stats?.plan_distribution?.length ?? '—'
+  const totalMrrRaw = stats?.total_mrr ?? 0
+  const totalMrrStr = stats ? (hasData ? formatCurrency(totalMrrRaw) : '₹0') : '—'
+  const atRiskMrrRaw = hasData ? (totalMrrRaw * (high / (total || 1))) : 0
+  const atRiskMrrStr = stats ? (hasData ? formatCurrency(atRiskMrrRaw) : '₹0') : '—'
+  const segCount    = stats ? (hasData ? stats.plan_distribution?.length ?? 0 : 0) : '—'
 
   // Plan distribution chart data (real from backend)
   const planData = stats?.plan_distribution ?? []
@@ -111,8 +121,8 @@ function Analytics() {
           </div>
         )}
 
-        {/* ── Top 4 Metric Cards ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+        {/* ── Top 5 Metric Cards ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
 
           <div className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
@@ -123,7 +133,7 @@ function Analytics() {
               <div style={{ width: '36px', height: '36px', background: 'rgba(248, 113, 113, 0.12)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <TrendingDown size={18} color="var(--danger)" />
               </div>
-              <span className="badge badge-green" style={{ fontSize: '10px' }}>Live</span>
+              <span className="badge badge-green" style={{ fontSize: '10px' }}>{hasData ? 'Live' : '0%'}</span>
             </div>
           </div>
 
@@ -136,14 +146,29 @@ function Analytics() {
               <div style={{ width: '36px', height: '36px', background: 'rgba(52, 211, 153, 0.12)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <TrendingUp size={18} color="var(--success)" />
               </div>
-              <span className="badge badge-green" style={{ fontSize: '10px' }}>Live</span>
+              <span className="badge badge-green" style={{ fontSize: '10px' }}>{hasData ? 'Live' : '0%'}</span>
             </div>
           </div>
 
           <div className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                {loading ? '—' : atRiskMrr != null ? `$${Number(atRiskMrr).toLocaleString()}` : '—'}
+                {loading ? '—' : totalMrrStr}
+              </p>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '6px' }}>Total MRR</p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+              <div style={{ width: '36px', height: '36px', background: 'var(--purple-50)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <DollarSign size={18} color="var(--purple-600)" />
+              </div>
+              <span className="badge badge-purple" style={{ fontSize: '10px' }}>{hasData ? 'Live' : '₹0'}</span>
+            </div>
+          </div>
+
+          <div className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--danger)', lineHeight: 1 }}>
+                {loading ? '—' : atRiskMrrStr}
               </p>
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '6px' }}>At-Risk MRR</p>
             </div>
@@ -151,7 +176,7 @@ function Analytics() {
               <div style={{ width: '36px', height: '36px', background: 'rgba(217, 119, 6, 0.12)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <DollarSign size={18} color="#d97706" />
               </div>
-              <span className="badge badge-amber" style={{ fontSize: '10px' }}>Live</span>
+              <span className="badge badge-amber" style={{ fontSize: '10px' }}>{hasData ? 'Live' : '₹0'}</span>
             </div>
           </div>
 
@@ -164,11 +189,12 @@ function Analytics() {
               <div style={{ width: '36px', height: '36px', background: 'var(--purple-50)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Users size={18} color="var(--purple-600)" />
               </div>
-              <span className="badge badge-green" style={{ fontSize: '10px' }}>Live</span>
+              <span className="badge badge-green" style={{ fontSize: '10px' }}>{hasData ? 'Live' : '0'}</span>
             </div>
           </div>
 
         </div>
+
 
         {/* ── Tab Bar ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -187,7 +213,7 @@ function Analytics() {
 
         {/* ── Tab 1: Overview — Plan distribution + Top risk customers ── */}
         {activeTab === 'Overview' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div className="analytics-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
 
             <div className="card" style={{ padding: '22px' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Contract Distribution</h3>
@@ -294,7 +320,7 @@ function Analytics() {
 
         {/* ── Tab 3: Model Performance — real /ml/metrics data ── */}
         {activeTab === 'Model Performance' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div className="analytics-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
 
             <div className="card" style={{ padding: '22px' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Model Metrics</h3>

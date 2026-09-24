@@ -59,6 +59,7 @@ app.add_middleware(
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 AVATAR_DIR = os.path.join(UPLOAD_DIR, "avatars")
 os.makedirs(AVATAR_DIR, exist_ok=True)
+# Note: app.mount("/uploads", ...) is mounted at the bottom of this file so /uploads/history API route takes precedence.
 
 
 
@@ -257,6 +258,7 @@ class User(BaseModel):
 class RegisterUser(BaseModel):
     email: str
     password: str
+    confirm_password: Optional[str] = None
     first_name: str = ""
     last_name: str = ""
     company: str = ""
@@ -652,10 +654,21 @@ def _validate_registration_fields(user: 'RegisterUser') -> None:
             detail="First name must contain letters only (2–50 characters)."
         )
 
-    # Last name — optional, but if provided must be letters only
+    # Last name — required, letters only
     ln = user.last_name.strip()
-    if ln and not re.match(r'^[a-zA-Z\s\'-]{1,50}$', ln):
+    if not ln:
+        raise HTTPException(status_code=422, detail="Last name is required.")
+    if not re.match(r'^[a-zA-Z\s\'-]{1,50}$', ln):
         raise HTTPException(status_code=422, detail="Last name can contain letters only.")
+
+    # Company — required
+    comp = user.company.strip()
+    if not comp:
+        raise HTTPException(status_code=422, detail="Company name is required.")
+
+    # Confirm password — if provided, must match password
+    if user.confirm_password is not None and user.confirm_password != user.password:
+        raise HTTPException(status_code=422, detail="Passwords do not match.")
 
     # Email — required, valid format
     if not norm_email:
@@ -1036,6 +1049,9 @@ async def update_user_profile(
 ):
     update_fields = {k: v for k, v in profile_data.dict(exclude_unset=True).items() if v is not None}
 
+    # Ensure email is immutable as the primary account key
+    update_fields.pop("email", None)
+
     # Server-side validation
     if "first_name" in update_fields:
         fn = update_fields["first_name"].strip()
@@ -1056,17 +1072,32 @@ async def update_user_profile(
         update_fields["phone"] = ph
 
     if "company" in update_fields and update_fields["company"].strip():
-        new_company = update_fields["company"].strip()
-        update_fields["company"] = new_company
+        update_fields["company"] = update_fields["company"].strip()
+
+    if "country" in update_fields and update_fields["country"].strip():
+        update_fields["country"] = update_fields["country"].strip()
+
+    if "language" in update_fields and update_fields["language"].strip():
+        lang_raw = update_fields["language"].strip()
+        lang_map = {
+            "english": "en", "en": "en",
+            "hindi": "hi", "hi": "hi",
+            "gujarati": "gu", "gu": "gu"
+        }
+        update_fields["language"] = lang_map.get(lang_raw.lower(), lang_raw)
+
+
+    if "role" in update_fields and update_fields["role"].strip():
+        update_fields["role"] = update_fields["role"].strip()
 
     if update_fields:
         await user_collection.update_one(
-            {"_id": user_doc["_id"], "company_id": user_doc["company_id"]},
+            {"_id": user_doc["_id"]},
             {"$set": update_fields}
         )
 
     updated_doc = await user_collection.find_one(
-        {"_id": user_doc["_id"], "company_id": user_doc["company_id"]},
+        {"_id": user_doc["_id"]},
         {"password": 0}
     )
     return {
@@ -1095,6 +1126,14 @@ async def upload_profile_photo(
     file: UploadFile = File(...),
     user_doc: dict = Depends(get_current_user_doc)
 ):
+    filename_lower = (file.filename or "").lower()
+    allowed_exts = (".jpg", ".jpeg", ".png", ".webp")
+    if not any(filename_lower.endswith(ext) for ext in allowed_exts):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file extension. Please upload a JPG, PNG, or WEBP image."
+        )
+
     allowed_mimes = ["image/jpeg", "image/png", "image/webp"]
     if file.content_type not in allowed_mimes:
         raise HTTPException(
@@ -1106,7 +1145,22 @@ async def upload_profile_photo(
     if len(contents) > 5 * 1024 * 1024:
         raise HTTPException(
             status_code=400,
-            detail="Please upload a JPG, PNG, or WEBP image under 5 MB."
+            detail="File size exceeds maximum allowed limit of 5 MB."
+        )
+    if len(contents) < 12:
+        raise HTTPException(
+            status_code=400,
+            detail="Corrupted or invalid image file."
+        )
+
+    # Validate image magic bytes integrity
+    is_jpeg = contents.startswith(b"\xff\xd8\xff")
+    is_png = contents.startswith(b"\x89PNG\r\n\x1a\n")
+    is_webp = contents.startswith(b"RIFF") and contents[8:12] == b"WEBP"
+    if not (is_jpeg or is_png or is_webp):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid image file format or corrupt image bytes."
         )
 
     ext_map = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
@@ -1131,7 +1185,7 @@ async def upload_profile_photo(
 
     photo_url = f"/uploads/avatars/{filename}"
     await user_collection.update_one(
-        {"_id": user_doc["_id"], "company_id": user_doc["company_id"]},
+        {"_id": user_doc["_id"]},
         {"$set": {"photo_url": photo_url}}
     )
 
@@ -1143,10 +1197,7 @@ async def upload_profile_photo(
 
 @app.delete("/profile/photo")
 async def delete_profile_photo(user_doc: dict = Depends(get_current_user_doc)):
-    current_doc = await user_collection.find_one({
-        "_id": user_doc["_id"],
-        "company_id": user_doc["company_id"]
-    })
+    current_doc = await user_collection.find_one({"_id": user_doc["_id"]})
     if current_doc and current_doc.get("photo_url"):
         old_url = current_doc["photo_url"]
         if old_url.startswith("/uploads/avatars/"):
@@ -1159,7 +1210,7 @@ async def delete_profile_photo(user_doc: dict = Depends(get_current_user_doc)):
                     pass
 
     await user_collection.update_one(
-        {"_id": user_doc["_id"], "company_id": user_doc["company_id"]},
+        {"_id": user_doc["_id"]},
         {"$unset": {"photo_url": ""}}
     )
     return {"message": "Profile photo removed successfully"}
@@ -1389,49 +1440,71 @@ async def change_password(
 
 # ---------- Notifications Engine (Multi-Tenant) ----------
 
-async def _ensure_user_notifications(user_id_str: str, company_id: str):
+async def _ensure_user_notifications(user_doc_or_id, company_id: str = None):
+    if isinstance(user_doc_or_id, dict):
+        user_doc = user_doc_or_id
+        uid_str = str(user_doc["_id"])
+        cid = user_doc.get("company_id", company_id or "default")
+    else:
+        uid_str = str(user_doc_or_id)
+        cid = company_id or "default"
+        try:
+            user_doc = await user_collection.find_one({"_id": ObjectId(uid_str)})
+        except Exception:
+            user_doc = None
+
+    if user_doc and user_doc.get("notifications_seeded", False):
+        return
+
     count = await notification_collection.count_documents({
-        "user_id": user_id_str,
-        "company_id": company_id
+        "user_id": uid_str,
+        "company_id": cid
     })
     if count == 0:
+        now_utc = datetime.now(timezone.utc)
         sample_notifs = [
             {
-                "user_id": user_id_str,
-                "company_id": company_id,
+                "user_id": uid_str,
+                "company_id": cid,
                 "title": "Welcome to ChurnGuard",
                 "message": "Your enterprise tenant workspace has been initialized with AI telemetry scoring.",
                 "type": "success",
                 "read": False,
-                "created_at": datetime.now(timezone.utc).isoformat()
+                "created_at": (now_utc - timedelta(minutes=15)).isoformat()
             },
             {
-                "user_id": user_id_str,
-                "company_id": company_id,
+                "user_id": uid_str,
+                "company_id": cid,
                 "title": "⚡ Batch Prediction Engine Active",
                 "message": "High-risk customer segment detection model is ready for real-time inference.",
                 "type": "info",
                 "read": False,
-                "created_at": datetime.now(timezone.utc).isoformat()
+                "created_at": (now_utc - timedelta(minutes=5)).isoformat()
             },
             {
-                "user_id": user_id_str,
-                "company_id": company_id,
+                "user_id": uid_str,
+                "company_id": cid,
                 "title": "🚨 High Risk Churn Alert: Enterprise",
                 "message": "Customer churn probability threshold exceeded (84% probability detected).",
                 "type": "alert",
                 "read": True,
-                "created_at": datetime.now(timezone.utc).isoformat()
+                "created_at": now_utc.isoformat()
             }
         ]
         await notification_collection.insert_many(sample_notifs)
+
+    if user_doc and "_id" in user_doc:
+        await user_collection.update_one(
+            {"_id": user_doc["_id"]},
+            {"$set": {"notifications_seeded": True}}
+        )
 
 
 @app.get("/notifications")
 async def get_notifications(user_doc: dict = Depends(get_current_user_doc)):
     uid_str = str(user_doc["_id"])
     cid = user_doc["company_id"]
-    await _ensure_user_notifications(uid_str, cid)
+    await _ensure_user_notifications(user_doc, cid)
 
     cursor = notification_collection.find(
         {"user_id": uid_str, "company_id": cid}
@@ -1446,6 +1519,7 @@ async def get_notifications(user_doc: dict = Depends(get_current_user_doc)):
             "message": n.get("message", ""),
             "type": n.get("type", "info"),
             "read": bool(n.get("read", False)),
+            "is_read": bool(n.get("read", False)),
             "created_at": n.get("created_at", "")
         }
         for n in raw_notifs
@@ -1493,6 +1567,10 @@ async def clear_all_notifications(user_doc: dict = Depends(get_current_user_doc)
         "user_id": uid_str,
         "company_id": cid
     })
+    await user_collection.update_one(
+        {"_id": user_doc["_id"]},
+        {"$set": {"notifications_seeded": True}}
+    )
     return {"message": "All notifications cleared"}
 
 
@@ -1580,12 +1658,19 @@ async def store_dataset(file: UploadFile = File(...), user_doc: dict = Depends(g
     user_id      = str(user_doc.get("_id", ""))
     current_user = user_doc.get("email", "")
 
+    if not file.filename or not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Only .csv files are allowed.")
+
     try:
         contents = await file.read()
+        if not contents or len(contents.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Uploaded CSV file is empty.")
         try:
             df = pd.read_csv(io.BytesIO(contents), encoding="utf-8-sig")
         except Exception:
             df = pd.read_csv(io.BytesIO(contents))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid CSV file: {str(e)}")
 
@@ -1601,6 +1686,14 @@ async def store_dataset(file: UploadFile = File(...), user_doc: dict = Depends(g
     )
     if cid_col and cid_col != "customerID":
         df.rename(columns={cid_col: "customerID"}, inplace=True)
+
+    if "customerID" not in df.columns:
+        raise HTTPException(status_code=400, detail="Invalid CSV: Missing required 'customerID' column.")
+
+    required_cols = ["gender", "SeniorCitizen", "tenure", "MonthlyCharges", "TotalCharges"]
+    missing_cols = [c for c in required_cols if c not in df.columns]
+    if missing_cols:
+        raise HTTPException(status_code=400, detail=f"Invalid CSV: Missing required customer columns: {missing_cols}")
 
     total_rows = len(df)
 
@@ -1656,38 +1749,27 @@ async def store_dataset(file: UploadFile = File(...), user_doc: dict = Depends(g
     seen_in_batch   = set()
     now_iso         = datetime.now(timezone.utc).isoformat()
 
-    if "customerID" in df.columns:
-        for rec in records:
-            rec.pop("_id", None)
-            raw_cid = rec.get("customerID")
-            if raw_cid is None or (isinstance(raw_cid, float) and math.isnan(raw_cid)):
-                cid = ""
-            else:
-                cid = str(raw_cid).strip()
-                if cid.endswith(".0") and str(raw_cid).replace(".0", "").isdigit():
-                    cid = cid[:-2]
+    for rec in records:
+        rec.pop("_id", None)
+        raw_cid = rec.get("customerID")
+        if raw_cid is None or (isinstance(raw_cid, float) and math.isnan(raw_cid)):
+            cid = ""
+        else:
+            cid = str(raw_cid).strip()
+            if cid.endswith(".0") and str(raw_cid).replace(".0", "").isdigit():
+                cid = cid[:-2]
 
-            if not cid:
-                cid = f"CUS-{secrets.token_hex(4).upper()}"
-                rec["customerID"] = cid
+        if not cid:
+            continue
 
-            if cid in existing_ids or cid in seen_in_batch:
-                duplicate_count += 1
-            else:
-                seen_in_batch.add(cid)
-                rec["customerID"]   = cid
-                rec["company_id"]   = company_id
-                rec["created_at"]   = now_iso
-                rec["uploaded_by"]  = current_user
-                new_records.append(rec)
-    else:
-        for idx, rec in enumerate(records):
-            rec.pop("_id", None)
-            cid = f"CUS-{secrets.token_hex(4).upper()}"
-            rec["company_id"]  = company_id
-            rec["customerID"]  = cid
-            rec["created_at"]  = now_iso
-            rec["uploaded_by"] = current_user
+        if cid in existing_ids or cid in seen_in_batch:
+            duplicate_count += 1
+        else:
+            seen_in_batch.add(cid)
+            rec["customerID"]   = cid
+            rec["company_id"]   = company_id
+            rec["created_at"]   = now_iso
+            rec["uploaded_by"]  = current_user
             new_records.append(rec)
 
     # ── Bulk insert ──
@@ -1788,7 +1870,9 @@ async def store_dataset(file: UploadFile = File(...), user_doc: dict = Depends(g
         "duplicate_rows":       duplicate_count,
         "total_in_db":          total_in_db,
         "final_customer_count": total_in_db,
-        "rows_stored":          inserted_count
+        "rows_stored":          inserted_count,
+        "failed_rows":          0,
+        "failed_invalid_rows":  0
     }
 
 
@@ -2079,7 +2163,16 @@ async def export_reports_csv(
 
     # Strip company_id before prediction
     clean = [{k: v for k, v in c.items() if k != "company_id"} for c in customers]
-    results = predict_batch(clean)
+    predictions = predict_batch(clean)
+
+    # Merge customer records with ML prediction metrics
+    results = []
+    for orig, pred in zip(clean, predictions):
+        rec = dict(orig)
+        rec["churn_prediction"]  = pred.get("churn_prediction", "No")
+        rec["churn_probability"] = pred.get("churn_probability", 0.0)
+        rec["risk_level"]        = pred.get("risk_level", "Low")
+        results.append(rec)
 
     if risk_level != "All":
         results = [r for r in results if r["risk_level"] == risk_level]
@@ -2091,12 +2184,24 @@ async def export_reports_csv(
         )
 
     df = pd.DataFrame(results)
+
+    # Sanitize string fields against CSV formula injection (=, +, -, @)
+    dangerous_starts = ("=", "@", "+", "-")
+    for col in df.select_dtypes(include=["object"]).columns:
+        df[col] = df[col].apply(
+            lambda x: f"'{x}" if isinstance(x, str) and x.startswith(dangerous_starts) and not re.match(r"^[-+]?\d+(\.\d+)?$", x) else x
+        )
+
     stream = io.StringIO()
     df.to_csv(stream, index=False)
     print(f"[reports/csv] {len(results)} rows ({risk_level}): {(time.perf_counter()-t0)*1000:.1f}ms")
 
+    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    safe_risk = re.sub(r"[^a-zA-Z0-9_-]", "", risk_level.lower()) if risk_level else "all"
+    filename = f"ChurnGuard_churndata_{safe_risk}_{date_str}.csv"
+
     response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv")
-    response.headers["Content-Disposition"] = f"attachment; filename=churndata_{risk_level.lower()}.csv"
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
 
 

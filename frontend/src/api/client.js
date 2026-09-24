@@ -25,8 +25,8 @@ export async function apiRequest(endpoint, options = {}) {
 
   if (response.status === 401 && endpoint !== '/login') {
     localStorage.removeItem('token')
-    if (window.location.pathname !== '/') {
-      window.location.href = '/'
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login'
     }
     throw new Error('Session expired. Please sign in again.')
   }
@@ -67,8 +67,8 @@ export async function apiFormData(endpoint, formData, options = {}) {
 
   if (response.status === 401) {
     localStorage.removeItem('token')
-    if (window.location.pathname !== '/') {
-      window.location.href = '/'
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login'
     }
     throw new Error('Session expired. Please sign in again.')
   }
@@ -99,8 +99,8 @@ export async function apiBlob(endpoint) {
 
   if (response.status === 401) {
     localStorage.removeItem('token')
-    if (window.location.pathname !== '/') {
-      window.location.href = '/'
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login'
     }
     throw new Error('Session expired. Please sign in again.')
   }

@@ -75,74 +75,83 @@ async def compute_metrics(company_id: str = None) -> dict:
     # ── 2. Load only this company's data (fixes cross-tenant bug) ──
     df = await load_data(company_id=company_id)
 
-    if df.empty or "Churn" not in df.columns:
+    empty_metrics = {
+        "accuracy": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "auc": 0.0,
+        "confusion_matrix": {
+            "true_negative": 0, "false_positive": 0,
+            "false_negative": 0, "true_positive": 0
+        },
+        "roc_curve": [],
+        "feature_importance": [],
+    }
+
+    if df.empty or "Churn" not in df.columns or len(df) < 10 or df["Churn"].nunique() < 2:
+        _set_cached(company_id, empty_metrics)
+        return empty_metrics
+
+    try:
+        df_prepared = prepare_features(df)
+        X_train, X_test, y_train, y_test = split_data(df_prepared)
+
+        # ── 3. Vectorized inference on test set ──
+        probabilities = model.predict_proba(X_test)[:, 1]
+        predictions   = (probabilities >= CHURN_THRESHOLD).astype(int)
+
+        accuracy  = accuracy_score(y_test, predictions)
+        precision = precision_score(y_test, predictions, zero_division=0)
+        recall    = recall_score(y_test, predictions, zero_division=0)
+        f1        = f1_score(y_test, predictions, zero_division=0)
+
+        cm = confusion_matrix(y_test, predictions)
+        if cm.shape == (2, 2):
+            tn, fp, fn, tp = cm.ravel()
+        else:
+            tn, fp, fn, tp = 0, 0, 0, 0
+
+        fpr, tpr, _ = roc_curve(y_test, probabilities)
+        roc_auc     = auc(fpr, tpr)
+
+        # Sample ~25 points along the ROC curve so the chart isn't overloaded
+        sample_idx  = np.linspace(0, len(fpr) - 1, min(25, len(fpr))).astype(int)
+        roc_points  = [
+            {"fpr": round(float(fpr[i]), 4), "tpr": round(float(tpr[i]), 4)}
+            for i in sample_idx
+        ]
+
+        rf_model     = model.named_estimators_["rf"]
+        importances  = rf_model.feature_importances_
+        feature_importance = sorted(
+            [{"feature": f, "importance": round(float(i), 4)}
+             for f, i in zip(FEATURE_COLUMNS, importances)],
+            key=lambda x: x["importance"],
+            reverse=True
+        )[:10]
+
+        elapsed = (time.perf_counter() - t0) * 1000
+        print(f"[metrics] Computed in {elapsed:.1f}ms for company_id={company_id!r}")
+
         result = {
-            "accuracy": 0.0,
-            "precision": 0.0,
-            "recall": 0.0,
-            "f1_score": 0.0,
-            "auc": 0.0,
-            "confusion_matrix": {
-                "true_negative": 0, "false_positive": 0,
-                "false_negative": 0, "true_positive": 0
+            "accuracy":          round(float(accuracy),  4),
+            "precision":         round(float(precision), 4),
+            "recall":            round(float(recall),    4),
+            "f1_score":          round(float(f1),        4),
+            "auc":               round(float(roc_auc),   4),
+            "confusion_matrix":  {
+                "true_negative":  int(tn),
+                "false_positive": int(fp),
+                "false_negative": int(fn),
+                "true_positive":  int(tp),
             },
-            "roc_curve": [],
-            "feature_importance": [],
+            "roc_curve":         roc_points,
+            "feature_importance": feature_importance,
         }
         _set_cached(company_id, result)
         return result
-
-    df_prepared = prepare_features(df)
-    X_train, X_test, y_train, y_test = split_data(df_prepared)
-
-    # ── 3. Vectorized inference on test set ──
-    probabilities = model.predict_proba(X_test)[:, 1]
-    predictions   = (probabilities >= CHURN_THRESHOLD).astype(int)
-
-    accuracy  = accuracy_score(y_test, predictions)
-    precision = precision_score(y_test, predictions, zero_division=0)
-    recall    = recall_score(y_test, predictions, zero_division=0)
-    f1        = f1_score(y_test, predictions, zero_division=0)
-
-    cm = confusion_matrix(y_test, predictions)
-    tn, fp, fn, tp = cm.ravel()
-
-    fpr, tpr, _ = roc_curve(y_test, probabilities)
-    roc_auc     = auc(fpr, tpr)
-
-    # Sample ~25 points along the ROC curve so the chart isn't overloaded
-    sample_idx  = np.linspace(0, len(fpr) - 1, min(25, len(fpr))).astype(int)
-    roc_points  = [
-        {"fpr": round(float(fpr[i]), 4), "tpr": round(float(tpr[i]), 4)}
-        for i in sample_idx
-    ]
-
-    rf_model     = model.named_estimators_["rf"]
-    importances  = rf_model.feature_importances_
-    feature_importance = sorted(
-        [{"feature": f, "importance": round(float(i), 4)}
-         for f, i in zip(FEATURE_COLUMNS, importances)],
-        key=lambda x: x["importance"],
-        reverse=True
-    )[:10]
-
-    elapsed = (time.perf_counter() - t0) * 1000
-    print(f"[metrics] Computed in {elapsed:.1f}ms for company_id={company_id!r}")
-
-    result = {
-        "accuracy":          round(float(accuracy),  4),
-        "precision":         round(float(precision), 4),
-        "recall":            round(float(recall),    4),
-        "f1_score":          round(float(f1),        4),
-        "auc":               round(float(roc_auc),   4),
-        "confusion_matrix":  {
-            "true_negative":  int(tn),
-            "false_positive": int(fp),
-            "false_negative": int(fn),
-            "true_positive":  int(tp),
-        },
-        "roc_curve":         roc_points,
-        "feature_importance": feature_importance,
-    }
-    _set_cached(company_id, result)
-    return result
+    except Exception as e:
+        print(f"[metrics] Evaluation error for {company_id!r}: {e}")
+        _set_cached(company_id, empty_metrics)
+        return empty_metrics

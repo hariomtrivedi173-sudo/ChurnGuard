@@ -30,10 +30,11 @@ function Sidebar() {
     localStorage.removeItem('token')
     localStorage.removeItem('company_id')
     localStorage.removeItem('user_profile')
+    sessionStorage.clear()
     setShowLogoutModal(false)
     if (isMobileOpen) closeMobileSidebar()
     toast.success('You have been logged out.')
-    navigate('/')
+    navigate('/login')
   }
 
   return (
@@ -419,7 +420,7 @@ function Sidebar() {
                 id="sidebar-logout-dialog-title"
                 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}
               >
-                Log out of ChurnGuard?
+                Are you sure you want to log out?
               </h3>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '24px' }}>
@@ -427,6 +428,7 @@ function Sidebar() {
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
+                id="sidebar-logout-cancel-btn"
                 type="button"
                 onClick={() => setShowLogoutModal(false)}
                 className="btn-secondary"
@@ -435,6 +437,7 @@ function Sidebar() {
                 Cancel
               </button>
               <button
+                id="sidebar-logout-confirm-btn"
                 type="button"
                 onClick={handleConfirmLogout}
                 style={{
@@ -449,7 +452,7 @@ function Sidebar() {
                   boxShadow: '0 2px 8px rgba(225, 29, 72, 0.3)',
                 }}
               >
-                Log Out
+                Log out
               </button>
             </div>
           </div>

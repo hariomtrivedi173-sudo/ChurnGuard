@@ -13,6 +13,7 @@ export async function registerUser(email, password, profileData = {}) {
     body: JSON.stringify({
       email,
       password,
+      confirm_password: profileData.confirm_password || password,
       first_name:   profileData.first_name   || '',
       last_name:    profileData.last_name    || '',
       company:      profileData.company      || '',

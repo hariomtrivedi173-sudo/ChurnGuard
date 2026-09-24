@@ -16,6 +16,23 @@ import { useSidebar } from './useSidebar'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+function formatRelativeTime(isoString) {
+  if (!isoString) return ''
+  try {
+    const diffMs = Date.now() - new Date(isoString).getTime()
+    const diffSec = Math.floor(diffMs / 1000)
+    if (diffSec < 60) return 'Just now'
+    const diffMin = Math.floor(diffSec / 60)
+    if (diffMin < 60) return `${diffMin}m ago`
+    const diffHr = Math.floor(diffMin / 60)
+    if (diffHr < 24) return `${diffHr}h ago`
+    const diffDays = Math.floor(diffHr / 24)
+    return `${diffDays}d ago`
+  } catch {
+    return ''
+  }
+}
+
 function Header({
   title = "Dashboard",
   subtitle = "",
@@ -64,6 +81,7 @@ function Header({
     role: 'Analyst',
     company: ''
   })
+  const [avatarError, setAvatarError] = useState(false)
 
   const notifRef = useRef(null)
   const profileRef = useRef(null)
@@ -118,11 +136,17 @@ function Header({
     if (!token || token === 'null' || token === 'undefined') return
     try {
       const data = await apiRequest('/profile/me')
-      if (data) setProfile(data)
+      if (data) {
+        setProfile(data)
+        setAvatarError(false)
+      }
     } catch {
       const saved = localStorage.getItem('user_profile')
       if (saved) {
-        try { setProfile(JSON.parse(saved)) } catch {}
+        try {
+          setProfile(JSON.parse(saved))
+          setAvatarError(false)
+        } catch {}
       }
     }
   }
@@ -148,7 +172,9 @@ function Header({
   useEffect(() => {
     function handleClickOutside(e) {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
-        setShowNotifications(false)
+        if (!e.target.closest('.modal-backdrop')) {
+          setShowNotifications(false)
+        }
       }
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setShowProfileMenu(false)
@@ -284,10 +310,13 @@ function Header({
     localStorage.removeItem('token')
     localStorage.removeItem('company_id')
     localStorage.removeItem('user_profile')
+    sessionStorage.clear()
+    setNotifications([])
+    setUnreadCount(0)
     setShowLogoutModal(false)
     setShowProfileMenu(false)
     toast.success('You have been logged out.')
-    navigate('/')
+    navigate('/login')
   }
 
   const initials = [
@@ -483,9 +512,10 @@ function Header({
         {/* NOTIFICATIONS BELL & DRAWER */}
         <div ref={notifRef} style={{ position: 'relative' }}>
           <button
+            id="notifications-bell-btn"
             type="button"
             onClick={() => {
-              setShowNotifications(!showNotifications)
+              setShowNotifications(prev => !prev)
               if (!showNotifications) loadNotifs()
             }}
             className="navbar-icon-btn notif-btn"
@@ -495,7 +525,7 @@ function Header({
           >
             <Bell size={17} />
             {unreadCount > 0 && (
-              <span className="notif-badge" aria-label={`${unreadCount} unread notifications`}>
+              <span id="notifications-badge" className="notif-badge" aria-label={`${unreadCount} unread notifications`}>
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -504,6 +534,7 @@ function Header({
           {/* Notification Drawer */}
           {showNotifications && (
             <div
+              id="notifications-panel"
               className="notification-drawer"
               role="region"
               aria-label="Notification drawer"
@@ -512,15 +543,20 @@ function Header({
               <div className="drawer-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="drawer-title">Notifications</span>
-                  {unreadCount > 0 && (
+                  {unreadCount > 0 ? (
                     <span className="badge badge-purple" style={{ fontSize: '10px' }}>
                       {unreadCount} unread
                     </span>
-                  )}
+                  ) : notifications.length > 0 ? (
+                    <span className="badge badge-purple" style={{ fontSize: '10px', opacity: 0.75 }}>
+                      All caught up
+                    </span>
+                  ) : null}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   {unreadCount > 0 && (
                     <button
+                      id="notifications-mark-all-read-btn"
                       type="button"
                       onClick={handleMarkAllRead}
                       className="drawer-text-action"
@@ -531,9 +567,10 @@ function Header({
                   )}
                   {notifications.length > 0 && (
                     <button
+                      id="notifications-clear-all-btn"
                       type="button"
                       onClick={() => setShowClearModal(true)}
-                      className="drawer-icon-action"
+                      className="drawer-icon-action danger-action"
                       title="Clear all notifications"
                       aria-label="Clear all notifications"
                     >
@@ -541,6 +578,7 @@ function Header({
                     </button>
                   )}
                   <button
+                    id="notifications-close-btn"
                     type="button"
                     onClick={() => setShowNotifications(false)}
                     className="drawer-icon-action"
@@ -555,41 +593,66 @@ function Header({
               {/* Notification List */}
               <div className="drawer-list">
                 {loadingNotifs ? (
-                  <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+                  <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
                     Loading notifications…
                   </div>
                 ) : notifications.length === 0 ? (
-                  <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    <CheckCircle2 size={30} color="#10B981" style={{ margin: '0 auto 8px', opacity: 0.8 }} />
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  <div className="drawer-empty-state">
+                    <div className="empty-bell-icon">
+                      <Bell size={22} />
+                    </div>
+                    <p className="drawer-empty-title">
                       No notifications
                     </p>
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    <p className="drawer-empty-sub">
                       You are all caught up!
                     </p>
                   </div>
                 ) : (
                   notifications.map(notif => {
                     const isUnread = !notif.read
+                    const relTime = formatRelativeTime(notif.created_at)
                     return (
                       <div
                         key={notif.id}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => { if (isUnread) handleMarkSingleRead(notif.id) }}
-                        className={`notification-item ${isUnread ? 'unread' : ''}`}
+                        onKeyDown={(e) => {
+                          if ((e.key === 'Enter' || e.key === ' ') && isUnread) {
+                            e.preventDefault()
+                            handleMarkSingleRead(notif.id)
+                          }
+                        }}
+                        className={`notification-item ${isUnread ? 'unread' : 'read'}`}
+                        title={isUnread ? 'Click to mark as read' : ''}
                       >
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                          {notif.type === 'alert' && <ShieldAlert size={16} color="#EF4444" style={{ flexShrink: 0, marginTop: '2px' }} />}
-                          {notif.type === 'success' && <CheckCircle2 size={16} color="#10B981" style={{ flexShrink: 0, marginTop: '2px' }} />}
-                          {notif.type === 'info' && <Info size={16} color="#7C3AED" style={{ flexShrink: 0, marginTop: '2px' }} />}
+                          {notif.type === 'alert' && (
+                            <ShieldAlert size={16} color="#EF4444" className="notification-icon" style={{ flexShrink: 0, marginTop: '2px' }} />
+                          )}
+                          {notif.type === 'success' && (
+                            <CheckCircle2 size={16} color="#10B981" className="notification-icon" style={{ flexShrink: 0, marginTop: '2px' }} />
+                          )}
+                          {(notif.type === 'info' || !notif.type) && (
+                            <Info size={16} color="#7C3AED" className="notification-icon" style={{ flexShrink: 0, marginTop: '2px' }} />
+                          )}
                           <div style={{ flex: 1, overflow: 'hidden' }}>
-                            <p className="notification-item-title">
-                              {notif.title}
-                            </p>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                              <p className={`notification-item-title ${isUnread ? 'unread' : 'read'}`}>
+                                {notif.title}
+                              </p>
+                              {relTime && (
+                                <span className="notification-time-tag">
+                                  {relTime}
+                                </span>
+                              )}
+                            </div>
                             <p className="notification-item-msg">
                               {notif.message}
                             </p>
                           </div>
-                          {isUnread && <span className="notification-unread-dot" />}
+                          {isUnread && <span className="notification-unread-dot" title="Unread" />}
                         </div>
                       </div>
                     )
@@ -613,12 +676,12 @@ function Header({
             aria-label="User profile menu"
             aria-expanded={showProfileMenu}
           >
-            {avatarSrc ? (
+            {avatarSrc && !avatarError ? (
               <img
                 src={avatarSrc}
                 alt={displayName}
                 className="navbar-avatar-img"
-                onError={(e) => { e.currentTarget.style.display = 'none' }}
+                onError={() => setAvatarError(true)}
               />
             ) : (
               <span className="navbar-avatar-initials">{initials}</span>
@@ -706,7 +769,7 @@ function Header({
                 <LogOut size={20} />
               </div>
               <h3 id="navbar-logout-dialog-title" style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                Log out of ChurnGuard?
+                Are you sure you want to log out?
               </h3>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '24px' }}>
@@ -714,6 +777,7 @@ function Header({
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
+                id="header-logout-cancel-btn"
                 type="button"
                 onClick={() => setShowLogoutModal(false)}
                 className="btn-secondary"
@@ -722,11 +786,12 @@ function Header({
                 Cancel
               </button>
               <button
+                id="header-logout-confirm-btn"
                 type="button"
                 onClick={handleExecuteLogout}
                 className="btn-danger"
               >
-                Log Out
+                Log out
               </button>
             </div>
           </div>
@@ -760,6 +825,7 @@ function Header({
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
+                id="clear-notifs-cancel-btn"
                 type="button"
                 onClick={() => setShowClearModal(false)}
                 className="btn-secondary"
@@ -768,6 +834,7 @@ function Header({
                 Cancel
               </button>
               <button
+                id="clear-notifs-confirm-btn"
                 type="button"
                 onClick={handleConfirmClearAll}
                 className="btn-danger"

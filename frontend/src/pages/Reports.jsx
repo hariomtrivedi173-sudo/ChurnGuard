@@ -6,6 +6,14 @@ import { downloadReport } from '../api/reports'
 import { getDashboardStats } from '../api/dashboard'
 import { Download, Printer, Eye, FileText, Clock, X, AlertCircle, Users, BarChart2, DollarSign } from 'lucide-react'
 
+function formatCurrency(val) {
+  if (!val && val !== 0) return '—'
+  if (val >= 10_000_000) return `₹${(val / 10_000_000).toFixed(1)}Cr`
+  if (val >= 100_000)    return `₹${(val / 100_000).toFixed(1)}L`
+  if (val >= 1_000)      return `₹${(val / 1_000).toFixed(1)}K`
+  return `₹${Math.round(val).toLocaleString('en-IN')}`
+}
+
 function Reports() {
   const [downloading, setDownloading] = useState('')
   const [stats,       setStats]       = useState(null)
@@ -76,7 +84,7 @@ function Reports() {
       { metric: 'Total Customers Analyzed', value: stats.total_analyzed?.toLocaleString() ?? '—' },
       { metric: 'High-Risk Customers',       value: stats.high_risk_count?.toLocaleString() ?? '—' },
       { metric: 'Average Churn Rate',        value: stats.avg_churn_rate != null ? `${stats.avg_churn_rate}%` : '—' },
-      { metric: 'Total Monthly Revenue',     value: stats.total_mrr != null ? `$${Math.round(stats.total_mrr).toLocaleString()}` : '—' },
+      { metric: 'Total Monthly Revenue',     value: stats.total_mrr != null ? formatCurrency(stats.total_mrr) : '—' },
     ]
     setPreviewModal({
       title: 'Executive Summary — Real Metrics',
@@ -102,7 +110,7 @@ function Reports() {
 
         {/* Live data summary strip */}
         {!loadingStats && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
+          <div className="reports-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
             <div className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <Users size={18} color="var(--purple-600)" />
               <div>
@@ -126,7 +134,7 @@ function Reports() {
               <div>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Monthly Revenue</p>
                 <p style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  {hasStats && stats.total_mrr != null ? `$${Math.round(stats.total_mrr).toLocaleString()}` : '—'}
+                  {hasStats && stats.total_mrr != null ? formatCurrency(stats.total_mrr) : '—'}
                 </p>
               </div>
             </div>
@@ -141,7 +149,7 @@ function Reports() {
         )}
 
         {/* ── Available Reports ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '28px' }}>
+        <div className="reports-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '28px' }}>
 
           {/* Card 1: Revenue Impact Analysis */}
           <div className="card" style={{ padding: '24px' }}>

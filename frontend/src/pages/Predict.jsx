@@ -122,8 +122,8 @@ function Predict() {
         { label: 'Tenure (Mo)',        value: selectedCustomer.tenure          ?? '—' },
         { label: 'Contract',           value: selectedCustomer.Contract        ?? '—' },
         { label: 'Internet Service',   value: selectedCustomer.InternetService ?? '—' },
-        { label: 'Monthly Charges',    value: selectedCustomer.MonthlyCharges  != null ? `$${parseFloat(selectedCustomer.MonthlyCharges).toFixed(2)}` : '—' },
-        { label: 'Total Charges',      value: selectedCustomer.TotalCharges    != null ? `$${parseFloat(selectedCustomer.TotalCharges).toFixed(2)}`  : '—' },
+        { label: 'Monthly Charges',    value: selectedCustomer.MonthlyCharges  != null ? `₹${parseFloat(selectedCustomer.MonthlyCharges).toFixed(2)}` : '—' },
+        { label: 'Total Charges',      value: selectedCustomer.TotalCharges    != null ? `₹${parseFloat(selectedCustomer.TotalCharges).toFixed(2)}`  : '—' },
         { label: 'Payment Method',     value: selectedCustomer.PaymentMethod   ?? '—' },
       ]
     : []
@@ -145,7 +145,7 @@ function Predict() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'start' }}>
+        <div className="predict-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'start' }}>
 
           {/* Left Card: Prediction Form */}
           <div className="card" style={{ padding: '24px' }}>

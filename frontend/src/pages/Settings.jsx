@@ -77,9 +77,9 @@ const COMPANY_SIZES = [
 ]
 
 const LANGUAGES = [
-  { code: 'en', label: 'English (US)' },
-  { code: 'hi', label: 'Hindi (हिंदी)' },
-  { code: 'gu', label: 'Gujarati (ગુજરાતી)' },
+  { code: 'en', label: 'English' },
+  { code: 'hi', label: 'Hindi' },
+  { code: 'gu', label: 'Gujarati' },
 ]
 
 const COUNTRIES = [
@@ -129,6 +129,8 @@ function Settings() {
   // Staged Avatar Photo for Client-Side Preview
   const [stagedPhotoFile, setStagedPhotoFile] = useState(null)
   const [stagedPreviewUrl, setStagedPreviewUrl] = useState(null)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [avatarImgError, setAvatarImgError] = useState(false)
   const [showRemovePhotoModal, setShowRemovePhotoModal] = useState(false)
   const fileInputRef = useRef(null)
 
@@ -280,8 +282,8 @@ function Settings() {
     }
   }
 
-  // ── Avatar Photo Staging & Preview ──
-  function handleFileSelect(e) {
+  // ── Avatar Photo Upload, Preview & Removal ──
+  async function handleFileSelect(e) {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -296,10 +298,42 @@ function Settings() {
       return
     }
 
-    setStagedPhotoFile(file)
+    // Instant local preview
     const previewUrl = URL.createObjectURL(file)
     setStagedPreviewUrl(previewUrl)
-    toast.success('Photo preview ready. Click "Save Changes" to apply.')
+    setAvatarImgError(false)
+    setUploadingPhoto(true)
+
+    try {
+      const res = await uploadProfilePhoto(file)
+      if (res?.photo_url) {
+        setProfile(prev => ({ ...prev, photo_url: res.photo_url }))
+        setStagedPhotoFile(null)
+        setStagedPreviewUrl(null)
+        setAvatarImgError(false)
+
+        // Sync with local storage
+        const saved = localStorage.getItem('user_profile')
+        let updatedProfile = { ...profile, photo_url: res.photo_url }
+        if (saved) {
+          try {
+            updatedProfile = { ...JSON.parse(saved), photo_url: res.photo_url }
+          } catch {}
+        }
+        localStorage.setItem('user_profile', JSON.stringify(updatedProfile))
+
+        // Notify Header and other listeners immediately
+        window.dispatchEvent(new Event('churnguard_profile_updated'))
+        toast.success('Profile photo uploaded and saved successfully!')
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to upload photo')
+      setStagedPreviewUrl(null)
+      setStagedPhotoFile(null)
+    } finally {
+      setUploadingPhoto(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   async function handleConfirmRemovePhoto() {
@@ -311,7 +345,19 @@ function Settings() {
         URL.revokeObjectURL(stagedPreviewUrl)
         setStagedPreviewUrl(null)
       }
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      setAvatarImgError(false)
       setShowRemovePhotoModal(false)
+
+      const saved = localStorage.getItem('user_profile')
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          parsed.photo_url = null
+          localStorage.setItem('user_profile', JSON.stringify(parsed))
+        } catch {}
+      }
+
       window.dispatchEvent(new Event('churnguard_profile_updated'))
       toast.success('Profile photo removed')
     } catch (err) {
@@ -661,7 +707,7 @@ function Settings() {
 
         {/* ── Tab 1: Profile ── */}
         {activeTab === 'Profile' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
+          <div className="settings-profile-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
 
             {/* Left Card: Avatar Preview & Management */}
             <div className="card" style={{ padding: '28px 24px', textAlign: 'center' }}>
@@ -679,16 +725,25 @@ function Settings() {
                 color: '#EDE9FE', fontWeight: 800, fontSize: '34px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(124, 58, 237, 0.35)',
-                overflow: 'hidden'
+                overflow: 'hidden', position: 'relative'
               }}>
-                {effectiveAvatarSrc ? (
+                {effectiveAvatarSrc && !avatarImgError ? (
                   <img
                     src={effectiveAvatarSrc}
                     alt="Profile Avatar Preview"
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={() => setAvatarImgError(true)}
                   />
                 ) : (
                   initials
+                )}
+                {uploadingPhoto && (
+                  <div style={{
+                    position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <RefreshCw size={24} color="#ffffff" style={{ animation: 'spin 1s linear infinite' }} />
+                  </div>
                 )}
               </div>
 
@@ -705,10 +760,14 @@ function Settings() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPhoto}
                   className="btn-secondary"
-                  style={{ cursor: 'pointer', padding: '8px 16px', fontSize: '12px', width: '100%', justifyContent: 'center' }}
+                  style={{
+                    cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
+                    padding: '8px 16px', fontSize: '12px', width: '100%', justifyContent: 'center'
+                  }}
                 >
-                  <UploadCloud size={14} /> Choose Photo
+                  <UploadCloud size={14} /> {uploadingPhoto ? 'Uploading…' : 'Choose Photo'}
                 </button>
                 <input
                   ref={fileInputRef}
@@ -721,10 +780,11 @@ function Settings() {
                 {(profile.photo_url || stagedPreviewUrl) && (
                   <button
                     type="button"
+                    disabled={uploadingPhoto}
                     onClick={() => setShowRemovePhotoModal(true)}
                     style={{
                       background: 'none', border: 'none', color: '#e11d48',
-                      fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                      fontSize: '12px', fontWeight: 600, cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
                       display: 'flex', alignItems: 'center', gap: '4px', padding: '4px'
                     }}
                   >
@@ -759,7 +819,7 @@ function Settings() {
               <form onSubmit={handleSaveProfile} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
                 {/* Name Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="settings-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
                     <label htmlFor="settings-fname" style={{
                       display: 'block', fontSize: '12px', fontWeight: 600,
@@ -821,7 +881,7 @@ function Settings() {
                 </div>
 
                 {/* Email & Phone Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="settings-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
                     <label htmlFor="settings-email" style={{
                       display: 'block', fontSize: '12px', fontWeight: 600,
@@ -885,7 +945,7 @@ function Settings() {
                 </div>
 
                 {/* Company & Role Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="settings-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
                     <label htmlFor="settings-company" style={{
                       display: 'block', fontSize: '12px', fontWeight: 600,
@@ -931,7 +991,7 @@ function Settings() {
                 </div>
 
                 {/* Company Type & Industry Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="settings-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
                     <label htmlFor="settings-company-type" style={{
                       display: 'block', fontSize: '12px', fontWeight: 600,
@@ -972,7 +1032,7 @@ function Settings() {
                 </div>
 
                 {/* Department & Company Size Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="settings-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
                     <label htmlFor="settings-dept" style={{
                       display: 'block', fontSize: '12px', fontWeight: 600,
@@ -1013,7 +1073,7 @@ function Settings() {
                 </div>
 
                 {/* Country & Language Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="settings-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
                     <label htmlFor="settings-country" style={{
                       display: 'block', fontSize: '12px', fontWeight: 600,
@@ -1042,7 +1102,7 @@ function Settings() {
                     </label>
                     <select
                       id="settings-lang"
-                      value={profile.language}
+                      value={profile.language || 'en'}
                       onChange={e => setProfile({ ...profile, language: e.target.value })}
                       className="input-base"
                     >
@@ -1050,6 +1110,9 @@ function Settings() {
                         <option key={l.code} value={l.code}>{l.label}</option>
                       ))}
                     </select>
+                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', margin: '4px 0 0' }}>
+                      Preference saved to MongoDB. Full UI translation is not yet implemented.
+                    </p>
                   </div>
                 </div>
 
@@ -1423,12 +1486,17 @@ function Settings() {
 
         {/* ── Tab 5: Language Preference ── */}
         {activeTab === 'Language' && (
-          <div className="card" style={{ padding: '28px 32px', maxWidth: '560px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '2px' }}>
-              Language Preference
-            </h3>
+          <div className="card" style={{ padding: '28px 32px', maxWidth: '580px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                Language Preference
+              </h3>
+              <span className="badge badge-purple" style={{ fontSize: '10px' }}>
+                Saved to MongoDB
+              </span>
+            </div>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
-              Select preferred application display language
+              Select your preferred display language. Your preference is persisted directly to your MongoDB account.
             </p>
 
             <div style={{ marginBottom: '20px' }}>
@@ -1438,37 +1506,79 @@ function Settings() {
               }}>
                 Interface Language
               </label>
-              <select
-                id="settings-language-select"
-                className="input-base"
-                value={profile.language}
-                onChange={async (e) => {
-                  const newLang = e.target.value
-                  setProfile(prev => ({ ...prev, language: newLang }))
-                  try {
-                    await updateProfile({ language: newLang })
-                    localStorage.setItem('app_language', newLang)
-                    toast.success('Language preference updated')
-                  } catch {}
-                }}
-              >
-                {LANGUAGES.map(l => (
-                  <option key={l.code} value={l.code}>{l.label}</option>
-                ))}
-              </select>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <select
+                  id="settings-language-select"
+                  className="input-base"
+                  style={{ flex: 1 }}
+                  value={profile.language || 'en'}
+                  onChange={async (e) => {
+                    const newLang = e.target.value
+                    setProfile(prev => ({ ...prev, language: newLang }))
+                    try {
+                      const res = await updateProfile({ language: newLang })
+                      if (res?.profile) {
+                        localStorage.setItem('user_profile', JSON.stringify(res.profile))
+                      }
+                      localStorage.setItem('app_language', newLang)
+                      window.dispatchEvent(new Event('churnguard_profile_updated'))
+                      const langObj = LANGUAGES.find(l => l.code === newLang)
+                      toast.success(`Language preference set to ${langObj?.label || newLang}`)
+                    } catch (err) {
+                      toast.error(err.message || 'Failed to save language preference')
+                    }
+                  }}
+                >
+                  {LANGUAGES.map(l => (
+                    <option key={l.code} value={l.code}>{l.label}</option>
+                  ))}
+                </select>
+                <button
+                  id="save-language-btn"
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const res = await updateProfile({ language: profile.language || 'en' })
+                      if (res?.profile) {
+                        localStorage.setItem('user_profile', JSON.stringify(res.profile))
+                      }
+                      localStorage.setItem('app_language', profile.language || 'en')
+                      window.dispatchEvent(new Event('churnguard_profile_updated'))
+                      const langObj = LANGUAGES.find(l => l.code === profile.language)
+                      toast.success(`Language preference saved: ${langObj?.label || profile.language}`)
+                    } catch (err) {
+                      toast.error(err.message || 'Failed to save language preference')
+                    }
+                  }}
+                  className="btn-primary"
+                  style={{ padding: '9px 18px', fontSize: '13px', whiteSpace: 'nowrap' }}
+                >
+                  Save Preference
+                </button>
+              </div>
             </div>
 
-            <div style={{
-              background: 'var(--purple-50)', border: '1px solid var(--purple-200)',
-              borderRadius: '12px', padding: '14px', display: 'flex', alignItems: 'flex-start', gap: '10px'
-            }}>
-              <Globe size={18} color="var(--purple-600)" style={{ flexShrink: 0, marginTop: '2px' }} />
+            {/* Explicit Notice: Full UI translation is not yet implemented */}
+            <div
+              id="language-translation-notice"
+              style={{
+                background: 'rgba(245, 158, 11, 0.08)',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                borderRadius: '12px',
+                padding: '16px',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px',
+                marginTop: '16px'
+              }}
+            >
+              <Globe size={20} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                  Multi-Lingual Localization Support
+                <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  Language Preference Notice
                 </p>
-                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '4px 0 0', lineHeight: 1.5 }}>
-                  Full multi-lingual interface translation for Hindi and Gujarati is queued for an upcoming release. Your preference has been recorded and will automatically apply once available.
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 0', lineHeight: 1.5 }}>
+                  Full UI translation is not yet implemented. Your preference ({LANGUAGES.find(l => l.code === (profile.language || 'en'))?.label || 'English'}) is saved in MongoDB and persists across page refreshes and logout/login sessions. Full multilingual interface translation will be added in an upcoming release.
                 </p>
               </div>
             </div>

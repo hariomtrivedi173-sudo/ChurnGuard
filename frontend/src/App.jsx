@@ -23,17 +23,20 @@ function App() {
           toastOptions={{
             style: {
               borderRadius: '12px',
-              background: '#fff',
-              color: '#374151',
+              background: 'var(--surface)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border)',
               fontSize: '14px',
             },
           }}
         />
         <Routes>
           <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
           <Route path="/predict" element={<ProtectedRoute><Predict /></ProtectedRoute>} />
+          <Route path="/predictions" element={<ProtectedRoute><Predict /></ProtectedRoute>} />
           <Route path="/segments" element={<ProtectedRoute><Segments /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
@@ -41,6 +44,7 @@ function App() {
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify-otp" element={<VerifyOTP />} />
+          <Route path="*" element={<Login />} />
         </Routes>
       </SidebarProvider>
     </BrowserRouter>
