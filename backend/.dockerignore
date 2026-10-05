@@ -1,0 +1,25 @@
+# Environment secrets
+.env
+.env.*
+*.env
+
+# Version control
+.git
+.gitignore
+
+# Dependencies & virtual environments
+venv
+*/venv
+
+# Python cache & test artifacts
+__pycache__
+*/**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+*/**/.pytest_cache
+
+# Local user-uploaded files
+uploads/avatars/*
+!uploads/avatars/.gitkeep

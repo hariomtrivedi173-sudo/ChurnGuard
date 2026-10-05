@@ -1,14 +1,39 @@
+# Python virtual environments
 venv/
+*/venv/
+
+# Environment files
+.env
+*.env
+.env.*
+.env.local
+backend/.env
+frontend/.env
+frontend/.env.local
+!.env.example
+!*.env.example
+
+# Python caches and bytecode
 __pycache__/
 *.pyc
-.env
+.pytest_cache/
+*/.pytest_cache/
 
+# Uploaded avatars (preserve directory via .gitkeep)
+backend/uploads/avatars/*
+!backend/uploads/avatars/.gitkeep
+
+# Generated reports (preserve directory via .gitkeep)
+reports/*
+!reports/.gitkeep
+
+# Node dependencies & build output
 node_modules/
+dist/
+frontend/dist/
 
+# IDE and OS files
 .vscode/
-
 .idea/
-
 .DS_Store
-
 Thumbs.db

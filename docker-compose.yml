@@ -1,14 +1,4 @@
-version: '3.8'
-
 services:
-  mongo:
-    image: mongo:latest
-    container_name: churnguard_mongo
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-
   backend:
     build:
       context: .
@@ -16,21 +6,29 @@ services:
     container_name: churnguard_backend
     ports:
       - "8000:8000"
-    environment:
-      - MONGO_URI=mongodb://mongo:27017/churn_db
-      - SECRET_KEY=churnguard_super_secret_key_2026
-    depends_on:
-      - mongo
+    env_file:
+      - backend/.env
+    volumes:
+      - backend_uploads:/app/backend/uploads
+      - backend_reports:/app/reports
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
     container_name: churnguard_frontend
     ports:
-      - "80:80"
+      - "5173:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
 volumes:
-  mongo_data:
+  backend_uploads:
+  backend_reports:

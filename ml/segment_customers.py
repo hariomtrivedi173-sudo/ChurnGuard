@@ -41,13 +41,15 @@ def segment_customers(df: pd.DataFrame, n_clusters: int = 4):
 
 
 def profile_segments(df: pd.DataFrame):
-    profile = df.groupby("segment").agg(
-        customer_count=("segment", "count"),
-        avg_tenure=("tenure", "mean"),
-        avg_monthly_charges=("MonthlyCharges", "mean"),
-        avg_total_charges=("TotalCharges", "mean"),
-        churn_rate_percent=("Churn", lambda x: round(x.mean() * 100, 2)),
-    ).round(2)
+    agg_kwargs = {
+        "customer_count": ("segment", "count"),
+        "avg_tenure": ("tenure", "mean"),
+        "avg_monthly_charges": ("MonthlyCharges", "mean"),
+        "avg_total_charges": ("TotalCharges", "mean"),
+    }
+    if "Churn" in df.columns:
+        agg_kwargs["churn_rate_percent"] = ("Churn", lambda x: round(x.mean() * 100, 2))
+    profile = df.groupby("segment").agg(**agg_kwargs).round(2)
     return profile
 
 

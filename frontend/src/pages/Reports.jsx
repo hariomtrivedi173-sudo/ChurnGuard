@@ -25,8 +25,8 @@ function Reports() {
     try {
       const data = await getDashboardStats()
       if (data?.available) setStats(data)
-    } catch (err) {
-      console.warn('Could not load dashboard stats for reports preview:', err.message)
+    } catch {
+      // Non-fatal: reports page still usable without stats
     } finally {
       setLoadingStats(false)
     }

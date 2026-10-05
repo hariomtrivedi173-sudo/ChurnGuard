@@ -444,50 +444,53 @@ function Upload() {
               No uploads yet
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-              {history.map((h, i) => (
-                <div
-                  key={h._id || i}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 100px 90px 90px 90px 120px',
-                    alignItems: 'center',
-                    padding: '12px 0',
-                    borderBottom: i < history.length - 1 ? '1px solid var(--border)' : 'none',
-                    gap: '16px',
-                    fontSize: '12px',
-                  }}
-                >
-                  <div>
-                    <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{h.filename}</p>
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>by {h.uploaded_by}</p>
+            <div style={{ overflowX: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0', minWidth: '560px' }}>
+                {history.map((h, i) => (
+                  <div
+                    key={h._id || i}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 100px 90px 90px 90px 120px',
+                      alignItems: 'center',
+                      padding: '12px 0',
+                      borderBottom: i < history.length - 1 ? '1px solid var(--border)' : 'none',
+                      gap: '16px',
+                      fontSize: '12px',
+                    }}
+                  >
+                    <div>
+                      <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{h.filename}</p>
+                      <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>by {h.uploaded_by}</p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{h.total_rows?.toLocaleString()}</p>
+                      <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>total rows</p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontWeight: 700, color: '#16a34a' }}>{(h.new_records ?? h.inserted_rows ?? 0)?.toLocaleString()}</p>
+                      <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>inserted</p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontWeight: 700, color: '#d97706' }}>{(h.duplicates_skipped ?? h.duplicate_rows ?? 0)?.toLocaleString()}</p>
+                      <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>duplicates</p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{(h.total_in_db ?? h.final_total)?.toLocaleString() ?? '—'}</p>
+                      <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>total in DB</p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span className={h.status === 'success' ? 'badge badge-green' : 'badge badge-yellow'} style={{ fontSize: '10px' }}>
+                        ● {h.status}
+                      </span>
+                      <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '3px' }}>{timeAgo(h.uploaded_at)}</p>
+                    </div>
                   </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{h.total_rows?.toLocaleString()}</p>
-                    <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>total rows</p>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontWeight: 700, color: '#16a34a' }}>{(h.new_records ?? h.inserted_rows ?? 0)?.toLocaleString()}</p>
-                    <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>inserted</p>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontWeight: 700, color: '#d97706' }}>{(h.duplicates_skipped ?? h.duplicate_rows ?? 0)?.toLocaleString()}</p>
-                    <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>duplicates</p>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{(h.total_in_db ?? h.final_total)?.toLocaleString() ?? '—'}</p>
-                    <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>total in DB</p>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span className={h.status === 'success' ? 'badge badge-green' : 'badge badge-yellow'} style={{ fontSize: '10px' }}>
-                      ● {h.status}
-                    </span>
-                    <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '3px' }}>{timeAgo(h.uploaded_at)}</p>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
+
         </div>
 
       </div>

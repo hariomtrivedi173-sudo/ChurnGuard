@@ -42,10 +42,13 @@ def prepare_features(df: pd.DataFrame):
         "PaperlessBilling", "Churn"
     ]
     for col in simple_yes_no:
-        df[col] = df[col].map({"Yes": 1, "No": 0})
+        if col in df.columns:
+            df[col] = df[col].map({"Yes": 1, "No": 0})
 
-    df["SeniorCitizen"] = df["SeniorCitizen"].map({"Yes": 1, "No": 0})
-    df["gender"] = df["gender"].map({"Male": 1, "Female": 0})
+    if "SeniorCitizen" in df.columns:
+        df["SeniorCitizen"] = df["SeniorCitizen"].map({"Yes": 1, "No": 0})
+    if "gender" in df.columns:
+        df["gender"] = df["gender"].map({"Male": 1, "Female": 0})
 
     # Columns with a 3rd "No internet/phone service" option -
     # collapse ALL "No..." variants to 0 in ONE mapping step
@@ -54,12 +57,13 @@ def prepare_features(df: pd.DataFrame):
         "DeviceProtection", "TechSupport", "StreamingTV", "StreamingMovies"
     ]
     for col in three_way_columns:
-        df[col] = df[col].map({
-            "Yes": 1,
-            "No": 0,
-            "No internet service": 0,
-            "No phone service": 0
-        })
+        if col in df.columns:
+            df[col] = df[col].map({
+                "Yes": 1,
+                "No": 0,
+                "No internet service": 0,
+                "No phone service": 0
+            })
 
     # Multi-option columns -> One-Hot Encoding
     multi_option_columns = ["InternetService", "Contract", "PaymentMethod"]

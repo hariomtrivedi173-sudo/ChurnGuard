@@ -122,7 +122,6 @@ function Customers() {
       setTotalPages(typeof data.total_pages === 'number' ? data.total_pages : (Math.ceil((data.total || 0) / PAGE_SIZE) || 1))
     } catch (err) {
       if (err.name === 'AbortError' || controller.signal.aborted) return
-      console.error(err)
       setError(`Failed to load customers: ${err.message}`)
       toast.error('Failed to load customers')
       setRecords([])

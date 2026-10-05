@@ -1,0 +1,42 @@
+# Version control
+.git
+.github
+
+# Virtual environments & dependencies
+venv
+*/venv
+backend/venv
+frontend/node_modules
+node_modules
+
+# Build artifacts
+frontend/dist
+dist
+
+# Python cache & test artifacts
+__pycache__
+*/**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+*/**/.pytest_cache
+
+# Environment secrets
+.env
+.env.*
+*.env
+backend/.env
+frontend/.env
+
+# Local user-uploaded files & generated test reports
+backend/uploads/avatars/*
+!backend/uploads/avatars/.gitkeep
+reports/*
+!reports/.gitkeep
+
+# IDE & OS files
+.vscode
+.idea
+.DS_Store
+Thumbs.db

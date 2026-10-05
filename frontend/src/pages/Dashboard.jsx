@@ -8,13 +8,13 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar,
-  XAxis, YAxis, Tooltip, CartesianGrid, Legend, Cell
+  XAxis, YAxis, Tooltip, CartesianGrid
 } from 'recharts'
 import {
   Users, UserCheck, AlertTriangle, TrendingUp,
-  ShieldAlert, ShieldCheck, DollarSign, Target, Activity, Sparkles,
-  ChevronRight, Zap, UploadCloud, Clock, BarChart2, CheckCircle2,
-  HelpCircle, ArrowUpRight, ArrowDownRight, Layers, FileText
+  ShieldAlert, ShieldCheck, DollarSign, Sparkles,
+  ChevronRight, Zap, UploadCloud, Clock,
+  ArrowUpRight, ArrowDownRight, Layers
 } from 'lucide-react'
 
 const AVATAR_COLORS = ['#7C3AED', '#3B82F6', '#6366F1', '#8B5CF6', '#10B981', '#F59E0B', '#EC4899', '#14B8A6']
