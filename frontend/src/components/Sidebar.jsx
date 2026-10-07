@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { NavLink, Link, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   LayoutDashboard, Users, Zap, UploadCloud, BarChart2, FileText,
-  Settings as SettingsIcon, LogOut, Shield, X,
+  Settings as SettingsIcon, LogOut, X,
   ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { useSidebar } from './useSidebar'
+import ChurnGuardLogo from './ChurnGuardLogo'
 
 const navMenu = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -62,54 +63,24 @@ function Sidebar() {
           }}
         >
           {/* Logo & Brand text (Clickable -> /dashboard) */}
-          <Link
-            to="/dashboard"
-            className="sidebar-brand"
-            aria-label="ChurnGuard - Go to Dashboard"
-            title="ChurnGuard Dashboard"
+          <div
             style={{
               order: isCollapsed ? 2 : 1,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
-              textDecoration: 'none',
-              color: 'inherit',
               overflow: 'hidden',
-              borderRadius: '10px',
               maxWidth: isCollapsed ? '36px' : 'calc(100% - 36px)',
               flexShrink: 0,
             }}
           >
-            <div
-              className="sidebar-brand-icon"
-              style={{
-                width: '36px',
-                height: '36px',
-                background: 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 50%, #7C3AED 100%)',
-                borderRadius: '10px',
-                border: '1px solid rgba(167, 139, 250, 0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.35)',
-                flexShrink: 0,
-              }}
-            >
-              <Shield size={20} color="#EDE9FE" />
-            </div>
-
-            {!isCollapsed && (
-              <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                <h1 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.15, margin: 0 }}>
-                  ChurnGuard
-                </h1>
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, margin: 0, marginTop: '2px' }}>
-                  AI Churn Intelligence
-                </p>
-              </div>
-            )}
-          </Link>
+            <ChurnGuardLogo
+              variant="sidebar"
+              size="md"
+              linkTo="/dashboard"
+              isCollapsed={isCollapsed}
+              showWordmark={!isCollapsed}
+              showTagline={!isCollapsed}
+              tagline="AI Churn Intelligence"
+            />
+          </div>
 
           {/* Toggle Button */}
           <button
@@ -216,7 +187,6 @@ function Sidebar() {
               border: 'none',
               background: 'transparent',
               cursor: 'pointer',
-              color: '#e11d48',
             }}
             aria-label="Logout"
           >
@@ -258,47 +228,16 @@ function Sidebar() {
             borderBottom: '1px solid var(--border)',
           }}
         >
-          <Link
-            to="/dashboard"
-            onClick={closeMobileSidebar}
-            className="sidebar-brand"
-            aria-label="ChurnGuard - Go to Dashboard"
-            title="ChurnGuard Dashboard"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              textDecoration: 'none',
-              color: 'inherit',
-              borderRadius: '10px',
-            }}
-          >
-            <div
-              className="sidebar-brand-icon"
-              style={{
-                width: '36px',
-                height: '36px',
-                background: 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 50%, #7C3AED 100%)',
-                borderRadius: '10px',
-                border: '1px solid rgba(167, 139, 250, 0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.35)',
-                flexShrink: 0,
-              }}
-            >
-              <Shield size={20} color="#EDE9FE" />
-            </div>
-            <div>
-              <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                ChurnGuard
-              </h2>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, marginTop: '2px' }}>
-                AI Churn Intelligence
-              </p>
-            </div>
-          </Link>
+          <div onClick={closeMobileSidebar}>
+            <ChurnGuardLogo
+              variant="sidebar"
+              size="md"
+              linkTo="/dashboard"
+              showWordmark={true}
+              showTagline={true}
+              tagline="AI Churn Intelligence"
+            />
+          </div>
 
           <button
             type="button"
@@ -359,7 +298,7 @@ function Sidebar() {
             type="button"
             onClick={() => setShowLogoutModal(true)}
             className="sidebar-nav-item logout-nav-item"
-            style={{ width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', color: '#e11d48' }}
+            style={{ width: '100%', border: 'none', background: 'transparent', cursor: 'pointer' }}
           >
             <LogOut size={18} />
             <span>Logout</span>
@@ -406,8 +345,8 @@ function Sidebar() {
                   width: '40px',
                   height: '40px',
                   borderRadius: '12px',
-                  background: '#fff1f2',
-                  color: '#e11d48',
+                  background: 'var(--danger-subtle)',
+                  color: 'var(--danger)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -441,15 +380,15 @@ function Sidebar() {
                 type="button"
                 onClick={handleConfirmLogout}
                 style={{
-                  background: '#e11d48',
+                  background: 'var(--danger)',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '10px',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   fontSize: '13px',
                   padding: '8px 18px',
                   cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(225, 29, 72, 0.3)',
+                  boxShadow: '0 2px 8px var(--danger-border)',
                 }}
               >
                 Log out

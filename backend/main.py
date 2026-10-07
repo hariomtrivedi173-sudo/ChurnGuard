@@ -777,7 +777,7 @@ async def register_user(user: RegisterUser):
     otp_code   = f"{secrets.randbelow(900000) + 100000}"
     hashed_otp = hash_password(otp_code)
     expires_at = now + timedelta(minutes=10)
-    print(f"[Register] OTP generated for {norm_email}: {otp_code} — dispatching verification email", flush=True)
+    print(f"[Register] OTP generated for {mask_email(norm_email)} — dispatching verification email", flush=True)
 
     # 6. Invalidate any previous OTP for this email, then store new one
     await otp_collection.delete_many({"email": norm_email, "purpose": "email_verification"})
@@ -956,7 +956,7 @@ async def resend_registration_otp(req: RegistrationResendOtp):
     otp_code   = f"{secrets.randbelow(900000) + 100000}"
     hashed_otp = hash_password(otp_code)
     expires_at = now + timedelta(minutes=10)
-    print(f"[Resend] New OTP generated for {norm_email}: {otp_code} — dispatching", flush=True)
+    print(f"[Resend] New OTP generated for {mask_email(norm_email)} — dispatching", flush=True)
 
     # 4. Invalidate old OTPs, store new one
     await otp_collection.delete_many({"email": norm_email, "purpose": "email_verification"})

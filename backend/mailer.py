@@ -53,18 +53,34 @@ def _get_smtp_config() -> dict:
     """
     Read SMTP credentials fresh from env at call time.
     This means changes to .env are picked up without a restart.
+    Automatically sanitizes spaces from Gmail app passwords and strips quotes/whitespace.
     """
     if os.path.exists(_env_path):
         load_dotenv(dotenv_path=_env_path, override=True)
     else:
         load_dotenv(override=True)
 
+    raw_pw = os.getenv("SMTP_PASSWORD") or os.getenv("SMTP_PASS") or ""
+    # Strip spaces (Gmail App Passwords are 16 chars usually displayed with spaces: 'xxxx xxxx xxxx xxxx')
+    cleaned_pw = raw_pw.strip().strip("'\"").replace(" ", "")
+
+    raw_user = os.getenv("SMTP_USERNAME") or os.getenv("SMTP_USER") or ""
+    cleaned_user = raw_user.strip().strip("'\"")
+
+    raw_host = (os.getenv("SMTP_HOST") or "").strip().strip("'\"")
+    raw_from = (os.getenv("SMTP_FROM_EMAIL") or os.getenv("SMTP_FROM") or cleaned_user or "no-reply@churnguard.io").strip().strip("'\"")
+
+    try:
+        port = int(os.getenv("SMTP_PORT", "587"))
+    except (ValueError, TypeError):
+        port = 587
+
     return {
-        "host":     os.getenv("SMTP_HOST"),
-        "port":     int(os.getenv("SMTP_PORT", "587")),
-        "user":     os.getenv("SMTP_USERNAME") or os.getenv("SMTP_USER"),
-        "password": os.getenv("SMTP_PASSWORD") or os.getenv("SMTP_PASS"),
-        "from_":    os.getenv("SMTP_FROM_EMAIL") or os.getenv("SMTP_FROM", "no-reply@churnguard.io"),
+        "host":     raw_host,
+        "port":     port,
+        "user":     cleaned_user,
+        "password": cleaned_pw,
+        "from_":    raw_from,
     }
 
 
@@ -77,7 +93,7 @@ def _dispatch_email(to_email: str, subject: str, html_content: str, text_content
     """
     cfg = _get_smtp_config()
 
-    is_dev = os.getenv("DEV_MODE", "true").lower() in ("true", "1", "yes", "dev", "development")
+    is_dev = os.getenv("DEV_MODE", "false").lower() in ("true", "1", "yes", "dev", "development")
 
     if not (cfg["host"] and cfg["user"] and cfg["password"]):
         logger.error(
@@ -107,13 +123,17 @@ def _dispatch_email(to_email: str, subject: str, html_content: str, text_content
         msg.attach(MIMEText(html_content, "html"))
 
         context = ssl.create_default_context()
-        with smtplib.SMTP(cfg["host"], cfg["port"], timeout=15) as server:
-            server.set_debuglevel(0)          # set to 1 for raw SMTP transcript
-            server.ehlo()
-            server.starttls(context=context)
-            server.ehlo()
-            server.login(cfg["user"], cfg["password"])
-            server.sendmail(cfg["from_"], to_email, msg.as_string())
+        if cfg["port"] == 465:
+            with smtplib.SMTP_SSL(cfg["host"], cfg["port"], context=context, timeout=15) as server:
+                server.login(cfg["user"], cfg["password"])
+                server.sendmail(cfg["from_"], to_email, msg.as_string())
+        else:
+            with smtplib.SMTP(cfg["host"], cfg["port"], timeout=15) as server:
+                server.ehlo()
+                server.starttls(context=context)
+                server.ehlo()
+                server.login(cfg["user"], cfg["password"])
+                server.sendmail(cfg["from_"], to_email, msg.as_string())
 
         logger.info("[Mailer] Email dispatched successfully to %s", mask_email(to_email))
         print(f"[Mailer] Email dispatched successfully to {mask_email(to_email)}", flush=True)
@@ -122,19 +142,12 @@ def _dispatch_email(to_email: str, subject: str, html_content: str, text_content
     except (smtplib.SMTPAuthenticationError, smtplib.SMTPConnectError, smtplib.SMTPException, OSError) as exc:
         logger.error("[Mailer] SMTP error: %s: %s", type(exc).__name__, exc)
         print(f"[Mailer] SMTP error: {type(exc).__name__}: {exc}", flush=True)
-        if is_dev:
-            print(f"[Mailer DEV FALLBACK] Simulated email dispatch to {to_email} ({type(exc).__name__})", flush=True)
-            return True
         raise RuntimeError(f"SMTP error ({type(exc).__name__}: {exc})") from exc
 
     except Exception as exc:
         logger.exception("[Mailer] Unexpected error during email dispatch: %s", exc)
-        if is_dev:
-            print(f"[Mailer DEV FALLBACK] Simulated email dispatch to {to_email} after exception: {exc}", flush=True)
-            return True
-        raise RuntimeError(f"Email dispatch error: {exc}") from exc
         print(f"[Mailer] Unexpected error: {type(exc).__name__}: {exc}", flush=True)
-        raise RuntimeError(f"Unexpected email error ({type(exc).__name__}: {exc})") from exc
+        raise RuntimeError(f"Email dispatch error: {exc}") from exc
 
 
 def send_registration_otp_email(to_email: str, first_name: Optional[str] = None) -> bool:

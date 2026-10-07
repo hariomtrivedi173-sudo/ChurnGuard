@@ -12,7 +12,7 @@ const SEGMENT_NAMES = {
 }
 
 const SEGMENT_COLORS = {
-  0: '#7C3AED', // Purple
+  0: '#4F46E5', // Indigo brand accent
   1: '#10B981', // Green
   2: '#3B82F6', // Blue
   3: '#F59E0B', // Amber
@@ -51,22 +51,22 @@ function Segments() {
           onRefresh={loadSegments}
           isRefreshing={loading}
           extraActions={
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--purple-50)', border: '1px solid var(--purple-200)', padding: '6px 12px', borderRadius: '10px' }}>
-              <Layers size={15} color="var(--purple-600)" />
-              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--purple-700)' }}>4 Clusters Identified</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--brand-subtle)', border: '1px solid var(--brand-border)', padding: '6px 12px', borderRadius: '10px' }}>
+              <Layers size={15} color="var(--brand)" />
+              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--brand)' }}>4 Clusters Identified</span>
             </div>
           }
         />
 
         {error && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', fontSize: '13px', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px' }}>
+          <div style={{ background: 'var(--danger-subtle)', border: '1px solid var(--danger-border)', color: 'var(--danger-hover)', fontSize: '13px', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px' }}>
             {error}
           </div>
         )}
 
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-muted)', fontSize: '14px', padding: '60px 0', justifyContent: 'center' }}>
-            <div style={{ width: '18px', height: '18px', border: '2px solid var(--purple-200)', borderTopColor: 'var(--purple-600)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ width: '18px', height: '18px', border: '2px solid var(--brand-border)', borderTopColor: 'var(--brand)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             Running K-Means clustering…
           </div>
         ) : (
@@ -97,7 +97,7 @@ function Segments() {
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                    <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '10px' }}>
+                    <div style={{ background: 'var(--surface-muted)', border: '1px solid var(--border)', padding: '12px', borderRadius: '10px' }}>
                       <p style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                         <Clock size={12} /> Avg Tenure
                       </p>
@@ -105,7 +105,7 @@ function Segments() {
                         {s.avg_tenure.toFixed(1)} <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>mo</span>
                       </p>
                     </div>
-                    <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '10px' }}>
+                    <div style={{ background: 'var(--surface-muted)', border: '1px solid var(--border)', padding: '12px', borderRadius: '10px' }}>
                       <p style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                         <DollarSign size={12} /> Avg Monthly
                       </p>
@@ -118,10 +118,10 @@ function Segments() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
                       <span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>Churn Rate</span>
-                      <span style={{ fontWeight: 700, color: isHighChurn ? '#e11d48' : 'var(--text-primary)' }}>{s.churn_rate_percent}%</span>
+                      <span style={{ fontWeight: 700, color: isHighChurn ? 'var(--danger)' : 'var(--text-primary)' }}>{s.churn_rate_percent}%</span>
                     </div>
-                    <div style={{ width: '100%', height: '8px', background: '#f3f4f6', borderRadius: '99px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${s.churn_rate_percent}%`, background: isHighChurn ? '#e11d48' : color, borderRadius: '99px' }} />
+                    <div style={{ width: '100%', height: '8px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${s.churn_rate_percent}%`, background: isHighChurn ? 'var(--danger)' : color, borderRadius: '99px' }} />
                     </div>
                   </div>
 

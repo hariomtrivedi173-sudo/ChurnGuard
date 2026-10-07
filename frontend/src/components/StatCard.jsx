@@ -1,17 +1,18 @@
-function StatCard({ label, value, icon: Icon, color = 'purple', subtitle }) {
+function StatCard({ label, value, icon: Icon, color = 'brand', subtitle }) {
   const palette = {
-    purple:    { bg: 'var(--purple-light)', accent: 'var(--purple-primary)', iconBg: 'rgba(124, 58, 237, 0.12)', text: 'var(--text-primary)' },
-    blue:      { bg: 'var(--blue-soft)', accent: 'var(--blue-primary)', iconBg: 'rgba(59, 130, 246, 0.12)', text: 'var(--text-primary)' },
-    cyan:      { bg: 'var(--blue-soft)', accent: 'var(--blue-primary)', iconBg: 'rgba(59, 130, 246, 0.12)', text: 'var(--text-primary)' },
-    aqua:      { bg: 'var(--blue-soft)', accent: 'var(--blue-primary)', iconBg: 'rgba(59, 130, 246, 0.12)', text: 'var(--text-primary)' },
-    navy:      { bg: 'var(--surface-hover)', accent: 'var(--purple-primary)', iconBg: 'var(--surface-hover)', text: 'var(--text-primary)' },
-    burgundy:  { bg: 'var(--purple-light)', accent: 'var(--purple-primary)', iconBg: 'rgba(124, 58, 237, 0.12)', text: 'var(--text-primary)' },
-    champagne: { bg: 'var(--purple-light)', accent: 'var(--purple-primary)', iconBg: 'rgba(124, 58, 237, 0.12)', text: 'var(--text-primary)' },
-    rose:      { bg: 'rgba(239, 68, 68, 0.12)', accent: 'var(--danger)', iconBg: 'rgba(239, 68, 68, 0.15)', text: 'var(--text-primary)' },
-    amber:     { bg: 'rgba(245, 158, 11, 0.12)', accent: 'var(--warning)', iconBg: 'rgba(245, 158, 11, 0.15)', text: 'var(--text-primary)' },
-    green:     { bg: 'rgba(16, 185, 129, 0.12)', accent: 'var(--success)', iconBg: 'rgba(16, 185, 129, 0.15)', text: 'var(--text-primary)' },
+    brand:     { bg: 'var(--brand-subtle)', accent: 'var(--brand)', iconBg: 'hsla(243, 75%, 59%, 0.12)', text: 'var(--text-primary)' },
+    purple:    { bg: 'var(--brand-subtle)', accent: 'var(--brand)', iconBg: 'hsla(243, 75%, 59%, 0.12)', text: 'var(--text-primary)' },
+    blue:      { bg: 'var(--info-subtle)', accent: 'var(--info)', iconBg: 'hsla(217, 91%, 60%, 0.12)', text: 'var(--text-primary)' },
+    cyan:      { bg: 'var(--info-subtle)', accent: 'var(--info)', iconBg: 'hsla(217, 91%, 60%, 0.12)', text: 'var(--text-primary)' },
+    aqua:      { bg: 'var(--info-subtle)', accent: 'var(--info)', iconBg: 'hsla(217, 91%, 60%, 0.12)', text: 'var(--text-primary)' },
+    navy:      { bg: 'var(--surface-hover)', accent: 'var(--brand)', iconBg: 'var(--surface-hover)', text: 'var(--text-primary)' },
+    burgundy:  { bg: 'var(--brand-subtle)', accent: 'var(--brand)', iconBg: 'hsla(243, 75%, 59%, 0.12)', text: 'var(--text-primary)' },
+    champagne: { bg: 'var(--brand-subtle)', accent: 'var(--brand)', iconBg: 'hsla(243, 75%, 59%, 0.12)', text: 'var(--text-primary)' },
+    rose:      { bg: 'var(--danger-subtle)', accent: 'var(--danger)', iconBg: 'hsla(0, 84%, 60%, 0.12)', text: 'var(--text-primary)' },
+    amber:     { bg: 'var(--warning-subtle)', accent: 'var(--warning)', iconBg: 'hsla(38, 92%, 50%, 0.12)', text: 'var(--text-primary)' },
+    green:     { bg: 'var(--success-subtle)', accent: 'var(--success)', iconBg: 'hsla(160, 84%, 39%, 0.12)', text: 'var(--text-primary)' },
   }
-  const p = palette[color] || palette.purple
+  const p = palette[color] || palette.brand
 
   return (
     <div

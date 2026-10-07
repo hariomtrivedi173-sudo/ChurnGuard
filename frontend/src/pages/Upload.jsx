@@ -4,7 +4,7 @@ import Header from '../components/Header'
 import toast from 'react-hot-toast'
 import { uploadDataset, getDatasetInfo, getUploadHistory } from '../api/dataset'
 import {
-  UploadCloud, FileText, CheckCircle, AlertCircle, X, Clock,
+  UploadCloud, FileText, CheckCircle2, AlertCircle, X, Clock,
   Database, TrendingUp, Copy, Users
 } from 'lucide-react'
 
@@ -21,14 +21,14 @@ const UPLOAD_STAGES = [
   { key: 'uploading',   label: 'Uploading CSV file to server…' },
   { key: 'validating',  label: 'Validating column schema & datatypes…' },
   { key: 'processing',  label: 'Deduplicating against existing customer IDs…' },
-  { key: 'storing',     label: 'Bulk storing in MongoDB Atlas & indexing…' },
-  { key: 'complete',    label: 'Upload complete! Synchronized cache.' },
+  { key: 'storing',     label: 'Bulk storing in database & indexing…' },
+  { key: 'complete',    label: 'Upload complete! Synchronized telemetry cache.' },
 ]
 
-function Upload() {
+export default function Upload() {
   const [file,          setFile]          = useState(null)
   const [uploading,     setUploading]     = useState(false)
-  const [uploadStage,   setUploadStage]   = useState(0) // index in UPLOAD_STAGES
+  const [uploadStage,   setUploadStage]   = useState(0)
   const [uploadResult,  setResult]        = useState(null)
   const [error,         setError]         = useState('')
   const [info,          setInfo]          = useState(null)
@@ -115,7 +115,7 @@ function Upload() {
     const abortController = new AbortController()
     abortControllerRef.current = abortController
 
-    // Simulated progress stage progression while network request is active
+    // Simulated progress stage progression
     timerRefs.current.push(setTimeout(() => {
       if (isMountedRef.current && !abortController.signal.aborted) setUploadStage(1)
     }, 250))
@@ -130,7 +130,6 @@ function Upload() {
       const result = await uploadDataset(file, abortController.signal)
       clearTimers()
 
-      // Critical guard: If aborted, unmounted, or cancelled, do not display stale success popup
       if (abortController.signal.aborted || !isMountedRef.current) {
         return
       }
@@ -142,7 +141,7 @@ function Upload() {
 
       if (newCount === 0 && dupCount > 0) {
         toast(
-          `No new records added — all ${dupCount.toLocaleString()} rows already exist in database.`,
+          `All ${dupCount.toLocaleString()} rows already exist in the database (0 duplicates created).`,
           { icon: 'ℹ️', duration: 4000 }
         )
       } else if (newCount > 0 && dupCount > 0) {
@@ -155,7 +154,6 @@ function Upload() {
 
       setFile(null)
 
-      // Refresh in-memory state without full page reload
       await loadInfo()
       await loadHistory()
     } catch (err) {
@@ -177,59 +175,61 @@ function Upload() {
       <Sidebar />
       <div className="page-content" style={{ padding: '24px 32px' }}>
 
-        <Header title="Upload Dataset" subtitle="Upload customer CSV data to run predictions, update stats, and power ML dashboards." />
+        <Header
+          title="Upload Dataset"
+          subtitle="Ingest customer telemetry CSV records to power churn analytics, risk scores, and retention pipelines."
+        />
 
-        {/* Current dataset status */}
+        {/* Current dataset status badge */}
         {info !== null && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: '10px',
-            background: info?.stored ? 'rgba(34, 197, 94, 0.12)' : 'rgba(217, 119, 6, 0.12)',
-            border: `1px solid ${info?.stored ? '#bbf7d0' : '#fde68a'}`,
-            borderRadius: '12px', padding: '12px 16px', marginBottom: '20px',
+            background: info?.stored ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+            border: `1px solid ${info?.stored ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
+            borderRadius: '12px', padding: '12px 18px', marginBottom: '20px',
           }}>
             {info?.stored
-              ? <CheckCircle size={16} color="#16a34a" />
-              : <AlertCircle size={16} color="#d97706" />}
-            <p style={{ fontSize: '13px', fontWeight: 600, color: info?.stored ? '#16a34a' : '#d97706' }}>
+              ? <CheckCircle2 size={16} color="var(--success)" />
+              : <AlertCircle size={16} color="var(--warning)" />}
+            <p style={{ fontSize: '13px', fontWeight: 600, color: info?.stored ? 'var(--success)' : 'var(--warning)', margin: 0 }}>
               {info?.stored
-                ? `${info.total_records.toLocaleString()} customer records currently stored in your tenant database`
-                : 'No dataset currently stored — upload a CSV to get started'}
+                ? `${info.total_records.toLocaleString()} customer records currently synchronized in tenant database`
+                : 'No dataset currently loaded — upload a CSV file below to begin'}
             </p>
           </div>
         )}
 
-        {/* Drop zone */}
+        {/* ── Premium Upload Area ── */}
         <div
-          className="card"
-          style={{
-            padding: '44px 32px', marginBottom: '20px', cursor: 'pointer', textAlign: 'center',
-            border: dragging ? '2px dashed var(--purple-400)' : '2px dashed var(--border)',
-            background: dragging ? 'var(--purple-50)' : 'var(--surface)',
-            transition: 'all 200ms ease',
-          }}
+          className={`upload-dropzone ${dragging ? 'dragging' : ''}`}
           onClick={() => inputRef.current.click()}
           onDragOver={e => { e.preventDefault(); setDragging(true) }}
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
+          style={{ marginBottom: '20px' }}
         >
           <div style={{
-            width: '56px', height: '56px',
-            background: 'var(--purple-50)',
-            borderRadius: '16px',
+            width: '54px', height: '54px',
+            background: 'var(--brand-subtle)',
+            borderRadius: '14px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px',
+            margin: '0 auto 14px',
           }}>
-            <UploadCloud size={26} color="var(--purple-600)" />
+            <UploadCloud size={26} color="var(--brand)" />
           </div>
-          <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '6px' }}>
-            {dragging ? 'Drop your CSV here' : 'Drag & drop your CSV file'}
+
+          <p style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '4px' }}>
+            {dragging ? 'Drop customer CSV here' : 'Drag & drop customer CSV dataset'}
           </p>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-            or click to browse — only .csv files accepted
+
+          <p style={{ fontSize: '13px', color: 'var(--slate-500)', marginBottom: '6px' }}>
+            or click to browse files from your computer
           </p>
-          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-            New records are <strong>appended</strong>. Existing customerIDs are automatically skipped.
+
+          <p style={{ fontSize: '11px', color: 'var(--slate-400)', marginBottom: '18px' }}>
+            Accepts Telco formatted <strong>.csv</strong> files. Existing customer IDs are automatically deduplicated.
           </p>
+
           <input
             ref={inputRef}
             type="file"
@@ -243,7 +243,8 @@ function Upload() {
               }
             }}
           />
-          <span className="btn-secondary" style={{ pointerEvents: 'none', display: 'inline-flex' }}>
+
+          <span className="btn-secondary" style={{ pointerEvents: 'none', display: 'inline-flex', fontSize: '12px', padding: '8px 18px' }}>
             Browse Files
           </span>
         </div>
@@ -252,22 +253,25 @@ function Upload() {
         {file && (
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'var(--purple-50)', border: '1px solid var(--purple-200)',
-            borderRadius: '12px', padding: '12px 16px', marginBottom: '16px',
+            background: 'var(--surface-muted)', border: '1px solid var(--border)',
+            borderRadius: '12px', padding: '12px 18px', marginBottom: '16px',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <FileText size={18} color="var(--purple-600)" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'var(--brand-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FileText size={18} color="var(--brand)" />
+              </div>
               <div>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--purple-600)' }}>{file.name}</p>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  {(file.size / 1024).toFixed(1)} KB
+                <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{file.name}</p>
+                <p style={{ fontSize: '11px', color: 'var(--slate-500)', margin: '2px 0 0 0' }}>
+                  {(file.size / 1024).toFixed(1)} KB · Ready to ingest
                 </p>
               </div>
             </div>
             {!uploading && (
               <button
                 onClick={() => setFile(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', borderRadius: '6px' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--slate-400)', padding: '6px', borderRadius: '6px' }}
+                title="Remove file"
               >
                 <X size={16} />
               </button>
@@ -275,26 +279,26 @@ function Upload() {
           </div>
         )}
 
-        {/* Upload Progress Indicator */}
+        {/* ── Upload Progress Indicator ── */}
         {uploading && (
-          <div className="card" style={{ padding: '20px 24px', marginBottom: '20px', background: 'var(--surface)' }}>
+          <div className="dashboard-card" style={{ padding: '20px 24px', marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '16px', height: '16px', border: '2px solid var(--purple-200)', borderTopColor: 'var(--purple-600)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '16px', height: '16px', border: '2px solid var(--slate-300)', borderTopColor: 'var(--brand)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                 <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
                   {UPLOAD_STAGES[uploadStage]?.label || 'Processing upload…'}
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--purple-600)' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--brand)' }}>
                   {Math.round(((uploadStage + 1) / UPLOAD_STAGES.length) * 100)}%
                 </span>
                 <button
                   onClick={handleCancelUpload}
                   type="button"
                   style={{
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
                     color: 'var(--danger)',
                     borderRadius: '6px',
                     padding: '3px 9px',
@@ -308,62 +312,65 @@ function Upload() {
               </div>
             </div>
 
-            {/* Progress bar track */}
+            {/* Subtle animated progress bar */}
             <div style={{ width: '100%', height: '6px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden' }}>
               <div style={{
                 height: '100%',
                 width: `${Math.round(((uploadStage + 1) / UPLOAD_STAGES.length) * 100)}%`,
-                background: 'linear-gradient(90deg, #7C3AED 0%, #3B82F6 100%)',
+                background: 'var(--brand)',
                 borderRadius: '99px',
                 transition: 'width 300ms ease'
               }} />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '11px', color: 'var(--text-muted)' }}>
-              <span>Step {uploadStage + 1} of {UPLOAD_STAGES.length}</span>
-              <span>Fast bulk ingest & caching</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '11px', color: 'var(--slate-500)' }}>
+              <span>Stage {uploadStage + 1} of {UPLOAD_STAGES.length}</span>
+              <span>Fast bulk ingestion pipeline</span>
             </div>
           </div>
         )}
 
-        {/* Upload Result Summary */}
+        {/* ── Success Card (Green Theme) ── */}
         {uploadResult && (
           <div style={{
-            background: uploadResult.new_records === 0 ? 'rgba(59, 130, 246, 0.08)' : 'rgba(16, 185, 129, 0.08)',
-            border: `1px solid ${uploadResult.new_records === 0 ? 'rgba(59, 130, 246, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
             borderRadius: '14px',
-            padding: '16px 20px', marginBottom: '20px'
+            padding: '18px 20px', marginBottom: '20px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-              <CheckCircle size={16} color={uploadResult.new_records === 0 ? '#3b82f6' : 'var(--success)'} />
-              <p style={{ fontSize: '13px', fontWeight: 700, color: uploadResult.new_records === 0 ? '#2563eb' : 'var(--success)' }}>
+              <CheckCircle2 size={18} color="var(--success)" />
+              <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--success)', margin: 0 }}>
                 {uploadResult.new_records === 0
-                  ? `Upload processed: All ${uploadResult.total_rows?.toLocaleString()} records already exist (0 duplicates created)`
-                  : 'Dataset uploaded & processed successfully'}
+                  ? `Upload processed: All ${uploadResult.total_rows?.toLocaleString()} records verified (0 duplicate records created)`
+                  : 'Dataset uploaded & ingested successfully'}
               </p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
               {[
                 { label: 'Total Rows in File', value: uploadResult.total_rows?.toLocaleString() ?? '—', icon: Database, color: 'var(--text-primary)' },
                 { label: 'New Records Added', value: (uploadResult.new_records ?? uploadResult.inserted)?.toLocaleString() ?? '—', icon: TrendingUp, color: 'var(--success)' },
                 { label: 'Duplicates Skipped', value: (uploadResult.duplicates_skipped ?? uploadResult.duplicate_rows)?.toLocaleString() ?? '0', icon: Copy, color: 'var(--warning)' },
-                { label: 'Total in Database', value: (uploadResult.total_in_db ?? uploadResult.final_customer_count)?.toLocaleString() ?? '—', icon: Users, color: 'var(--purple-primary)' },
+                { label: 'Total in Database', value: (uploadResult.total_in_db ?? uploadResult.final_customer_count)?.toLocaleString() ?? '—', icon: Users, color: 'var(--brand)' },
               ].map(({ label, value, icon: Icon, color }) => (
-                <div key={label} style={{ background: 'var(--surface)', borderRadius: '10px', padding: '12px 16px', border: '1px solid var(--border)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                    <Icon size={14} color={color} />
-                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>{label}</p>
+                <div key={label} style={{ background: 'var(--surface)', borderRadius: '10px', padding: '12px 14px', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                    <Icon size={13} color={color} />
+                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, margin: 0 }}>{label}</p>
                   </div>
-                  <p style={{ fontSize: '20px', fontWeight: 800, color }}>{value}</p>
+                  <p style={{ fontSize: '18px', fontWeight: 800, color, margin: 0 }}>{value}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
+        {/* ── Error Card (Red Theme) ── */}
         {error && (
-          <div style={{ background: 'rgba(248, 113, 113, 0.12)', border: '1px solid rgba(248, 113, 113, 0.25)', color: 'var(--danger)', fontSize: '13px', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px' }}>
-            {error}
+          <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', color: 'var(--danger)', fontSize: '13px', padding: '14px 18px', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <AlertCircle size={16} color="var(--danger)" style={{ flexShrink: 0 }} />
+            <span>{error}</span>
           </div>
         )}
 
@@ -376,114 +383,114 @@ function Upload() {
           >
             {uploading ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                Uploading & Storing Dataset…
+                <span className="btn-spinner" />
+                Ingesting Customer Dataset…
               </div>
             ) : (
-              'Upload & Store Dataset'
+              'Upload & Ingest Dataset'
             )}
           </button>
         )}
 
-        {/* Dataset Preview Table */}
-        <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
+        {/* ── Dataset Preview Table (Slate Styling) ── */}
+        <div className="dashboard-card" style={{ padding: '24px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
             <div>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Dataset Preview</h3>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                {preview ? 'Sample record from the stored dataset' : 'No dataset currently stored'}
+              <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Dataset Schema Preview</h3>
+              <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginTop: '2px' }}>
+                {preview ? 'Sample customer record parsed from the active dataset' : 'No dataset currently loaded in tenant storage'}
               </p>
             </div>
             {preview && (
-              <span className="badge badge-purple" style={{ fontSize: '11px' }}>
-                {preview.columns.length} columns
+              <span className="badge badge-purple" style={{ fontSize: '10px' }}>
+                {preview.columns.length} Schema Attributes
               </span>
             )}
           </div>
 
           {!preview ? (
-            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontSize: '13px' }}>
-              <Database size={32} style={{ marginBottom: '10px', opacity: 0.3 }} />
-              <p>Upload a CSV to see a dataset preview here</p>
+            <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--slate-400)', fontSize: '13px' }}>
+              <Database size={32} style={{ marginBottom: '8px', opacity: 0.3 }} />
+              <p style={{ margin: 0 }}>Upload a CSV to view schema attribute mapping</p>
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: 'var(--table-header-bg)', borderBottom: '1px solid var(--border)' }}>
-                    {preview.columns.map(col => (
-                      <th key={col} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
-                        {col.toUpperCase()}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr style={{ borderTop: '1px solid var(--border)' }}>
-                    {preview.columns.map(col => (
-                      <td key={col} style={{ padding: '10px 14px', fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                        {String(preview.sample[col] ?? '—')}
-                      </td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
+            <div className="analytics-table-wrap">
+              <div style={{ overflowX: 'auto' }}>
+                <table className="analytics-table">
+                  <thead>
+                    <tr>
+                      {preview.columns.map(col => (
+                        <th key={col}>{col.toUpperCase()}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      {preview.columns.map(col => (
+                        <td key={col} style={{ whiteSpace: 'nowrap' }}>
+                          {String(preview.sample[col] ?? '—')}
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Upload History */}
-        <div className="card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <Clock size={16} color="var(--text-muted)" />
-            <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Upload History</h3>
+        {/* ── Upload History Audit Trail ── */}
+        <div className="dashboard-card" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+            <Clock size={16} color="var(--slate-500)" />
+            <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Upload History</h3>
           </div>
 
           {history.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: '13px' }}>
-              No uploads yet
+            <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--slate-400)', fontSize: '13px' }}>
+              No previous dataset uploads found
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0', minWidth: '560px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: '560px' }}>
                 {history.map((h, i) => (
                   <div
                     key={h._id || i}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 100px 90px 90px 90px 120px',
+                      gridTemplateColumns: '1.2fr 100px 90px 90px 90px 120px',
                       alignItems: 'center',
-                      padding: '12px 0',
+                      padding: '12px 6px',
                       borderBottom: i < history.length - 1 ? '1px solid var(--border)' : 'none',
-                      gap: '16px',
+                      gap: '14px',
                       fontSize: '12px',
                     }}
                   >
                     <div>
-                      <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{h.filename}</p>
-                      <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>by {h.uploaded_by}</p>
+                      <p style={{ fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{h.filename}</p>
+                      <p style={{ fontSize: '11px', color: 'var(--slate-500)', marginTop: '2px', margin: 0 }}>by {h.uploaded_by}</p>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <p style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{h.total_rows?.toLocaleString()}</p>
-                      <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>total rows</p>
+                      <p style={{ fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{h.total_rows?.toLocaleString()}</p>
+                      <p style={{ fontSize: '10px', color: 'var(--slate-500)', margin: '2px 0 0 0' }}>total rows</p>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <p style={{ fontWeight: 700, color: '#16a34a' }}>{(h.new_records ?? h.inserted_rows ?? 0)?.toLocaleString()}</p>
-                      <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>inserted</p>
+                      <p style={{ fontWeight: 700, color: 'var(--success)', margin: 0 }}>{(h.new_records ?? h.inserted_rows ?? 0)?.toLocaleString()}</p>
+                      <p style={{ fontSize: '10px', color: 'var(--slate-500)', margin: '2px 0 0 0' }}>inserted</p>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <p style={{ fontWeight: 700, color: '#d97706' }}>{(h.duplicates_skipped ?? h.duplicate_rows ?? 0)?.toLocaleString()}</p>
-                      <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>duplicates</p>
+                      <p style={{ fontWeight: 700, color: 'var(--warning)', margin: 0 }}>{(h.duplicates_skipped ?? h.duplicate_rows ?? 0)?.toLocaleString()}</p>
+                      <p style={{ fontSize: '10px', color: 'var(--slate-500)', margin: '2px 0 0 0' }}>duplicates</p>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <p style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{(h.total_in_db ?? h.final_total)?.toLocaleString() ?? '—'}</p>
-                      <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>total in DB</p>
+                      <p style={{ fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{(h.total_in_db ?? h.final_total)?.toLocaleString() ?? '—'}</p>
+                      <p style={{ fontSize: '10px', color: 'var(--slate-500)', margin: '2px 0 0 0' }}>total in DB</p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <span className={h.status === 'success' ? 'badge badge-green' : 'badge badge-yellow'} style={{ fontSize: '10px' }}>
                         ● {h.status}
                       </span>
-                      <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '3px' }}>{timeAgo(h.uploaded_at)}</p>
+                      <p style={{ fontSize: '10px', color: 'var(--slate-400)', marginTop: '3px', margin: '3px 0 0 0' }}>{timeAgo(h.uploaded_at)}</p>
                     </div>
                   </div>
                 ))}
@@ -497,5 +504,3 @@ function Upload() {
     </div>
   )
 }
-
-export default Upload

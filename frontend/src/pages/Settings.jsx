@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
+import { useTheme } from '../components/useTheme'
 import toast from 'react-hot-toast'
 import {
   fetchProfile, updateProfile,
@@ -171,7 +172,7 @@ function Settings() {
   })
 
   // Theme State
-  const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('theme') || 'light')
+  const { theme: currentTheme, setTheme: setCurrentTheme } = useTheme()
 
   // Password Requirement Criteria
   const passwordCriteria = useMemo(() => ({
@@ -658,8 +659,6 @@ function Settings() {
 
   function handleThemeChange(mode) {
     setCurrentTheme(mode)
-    document.documentElement.setAttribute('data-theme', mode)
-    localStorage.setItem('theme', mode)
     toast.success(`${mode === 'light' ? 'Light' : 'Dark'} mode activated`)
   }
 
@@ -682,11 +681,7 @@ function Settings() {
         <Header title="Settings" subtitle="Manage your profile, security, and workspace preferences." />
 
         {/* ── Settings Tab Bar ── */}
-        <div style={{
-          display: 'flex', gap: '8px', marginBottom: '24px',
-          background: 'var(--surface)', padding: '6px', borderRadius: '14px',
-          border: '1px solid var(--border)', maxWidth: 'fit-content'
-        }}>
+        <div className="settings-tabs-bar" style={{ marginBottom: '24px' }}>
           {[
             { id: 'Profile',       label: 'Profile',       icon: User },
             { id: 'Security',      label: 'Security',      icon: Shield },
@@ -697,8 +692,7 @@ function Settings() {
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`tab-pill ${activeTab === id ? 'active' : ''}`}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px' }}
+              className={`settings-tab-btn ${activeTab === id ? 'active' : ''}`}
             >
               <Icon size={15} /> {label}
             </button>
@@ -710,21 +704,20 @@ function Settings() {
           <div className="settings-profile-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
 
             {/* Left Card: Avatar Preview & Management */}
-            <div className="card" style={{ padding: '28px 24px', textAlign: 'center' }}>
+            <div className="settings-card" style={{ padding: '28px 24px', textAlign: 'center' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', textAlign: 'left', marginBottom: '2px' }}>
                 Profile Avatar
               </h3>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'left', marginBottom: '24px' }}>
+              <p style={{ fontSize: '12px', color: 'var(--slate-500)', textAlign: 'left', marginBottom: '24px' }}>
                 Your enterprise identity photo
               </p>
 
               <div style={{
                 width: '104px', height: '104px', borderRadius: '24px',
-                background: 'linear-gradient(135deg, #4C1D95 0%, #6D28D9 50%, #7C3AED 100%)',
-                border: '1px solid rgba(167, 139, 250, 0.4)',
-                color: '#EDE9FE', fontWeight: 800, fontSize: '34px',
+                background: 'var(--brand)',
+                color: '#ffffff', fontWeight: 800, fontSize: '34px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(124, 58, 237, 0.35)',
+                margin: '0 auto 16px', boxShadow: '0 8px 24px hsla(243, 75%, 59%, 0.28)',
                 overflow: 'hidden', position: 'relative'
               }}>
                 {effectiveAvatarSrc && !avatarImgError ? (
@@ -751,7 +744,7 @@ function Settings() {
                 <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {profile.first_name ? `${profile.first_name} ${profile.last_name}` : profile.email || 'User Profile'}
                 </p>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginTop: '2px' }}>
                   {profile.company || 'Enterprise Tenant'} · {profile.role}
                 </p>
               </div>
@@ -793,24 +786,24 @@ function Settings() {
                 )}
               </div>
 
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '12px' }}>
+              <p style={{ fontSize: '11px', color: 'var(--slate-400)', marginTop: '12px' }}>
                 JPG, PNG, or WEBP under 5 MB
               </p>
             </div>
 
             {/* Right Card: Personal Information Form */}
-            <div className="card" style={{ padding: '28px 32px' }}>
+            <div className="settings-card" style={{ padding: '28px 32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
                   <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '2px' }}>
                     Personal Information
                   </h3>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--slate-500)' }}>
                     Update your account details and organizational profile
                   </p>
                 </div>
                 {loadingProfile && (
-                  <span style={{ fontSize: '12px', color: 'var(--purple-600)', fontWeight: 600 }}>
+                  <span style={{ fontSize: '12px', color: 'var(--brand)', fontWeight: 600 }}>
                     Loading profile…
                   </span>
                 )}
@@ -1138,11 +1131,11 @@ function Settings() {
 
         {/* ── Tab 2: Security & Password Management ── */}
         {activeTab === 'Security' && (
-          <div className="card" style={{ padding: '32px', maxWidth: '640px' }}>
+          <div className="settings-card" style={{ padding: '32px', maxWidth: '640px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
               <div style={{
-                width: '34px', height: '34px', borderRadius: '10px',
-                background: 'var(--purple-50)', color: 'var(--purple-600)',
+                width: '36px', height: '36px', borderRadius: '10px',
+                background: 'var(--brand-subtle)', color: 'var(--brand)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
                 <Lock size={18} />
@@ -1151,7 +1144,7 @@ function Settings() {
                 Password & Security
               </h3>
             </div>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--slate-500)', marginBottom: '24px' }}>
               Update your account password via single-use email verification
             </p>
 
@@ -1295,26 +1288,26 @@ function Settings() {
 
                 {/* Password Criteria Checklist */}
                 <div style={{
-                  background: 'var(--surface-hover)', borderRadius: '10px',
-                  padding: '12px 14px', marginTop: '8px', border: '1px solid var(--border)'
+                  background: 'var(--slate-50)', borderRadius: '10px',
+                  padding: '12px 14px', marginTop: '8px', border: '1px solid var(--slate-200)'
                 }}>
-                  <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-500)', marginBottom: '6px' }}>
                     Password Complexity Requirements:
                   </p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '11px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordCriteria.length ? '#16a34a' : 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordCriteria.length ? '#16a34a' : 'var(--slate-400)' }}>
                       {passwordCriteria.length ? <Check size={12} strokeWidth={3} /> : <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px solid currentColor', display: 'inline-block' }} />}
                       <span>8–72 characters</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordCriteria.hasUpper ? '#16a34a' : 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordCriteria.hasUpper ? '#16a34a' : 'var(--slate-400)' }}>
                       {passwordCriteria.hasUpper ? <Check size={12} strokeWidth={3} /> : <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px solid currentColor', display: 'inline-block' }} />}
                       <span>1+ Uppercase (A-Z)</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordCriteria.hasLower ? '#16a34a' : 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordCriteria.hasLower ? '#16a34a' : 'var(--slate-400)' }}>
                       {passwordCriteria.hasLower ? <Check size={12} strokeWidth={3} /> : <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px solid currentColor', display: 'inline-block' }} />}
                       <span>1+ Lowercase (a-z)</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordCriteria.hasNumber ? '#16a34a' : 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordCriteria.hasNumber ? '#16a34a' : 'var(--slate-400)' }}>
                       {passwordCriteria.hasNumber ? <Check size={12} strokeWidth={3} /> : <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px solid currentColor', display: 'inline-block' }} />}
                       <span>1+ Number (0-9)</span>
                     </div>
@@ -1393,15 +1386,15 @@ function Settings() {
 
         {/* ── Tab 3: Notifications ── */}
         {activeTab === 'Notifications' && (
-          <div className="card" style={{ padding: '28px 32px', maxWidth: '720px' }}>
+          <div className="settings-card" style={{ padding: '28px 32px', maxWidth: '720px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '2px' }}>
               Notification Preferences
             </h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '24px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginBottom: '24px' }}>
               Choose what telemetry alerts and operational digests you want to receive
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {[
                 { key: 'highRiskAlert',  title: 'High-risk churn alerts', sub: 'Receive instant alerts when an account churn probability exceeds 80%.' },
                 { key: 'weeklyDigest',   title: 'Weekly retention digest', sub: 'Comprehensive summary of customer retention metrics every Monday morning.' },
@@ -1411,25 +1404,25 @@ function Settings() {
               ].map((item) => (
                 <div key={item.key} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '16px 20px', background: 'var(--surface-hover)', borderRadius: '12px',
+                  padding: '16px 20px', background: 'var(--surface-muted)', borderRadius: '12px',
                   border: '1px solid var(--border)'
                 }}>
                   <div>
-                    <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{item.title}</p>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.sub}</p>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{item.title}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginTop: '3px', margin: '3px 0 0 0' }}>{item.sub}</p>
                   </div>
                   
-                    <div
-                      onClick={() => toggleNotification(item.key)}
-                      role="switch"
-                      aria-checked={notifications[item.key]}
-                      style={{
-                        width: '44px', height: '24px', borderRadius: '99px',
-                        background: notifications[item.key] ? 'var(--accent)' : 'var(--border)',
-                        padding: '2px', cursor: 'pointer', transition: 'background 200ms ease',
-                        display: 'flex', alignItems: 'center'
-                      }}
-                    >
+                  <div
+                    onClick={() => toggleNotification(item.key)}
+                    role="switch"
+                    aria-checked={notifications[item.key]}
+                    style={{
+                      width: '44px', height: '24px', borderRadius: '99px',
+                      background: notifications[item.key] ? 'var(--brand)' : 'var(--slate-300)',
+                      padding: '2px', cursor: 'pointer', transition: 'background 200ms ease',
+                      display: 'flex', alignItems: 'center', flexShrink: 0
+                    }}
+                  >
                     <div style={{
                       width: '20px', height: '20px', borderRadius: '50%', background: '#ffffff',
                       transform: notifications[item.key] ? 'translateX(20px)' : 'translateX(0)',
@@ -1444,11 +1437,11 @@ function Settings() {
 
         {/* ── Tab 4: Appearance ── */}
         {activeTab === 'Appearance' && (
-          <div className="card" style={{ padding: '28px 32px', maxWidth: '640px' }}>
+          <div className="settings-card" style={{ padding: '28px 32px', maxWidth: '640px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '2px' }}>
               Theme Appearance
             </h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '24px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginBottom: '24px' }}>
               Customize application theme and contrast mode
             </p>
 
@@ -1456,29 +1449,31 @@ function Settings() {
               <div
                 onClick={() => handleThemeChange('light')}
                 style={{
-                  padding: '22px', borderRadius: '14px',
-                  border: currentTheme === 'light' ? '2px solid var(--purple-primary)' : '1px solid var(--border)',
+                  padding: '24px', borderRadius: '14px',
+                  border: currentTheme === 'light' ? '2px solid var(--brand)' : '1px solid var(--border)',
                   background: '#FFFFFF', cursor: 'pointer', textAlign: 'center',
-                  boxShadow: currentTheme === 'light' ? '0 4px 16px rgba(124, 58, 237, 0.15)' : 'none'
+                  boxShadow: currentTheme === 'light' ? '0 4px 16px hsla(243, 75%, 59%, 0.15)' : 'none',
+                  transition: 'all 150ms ease'
                 }}
               >
-                <p style={{ fontSize: '15px', fontWeight: 800, color: '#1E1B4B' }}>Light Mode ☀️</p>
-                <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>Clean SaaS purple theme</p>
-                {currentTheme === 'light' && <span className="badge badge-purple" style={{ marginTop: '12px' }}>Active</span>}
+                <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Light Mode ☀️</p>
+                <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginTop: '4px' }}>Clean Slate neutral theme</p>
+                {currentTheme === 'light' && <span className="badge badge-green" style={{ marginTop: '12px' }}>Active</span>}
               </div>
 
               <div
                 onClick={() => handleThemeChange('dark')}
                 style={{
-                  padding: '22px', borderRadius: '14px',
-                  border: currentTheme === 'dark' ? '2px solid #A78BFA' : '1px solid var(--border)',
-                  background: '#18132B', cursor: 'pointer', textAlign: 'center',
-                  boxShadow: currentTheme === 'dark' ? '0 4px 16px rgba(0, 0, 0, 0.5)' : 'none'
+                  padding: '24px', borderRadius: '14px',
+                  border: currentTheme === 'dark' ? '2px solid var(--brand)' : '1px solid var(--border)',
+                  background: '#0F172A', cursor: 'pointer', textAlign: 'center',
+                  boxShadow: currentTheme === 'dark' ? '0 4px 16px rgba(0, 0, 0, 0.4)' : 'none',
+                  transition: 'all 150ms ease'
                 }}
               >
-                <p style={{ fontSize: '15px', fontWeight: 800, color: '#F5F3FF' }}>Dark Mode 🌙</p>
-                <p style={{ fontSize: '12px', color: '#A5A1B8', marginTop: '4px' }}>Deep purple-blue dark theme</p>
-                {currentTheme === 'dark' && <span className="badge badge-purple" style={{ marginTop: '12px' }}>Active</span>}
+                <p style={{ fontSize: '15px', fontWeight: 800, color: '#F8FAFC', margin: 0 }}>Dark Mode 🌙</p>
+                <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>Deep Slate dark theme</p>
+                {currentTheme === 'dark' && <span className="badge badge-green" style={{ marginTop: '12px' }}>Active</span>}
               </div>
             </div>
           </div>
@@ -1486,16 +1481,16 @@ function Settings() {
 
         {/* ── Tab 5: Language Preference ── */}
         {activeTab === 'Language' && (
-          <div className="card" style={{ padding: '28px 32px', maxWidth: '580px' }}>
+          <div className="settings-card" style={{ padding: '28px 32px', maxWidth: '580px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                 Language Preference
               </h3>
-              <span className="badge badge-purple" style={{ fontSize: '10px' }}>
-                Saved to MongoDB
+              <span className="badge badge-slate" style={{ fontSize: '10px' }}>
+                MongoDB Persistence
               </span>
             </div>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginBottom: '20px' }}>
               Select your preferred display language. Your preference is persisted directly to your MongoDB account.
             </p>
 
@@ -1509,7 +1504,7 @@ function Settings() {
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <select
                   id="settings-language-select"
-                  className="input-base"
+                  className="settings-input"
                   style={{ flex: 1 }}
                   value={profile.language || 'en'}
                   onChange={async (e) => {
@@ -1562,8 +1557,8 @@ function Settings() {
             <div
               id="language-translation-notice"
               style={{
-                background: 'rgba(245, 158, 11, 0.08)',
-                border: '1px solid rgba(245, 158, 11, 0.3)',
+                background: 'hsla(38, 92%, 50%, 0.08)',
+                border: '1px solid hsla(38, 92%, 50%, 0.25)',
                 borderRadius: '12px',
                 padding: '16px',
                 display: 'flex',
@@ -1574,10 +1569,10 @@ function Settings() {
             >
               <Globe size={20} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--slate-900)', margin: 0 }}>
                   Language Preference Notice
                 </p>
-                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 0', lineHeight: 1.5 }}>
+                <p style={{ fontSize: '12px', color: 'var(--slate-600)', margin: '4px 0 0', lineHeight: 1.5 }}>
                   Full UI translation is not yet implemented. Your preference ({LANGUAGES.find(l => l.code === (profile.language || 'en'))?.label || 'English'}) is saved in MongoDB and persists across page refreshes and logout/login sessions. Full multilingual interface translation will be added in an upcoming release.
                 </p>
               </div>
@@ -1594,14 +1589,15 @@ function Settings() {
           aria-modal="true"
           aria-labelledby="remove-photo-title"
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+            position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 2000, padding: '20px'
           }}
         >
-          <div className="card" style={{
+          <div className="settings-card" style={{
             width: '100%', maxWidth: '420px', padding: '28px', borderRadius: '16px',
-            background: 'var(--surface)'
+            background: 'var(--surface)', border: '1px solid var(--border)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
               <div style={{
@@ -1615,7 +1611,7 @@ function Settings() {
                 Remove profile photo?
               </h3>
             </div>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '24px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--slate-500)', lineHeight: 1.5, marginBottom: '24px' }}>
               This will revert your avatar to standard user initials across your dashboard and header.
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
@@ -1650,22 +1646,23 @@ function Settings() {
           aria-modal="true"
           aria-labelledby="otp-modal-title"
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+            position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)',
             backdropFilter: 'blur(4px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 2000, padding: '20px'
           }}
         >
-          <div className="card" style={{
+          <div className="settings-card" style={{
             width: '100%', maxWidth: '460px', padding: '32px', borderRadius: '20px',
-            background: 'var(--surface)', boxShadow: '0 20px 40px rgba(0,0,0,0.25)'
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.25)'
           }}>
             {/* Header Row */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
                   width: '44px', height: '44px', borderRadius: '14px',
-                  background: 'var(--purple-50)', color: 'var(--purple-600)',
+                  background: 'var(--brand-subtle)', color: 'var(--brand)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                 }}>
                   <KeyRound size={22} />
@@ -1674,7 +1671,7 @@ function Settings() {
                   <h3 id="otp-modal-title" style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                     Verify Your Identity
                   </h3>
-                  <span className="badge badge-purple" style={{ marginTop: '4px' }}>
+                  <span className="badge badge-slate" style={{ marginTop: '4px' }}>
                     Password Change OTP
                   </span>
                 </div>
@@ -1685,7 +1682,7 @@ function Settings() {
                 disabled={verifyingOtp}
                 aria-label="Close modal"
                 style={{
-                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)',
+                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--slate-400)',
                   padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center',
                   transition: 'background 150ms ease'
                 }}
@@ -1697,7 +1694,7 @@ function Settings() {
             {/* Subtitle with Masked Email */}
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
               We sent a 6-digit verification code to your registered email{' '}
-              <strong style={{ color: 'var(--purple-600)', background: 'var(--purple-50)', padding: '2px 8px', borderRadius: '6px', wordBreak: 'break-all' }}>
+              <strong style={{ color: 'var(--brand)', background: 'var(--surface-muted)', padding: '2px 8px', borderRadius: '6px', wordBreak: 'break-all' }}>
                 {maskedEmail || 'your email'}
               </strong>.
               Please enter the code below to complete your password change.
@@ -1743,10 +1740,11 @@ function Settings() {
                     style={{
                       width: '46px', height: '54px',
                       fontSize: '22px', fontWeight: 800, textAlign: 'center',
-                      borderRadius: '12px', border: digit ? '2px solid var(--purple-500)' : '2px solid var(--border)',
-                      background: 'var(--input-bg)', color: 'var(--text-primary)',
+                      borderRadius: '12px',
+                      border: digit ? '2px solid var(--brand)' : '1px solid var(--border)',
+                      background: 'var(--surface)', color: 'var(--text-primary)',
                       outline: 'none', transition: 'all 150ms ease',
-                      boxShadow: digit ? '0 0 0 3px rgba(124, 58, 237, 0.12)' : 'none'
+                      boxShadow: digit ? '0 0 0 3px var(--brand-glow)' : 'none'
                     }}
                   />
                 ))}
@@ -1755,7 +1753,7 @@ function Settings() {
               {/* Cooldown Timer & Resend Link */}
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '12px', color: 'var(--text-muted)', marginBottom: '24px', gap: '6px'
+                fontSize: '12px', color: 'var(--slate-500)', marginBottom: '24px', gap: '6px'
               }}>
                 {resendCooldown > 0 ? (
                   <span>
@@ -1770,7 +1768,7 @@ function Settings() {
                     disabled={resendingOtp}
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer',
-                      color: 'var(--purple-600)', fontWeight: 700, fontSize: '12px',
+                      color: 'var(--brand)', fontWeight: 700, fontSize: '12px',
                       display: 'inline-flex', alignItems: 'center', gap: '6px', padding: 0
                     }}
                   >

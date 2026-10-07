@@ -13,6 +13,7 @@ import {
 import { getSuggestions } from '../utils/searchIndex'
 import toast from 'react-hot-toast'
 import { useSidebar } from './useSidebar'
+import { useTheme } from './useTheme'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -50,14 +51,7 @@ function Header({
 }) {
   const navigate = useNavigate()
   const { openMobileSidebar } = useSidebar()
-
-  const [theme, setTheme] = useState(() => {
-    try {
-      return localStorage.getItem('theme') || 'light'
-    } catch {
-      return 'light'
-    }
-  })
+  const { theme, toggleTheme } = useTheme()
 
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfileMenu,   setShowProfileMenu]   = useState(false)
@@ -92,14 +86,6 @@ function Header({
   const effectiveAnalyzing = isAnalyzing || analyzing
 
   const filteredSuggestions = getSuggestions(localSearch)
-
-  // Sync theme to DOM
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    try {
-      localStorage.setItem('theme', theme)
-    } catch {}
-  }, [theme])
 
   // Load user profile & sync with storage events
   useEffect(() => {
@@ -199,10 +185,6 @@ function Header({
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [])
-
-  function toggleTheme() {
-    setTheme(t => t === 'light' ? 'dark' : 'light')
-  }
 
   async function handleRefreshClick() {
     if (effectiveRefreshing) return
@@ -500,13 +482,19 @@ function Header({
 
         {/* THEME TOGGLE */}
         <button
+          id="theme-switch-btn"
           type="button"
           onClick={toggleTheme}
           className="navbar-icon-btn theme-btn"
-          title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
-          aria-label="Toggle application theme"
+          title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          aria-label={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          aria-pressed={theme === 'dark'}
         >
-          {theme === 'light' ? <Sun size={17} /> : <Moon size={17} color="#A78BFA" />}
+          {theme === 'light' ? (
+            <Moon size={17} className="theme-switch-icon moon-icon" />
+          ) : (
+            <Sun size={17} className="theme-switch-icon sun-icon" />
+          )}
         </button>
 
         {/* NOTIFICATIONS BELL & DRAWER */}
@@ -544,11 +532,11 @@ function Header({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="drawer-title">Notifications</span>
                   {unreadCount > 0 ? (
-                    <span className="badge badge-purple" style={{ fontSize: '10px' }}>
+                    <span className="badge badge-red" style={{ fontSize: '10px' }}>
                       {unreadCount} unread
                     </span>
                   ) : notifications.length > 0 ? (
-                    <span className="badge badge-purple" style={{ fontSize: '10px', opacity: 0.75 }}>
+                    <span className="badge badge-green" style={{ fontSize: '10px' }}>
                       All caught up
                     </span>
                   ) : null}
@@ -635,7 +623,7 @@ function Header({
                             <CheckCircle2 size={16} color="#10B981" className="notification-icon" style={{ flexShrink: 0, marginTop: '2px' }} />
                           )}
                           {(notif.type === 'info' || !notif.type) && (
-                            <Info size={16} color="#7C3AED" className="notification-icon" style={{ flexShrink: 0, marginTop: '2px' }} />
+                            <Info size={16} color="var(--brand)" className="notification-icon" style={{ flexShrink: 0, marginTop: '2px' }} />
                           )}
                           <div style={{ flex: 1, overflow: 'hidden' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>

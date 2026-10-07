@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
@@ -13,12 +14,14 @@ import Settings from './pages/Settings'
 import ProtectedRoute from './components/ProtectedRoute'
 import VerifyOTP from './pages/VerifyOTP'
 import { SidebarProvider } from './components/SidebarProvider'
+import { ThemeProvider } from './components/ThemeProvider'
 
 function App() {
   return (
-    <BrowserRouter>
-      <SidebarProvider>
-        <Toaster
+    <ThemeProvider>
+      <BrowserRouter>
+        <SidebarProvider>
+          <Toaster
           position="top-right"
           toastOptions={{
             style: {
@@ -31,7 +34,7 @@ function App() {
           }}
         />
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
@@ -48,6 +51,7 @@ function App() {
         </Routes>
       </SidebarProvider>
     </BrowserRouter>
+  </ThemeProvider>
   )
 }
 
