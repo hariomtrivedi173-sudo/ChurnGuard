@@ -7,6 +7,7 @@ import {
   Search, ChevronLeft, ChevronRight, Trash2, Users, Database,
   UserPlus, Edit3, X
 } from 'lucide-react'
+import { formatCurrency, getActiveCurrency } from '../utils/formatters'
 
 const AVATAR_COLORS = ['#4F46E5', '#3B82F6', '#0EA5E9', '#10B981', '#F59E0B', '#64748B', '#6366F1', '#14B8A6']
 
@@ -57,7 +58,7 @@ function mapRecord(r, i = 0) {
     paperlessBilling: r.PaperlessBilling || 'Yes',
     monthlyCharges:   monthly,
     totalCharges:     total,
-    spend:            total > 0 ? `₹${Math.round(total).toLocaleString('en-IN')}` : (monthly > 0 ? `₹${Math.round(monthly).toLocaleString('en-IN')}/mo` : 'N/A'),
+    spend:            total > 0 ? formatCurrency(total) : (monthly > 0 ? `${formatCurrency(monthly)}/mo` : 'N/A'),
     tenure:           tenure > 0 ? `${tenure} mo` : '0 mo',
     tenureNum:        tenure,
     riskLevel,
@@ -102,6 +103,16 @@ export default function Customers() {
   const [searchInput,    setSearchInput]    = useState('')
   const [riskFilter,     setRiskFilter]     = useState('all')
   const [deletingId,     setDeletingId]     = useState(null)
+  const [, setCurrencyTick] = useState(getActiveCurrency)
+
+  useEffect(() => {
+    function handleRegionalChange() {
+      setCurrencyTick(getActiveCurrency())
+      setRecords(prev => prev.map((r, i) => mapRecord(r, i)))
+    }
+    window.addEventListener('churnguard_regional_updated', handleRegionalChange)
+    return () => window.removeEventListener('churnguard_regional_updated', handleRegionalChange)
+  }, [])
 
   // Modal states
   const [showAddModal,   setShowAddModal]   = useState(false)
@@ -532,7 +543,7 @@ export default function Customers() {
                           {c.churn === 'Yes' || c.churn === true ? '● Churned' : '● Retained'}
                         </span>
                       ) : (
-                        <span style={{ fontSize: '11px', color: 'var(--slate-400)' }}>N/A</span>
+                        <span style={{ fontSize: '11px', color: 'var(--slate-500)' }}>N/A</span>
                       )}
                     </td>
 

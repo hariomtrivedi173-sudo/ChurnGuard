@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
@@ -8,30 +8,42 @@ import {
 } from 'lucide-react'
 import { useSidebar } from './useSidebar'
 import ChurnGuardLogo from './ChurnGuardLogo'
+import { clearAuth } from '../utils/auth'
+import { t, getActiveLanguage } from '../utils/formatters'
 
 const navMenu = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/customers', label: 'Customers', icon: Users },
-  { path: '/predict', label: 'Predict Churn', icon: Zap },
-  { path: '/upload', label: 'Upload Dataset', icon: UploadCloud },
-  { path: '/analytics', label: 'Analytics', icon: BarChart2 },
-  { path: '/reports', label: 'Reports', icon: FileText },
+  { path: '/dashboard', key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/customers', key: 'customers', label: 'Customers', icon: Users },
+  { path: '/predict', key: 'predict', label: 'Predict Churn', icon: Zap },
+  { path: '/upload', key: 'upload', label: 'Upload Dataset', icon: UploadCloud },
+  { path: '/analytics', key: 'analytics', label: 'Analytics', icon: BarChart2 },
+  { path: '/reports', key: 'reports', label: 'Reports', icon: FileText },
 ]
 
 const accountMenu = [
-  { path: '/settings', label: 'Settings', icon: SettingsIcon },
+  { path: '/settings', key: 'settings', label: 'Settings', icon: SettingsIcon },
 ]
 
 function Sidebar() {
   const navigate = useNavigate()
   const { isCollapsed, toggleSidebar, isMobileOpen, closeMobileSidebar } = useSidebar()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [currentLang, setCurrentLang] = useState(getActiveLanguage)
+
+  useEffect(() => {
+    function handleRegionalChange() {
+      setCurrentLang(getActiveLanguage())
+    }
+    window.addEventListener('churnguard_regional_updated', handleRegionalChange)
+    window.addEventListener('storage', handleRegionalChange)
+    return () => {
+      window.removeEventListener('churnguard_regional_updated', handleRegionalChange)
+      window.removeEventListener('storage', handleRegionalChange)
+    }
+  }, [])
 
   function handleConfirmLogout() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('company_id')
-    localStorage.removeItem('user_profile')
-    sessionStorage.clear()
+    clearAuth()
     setShowLogoutModal(false)
     if (isMobileOpen) closeMobileSidebar()
     toast.success('You have been logged out.')
@@ -120,6 +132,7 @@ function Sidebar() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {navMenu.map(item => {
                 const Icon = item.icon
+                const labelText = t(item.key, currentLang)
                 return (
                   <NavLink
                     key={item.path}
@@ -127,13 +140,13 @@ function Sidebar() {
                     className={({ isActive }) =>
                       `sidebar-nav-item ${isActive ? 'active' : ''} ${isCollapsed ? 'icon-only' : ''}`
                     }
-                    aria-label={item.label}
+                    aria-label={labelText}
                   >
                     <Icon size={18} />
-                    {!isCollapsed && <span className="sidebar-nav-label">{item.label}</span>}
+                    {!isCollapsed && <span className="sidebar-nav-label">{labelText}</span>}
                     {isCollapsed && (
                       <span className="sidebar-tooltip" role="tooltip">
-                        {item.label}
+                        {labelText}
                       </span>
                     )}
                   </NavLink>
@@ -148,6 +161,7 @@ function Sidebar() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {accountMenu.map(item => {
                 const Icon = item.icon
+                const labelText = t(item.key, currentLang)
                 return (
                   <NavLink
                     key={item.path}
@@ -155,13 +169,13 @@ function Sidebar() {
                     className={({ isActive }) =>
                       `sidebar-nav-item ${isActive ? 'active' : ''} ${isCollapsed ? 'icon-only' : ''}`
                     }
-                    aria-label={item.label}
+                    aria-label={labelText}
                   >
                     <Icon size={18} />
-                    {!isCollapsed && <span className="sidebar-nav-label">{item.label}</span>}
+                    {!isCollapsed && <span className="sidebar-nav-label">{labelText}</span>}
                     {isCollapsed && (
                       <span className="sidebar-tooltip" role="tooltip">
-                        {item.label}
+                        {labelText}
                       </span>
                     )}
                   </NavLink>
@@ -264,7 +278,7 @@ function Sidebar() {
                     className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
                   >
                     <Icon size={18} />
-                    <span>{item.label}</span>
+                    <span>{t(item.key, currentLang)}</span>
                   </NavLink>
                 )
               })}
@@ -284,7 +298,7 @@ function Sidebar() {
                     className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
                   >
                     <Icon size={18} />
-                    <span>{item.label}</span>
+                    <span>{t(item.key, currentLang)}</span>
                   </NavLink>
                 )
               })}

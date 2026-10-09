@@ -15,10 +15,15 @@ export function ThemeProvider({ children }) {
     }
   })
 
-  // Synchronize data-theme on <html> and localStorage whenever theme changes
+  // Synchronize data-theme and dark class on <html> and localStorage whenever theme changes
   useEffect(() => {
     try {
       document.documentElement.setAttribute('data-theme', theme)
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
       localStorage.setItem('theme', theme)
       window.dispatchEvent(new CustomEvent('churnguard_theme_changed', { detail: { theme } }))
     } catch {

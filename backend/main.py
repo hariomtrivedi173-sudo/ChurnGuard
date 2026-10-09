@@ -29,7 +29,7 @@ from datetime import datetime, timezone, timedelta
 
 from database import customer_collection, user_collection, telco_collection, notification_collection, otp_collection, database
 from auth import hash_password, verify_password, create_access_token, get_current_user, get_current_user_doc, get_company_id_for_name
-from mailer import send_otp_email, send_registration_otp_email_with_code, mask_email
+from mailer import send_otp_email, send_registration_otp_email_with_code, mask_email, is_dev_mode
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ml.predict import predict_churn
@@ -815,11 +815,14 @@ async def register_user(user: RegisterUser):
         )
 
     print(f"[Register] Verification email sent to {mask_email(norm_email)}")
-    return {
+    response_data = {
         "message": "Verification code sent to your email. Please check your inbox and spam folder.",
         "masked_email": mask_email(norm_email),
         "step": "verify_otp"
     }
+    if is_dev_mode():
+        response_data["dev_otp"] = otp_code
+    return response_data
 
 
 class RegistrationOtpVerify(BaseModel):
@@ -988,10 +991,13 @@ async def resend_registration_otp(req: RegistrationResendOtp):
         )
 
     print(f"[Resend] Verification email resent to {mask_email(norm_email)}")
-    return {
+    response_data = {
         "message": "A new verification code has been sent to your email.",
         "masked_email": mask_email(norm_email)
     }
+    if is_dev_mode():
+        response_data["dev_otp"] = otp_code
+    return response_data
 
 
 @app.post("/login")
@@ -1306,11 +1312,14 @@ async def _handle_request_password_otp(req: PasswordOtpRequest, user_doc: dict):
             detail=f"Could not send verification email ({type(exc).__name__}: {exc}). Please check SMTP configuration."
         )
 
-    return {
+    response_data = {
         "success": True,
         "message": "Verification code sent to your email.",
         "masked_email": mask_email(user_doc["email"])
     }
+    if is_dev_mode():
+        response_data["dev_otp"] = otp_code
+    return response_data
 
 
 async def _handle_verify_password_otp(req: PasswordOtpVerify, user_doc: dict):
@@ -1637,11 +1646,15 @@ async def clean_dataset(file: UploadFile = File(...), user_doc: dict = Depends(g
     contents = await file.read()
     df = pd.read_csv(io.BytesIO(contents))
 
-    blank_mask  = df["TotalCharges"].str.strip() == ""
-    blank_count = int(blank_mask.sum())
+    if "TotalCharges" in df.columns:
+        blank_mask = df["TotalCharges"].isna() | (df["TotalCharges"].astype(str).str.strip().isin(["", "nan", "NaN", "None"]))
+        blank_count = int(blank_mask.sum())
+        df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce").fillna(0)
+    else:
+        blank_count = 0
 
-    df["TotalCharges"]  = pd.to_numeric(df["TotalCharges"], errors="coerce").fillna(0)
-    df["SeniorCitizen"] = df["SeniorCitizen"].map({0: "No", 1: "Yes"})
+    if "SeniorCitizen" in df.columns:
+        df["SeniorCitizen"] = df["SeniorCitizen"].map({0: "No", 1: "Yes"}).fillna(df["SeniorCitizen"])
 
     duplicates_removed = int(df.duplicated().sum())
     df = df.drop_duplicates()

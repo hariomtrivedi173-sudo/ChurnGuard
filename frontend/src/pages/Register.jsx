@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { registerUser, verifyRegistrationOtp, resendRegistrationOtp } from '../api/auth'
 import ChurnGuardLogo from '../components/ChurnGuardLogo'
 import { useTheme } from '../components/useTheme'
+import { getValidToken } from '../utils/auth'
 import {
   UserPlus, CheckCircle2, ArrowRight, Building2,
   Mail, Lock, Eye, EyeOff, ArrowLeft, Phone,
@@ -120,6 +121,21 @@ function Register() {
   const [resendCooldown, setResendCooldown] = useState(0)
   const [resendLoading,  setResendLoading]  = useState(false)
   const otpRefs = useRef([])
+
+  useEffect(() => {
+    if (getValidToken()) {
+      navigate('/dashboard', { replace: true })
+      return
+    }
+
+    function handlePageShow() {
+      if (getValidToken()) {
+        navigate('/dashboard', { replace: true })
+      }
+    }
+    window.addEventListener('pageshow', handlePageShow)
+    return () => window.removeEventListener('pageshow', handlePageShow)
+  }, [navigate])
 
   // Countdown timer for resend cooldown
   useEffect(() => {

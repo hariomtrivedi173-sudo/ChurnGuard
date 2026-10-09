@@ -18,15 +18,9 @@ import {
   Shield, CheckCircle2
 } from 'lucide-react'
 
-const AVATAR_COLORS = ['#4F46E5', '#3B82F6', '#0EA5E9', '#10B981', '#F59E0B', '#64748B', '#6366F1', '#14B8A6']
+import { formatCurrency, getActiveCurrency } from '../utils/formatters'
 
-function formatCurrency(val) {
-  if (!val && val !== 0) return '—'
-  if (val >= 10_000_000) return `₹${(val / 10_000_000).toFixed(1)}Cr`
-  if (val >= 100_000)    return `₹${(val / 100_000).toFixed(1)}L`
-  if (val >= 1_000)      return `₹${(val / 1_000).toFixed(1)}K`
-  return `₹${Math.round(val).toLocaleString('en-IN')}`
-}
+const AVATAR_COLORS = ['#4F46E5', '#3B82F6', '#0EA5E9', '#10B981', '#F59E0B', '#64748B', '#6366F1', '#14B8A6']
 
 function timeAgo(isoString) {
   if (!isoString) return ''
@@ -104,7 +98,16 @@ export default function Dashboard() {
   const [loading,       setLoading]       = useState(true)
   const [analyzing,     setAnalyzing]     = useState(false)
   const [error,         setError]         = useState('')
+  const [, setCurrencyTick] = useState(getActiveCurrency)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    function handleRegionalChange() {
+      setCurrencyTick(getActiveCurrency())
+    }
+    window.addEventListener('churnguard_regional_updated', handleRegionalChange)
+    return () => window.removeEventListener('churnguard_regional_updated', handleRegionalChange)
+  }, [])
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -437,7 +440,7 @@ export default function Dashboard() {
               <div>
                 <p className="dashboard-stat-title">Total MRR</p>
                 <p className="dashboard-stat-number">
-                  {loading ? '—' : (totalMRRRaw > 0 ? formatCurrency(totalMRRRaw) : '₹0')}
+                  {loading ? '—' : (totalMRRRaw > 0 ? formatCurrency(totalMRRRaw) : formatCurrency(0))}
                 </p>
               </div>
               <div className="dashboard-stat-icon-wrap">
@@ -1028,7 +1031,7 @@ export default function Dashboard() {
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3, margin: 0 }}>{item.title}</p>
                         <p style={{ fontSize: '11px', color: 'var(--slate-500)', marginTop: '2px', lineHeight: 1.3, margin: 0 }}>{item.sub}</p>
-                        <p style={{ fontSize: '10px', color: 'var(--slate-400)', marginTop: '3px', margin: 0 }}>{item.time}</p>
+                        <p style={{ fontSize: '10px', color: 'var(--slate-500)', marginTop: '3px', margin: 0 }}>{item.time}</p>
                       </div>
                     </div>
                   )

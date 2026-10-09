@@ -14,6 +14,7 @@ import { getSuggestions } from '../utils/searchIndex'
 import toast from 'react-hot-toast'
 import { useSidebar } from './useSidebar'
 import { useTheme } from './useTheme'
+import { clearAuth } from '../utils/auth'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -289,10 +290,7 @@ function Header({
   }
 
   function handleExecuteLogout() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('company_id')
-    localStorage.removeItem('user_profile')
-    sessionStorage.clear()
+    clearAuth()
     setNotifications([])
     setUnreadCount(0)
     setShowLogoutModal(false)

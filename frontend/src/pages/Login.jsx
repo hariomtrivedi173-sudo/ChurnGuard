@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { loginUser } from '../api/auth'
 import ChurnGuardLogo from '../components/ChurnGuardLogo'
 import { useTheme } from '../components/useTheme'
+import { getValidToken } from '../utils/auth'
 import {
   Lock, Mail, Eye, EyeOff,
   CheckCircle2, ArrowRight, X, AlertCircle, HelpCircle,
@@ -24,12 +25,25 @@ function Login() {
   const navigate = useNavigate()
 
   useEffect(() => {
+    if (getValidToken()) {
+      navigate('/dashboard', { replace: true })
+      return
+    }
+
     const savedEmail = localStorage.getItem('churnguard_remember_email')
     if (savedEmail) {
       setEmail(savedEmail)
       setRememberMe(true)
     }
-  }, [])
+
+    function handlePageShow() {
+      if (getValidToken()) {
+        navigate('/dashboard', { replace: true })
+      }
+    }
+    window.addEventListener('pageshow', handlePageShow)
+    return () => window.removeEventListener('pageshow', handlePageShow)
+  }, [navigate])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -60,6 +74,7 @@ function Login() {
         localStorage.removeItem('churnguard_remember_email')
       }
 
+      window.dispatchEvent(new Event('churnguard_auth_changed'))
       toast.success('Welcome back! Loading dashboard…')
       navigate('/dashboard')
     } catch (err) {
@@ -74,6 +89,7 @@ function Login() {
   function handleForgotSubmit(e) {
     e.preventDefault()
     if (!forgotEmail) return
+    console.log(`[ForgotPassword] Password reset request dispatched for: ${forgotEmail}`)
     setForgotSent(true)
     toast.success('Password reset instructions sent if account exists.')
   }
@@ -331,7 +347,7 @@ function Login() {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'var(--slate-400)',
+                  color: 'var(--slate-500)',
                   cursor: 'pointer',
                   padding: '4px',
                   borderRadius: '4px'

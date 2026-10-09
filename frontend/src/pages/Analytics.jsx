@@ -9,14 +9,7 @@ import { BarChart2, CheckCircle2 } from 'lucide-react'
 import { getDashboardStats } from '../api/dashboard'
 import { getMLMetrics } from '../api/metrics'
 import toast from 'react-hot-toast'
-
-function formatCurrency(val) {
-  if (!val && val !== 0) return '—'
-  if (val >= 10_000_000) return `₹${(val / 10_000_000).toFixed(1)}Cr`
-  if (val >= 100_000)    return `₹${(val / 100_000).toFixed(1)}L`
-  if (val >= 1_000)      return `₹${(val / 1_000).toFixed(1)}K`
-  return `₹${Math.round(val).toLocaleString('en-IN')}`
-}
+import { formatCurrency, getActiveCurrency } from '../utils/formatters'
 
 function CustomChartTooltip({ active, payload, label, unit = '' }) {
   if (!active || !payload || !payload.length) return null
@@ -49,6 +42,15 @@ export default function Analytics() {
   const [metrics,   setMetrics]   = useState(null)
   const [loading,   setLoading]   = useState(true)
   const [error,     setError]     = useState('')
+  const [, setCurrencyTick] = useState(getActiveCurrency)
+
+  useEffect(() => {
+    function handleRegionalChange() {
+      setCurrencyTick(getActiveCurrency())
+    }
+    window.addEventListener('churnguard_regional_updated', handleRegionalChange)
+    return () => window.removeEventListener('churnguard_regional_updated', handleRegionalChange)
+  }, [])
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -82,9 +84,9 @@ export default function Analytics() {
   const total        = stats?.total_analyzed ?? 0
   const high         = stats?.high_risk_count ?? 0
   const totalMrrRaw  = stats?.total_mrr ?? 0
-  const totalMrrStr  = stats ? (hasData ? formatCurrency(totalMrrRaw) : '₹0') : '—'
+  const totalMrrStr  = stats ? (hasData ? formatCurrency(totalMrrRaw) : formatCurrency(0)) : '—'
   const atRiskMrrRaw = hasData ? (totalMrrRaw * (high / (total || 1))) : 0
-  const atRiskMrrStr = stats ? (hasData ? formatCurrency(atRiskMrrRaw) : '₹0') : '—'
+  const atRiskMrrStr = stats ? (hasData ? formatCurrency(atRiskMrrRaw) : formatCurrency(0)) : '—'
   const segCount     = stats ? (hasData ? stats.plan_distribution?.length ?? 0 : 0) : '—'
 
   // Plan distribution data

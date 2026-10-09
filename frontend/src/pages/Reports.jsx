@@ -6,19 +6,22 @@ import { downloadReport } from '../api/reports'
 import { getDashboardStats } from '../api/dashboard'
 import { Download, Printer, Eye, FileText, Clock, X, AlertCircle, Users, BarChart2, DollarSign, CheckCircle2 } from 'lucide-react'
 
-function formatCurrency(val) {
-  if (!val && val !== 0) return '—'
-  if (val >= 10_000_000) return `₹${(val / 10_000_000).toFixed(1)}Cr`
-  if (val >= 100_000)    return `₹${(val / 100_000).toFixed(1)}L`
-  if (val >= 1_000)      return `₹${(val / 1_000).toFixed(1)}K`
-  return `₹${Math.round(val).toLocaleString('en-IN')}`
-}
+import { formatCurrency, getActiveCurrency } from '../utils/formatters'
 
 function Reports() {
   const [downloading, setDownloading] = useState('')
   const [stats,       setStats]       = useState(null)
   const [loadingStats, setLoadingStats] = useState(true)
   const [previewModal, setPreviewModal] = useState(null)
+  const [, setCurrencyTick] = useState(getActiveCurrency)
+
+  useEffect(() => {
+    function handleRegionalChange() {
+      setCurrencyTick(getActiveCurrency())
+    }
+    window.addEventListener('churnguard_regional_updated', handleRegionalChange)
+    return () => window.removeEventListener('churnguard_regional_updated', handleRegionalChange)
+  }, [])
 
   const loadStats = useCallback(async () => {
     setLoadingStats(true)
@@ -49,7 +52,12 @@ function Reports() {
   }
 
   function handlePrint() {
+    const prevTitle = document.title
+    document.title = 'ChurnGuard_Executive_Report'
     window.print()
+    setTimeout(() => {
+      document.title = prevTitle
+    }, 1000)
   }
 
   // Build preview rows from real API data

@@ -84,6 +84,80 @@ def _get_smtp_config() -> dict:
     }
 
 
+def is_dev_mode() -> bool:
+    """Return whether development mode is active via DEV_MODE env variable."""
+    return os.getenv("DEV_MODE", "false").lower() in ("true", "1", "yes", "dev", "development")
+
+
+def _safe_smtp_login(server: smtplib.SMTP, user: str, password: str) -> None:
+    """
+    Authenticate against SMTP server cleanly.
+    Avoids Python smtplib bug where a 535 rejection on AUTH PLAIN causes the server
+    to close the socket, which then causes smtplib's fallback AUTH LOGIN attempt to raise
+    an unhandled SMTPServerDisconnected (masking the true BadCredentials error).
+    """
+    server.ehlo_or_helo_if_needed()
+    if not server.has_extn("auth"):
+        raise smtplib.SMTPException("SMTP AUTH extension not supported by server.")
+
+    auth_mechanisms = server.esmtp_features.get("auth", "").upper().split()
+
+    # Prioritize LOGIN, then PLAIN
+    preferred = []
+    if "LOGIN" in auth_mechanisms:
+        preferred.append("LOGIN")
+    if "PLAIN" in auth_mechanisms:
+        preferred.append("PLAIN")
+    for m in auth_mechanisms:
+        if m not in preferred and m in ("CRAM-MD5",):
+            preferred.append(m)
+
+    last_auth_error = None
+    server.user = user
+    server.password = password
+
+    for authmethod in preferred:
+        method_name = "auth_" + authmethod.lower().replace("-", "_")
+        auth_func = getattr(server, method_name, None)
+        if not auth_func:
+            continue
+        try:
+            code, resp = server.auth(authmethod, auth_func)
+            if code in (235, 503):
+                return
+        except smtplib.SMTPAuthenticationError as auth_err:
+            last_auth_error = auth_err
+            # Provider (e.g. Gmail) explicitly rejected credentials.
+            # Stop immediately to avoid sending subsequent commands over a dead/closed socket.
+            break
+        except smtplib.SMTPServerDisconnected as disc_err:
+            if last_auth_error:
+                raise last_auth_error from disc_err
+            raise smtplib.SMTPAuthenticationError(
+                535,
+                "Authentication failed: SMTP server disconnected during authentication attempt. "
+                "Verify username and 16-character App Password (without spaces)."
+            ) from disc_err
+
+    if last_auth_error:
+        code = getattr(last_auth_error, "smtp_code", 535)
+        err_msg = str(getattr(last_auth_error, "smtp_error", last_auth_error))
+        raise smtplib.SMTPAuthenticationError(
+            code,
+            f"Authentication failed (code {code}): {err_msg}. "
+            "Verify username and 16-character App Password (without spaces)."
+        ) from last_auth_error
+
+    try:
+        server.login(user, password)
+    except smtplib.SMTPServerDisconnected as disc_err:
+        raise smtplib.SMTPAuthenticationError(
+            535,
+            "Authentication failed: SMTP server disconnected during login attempt. "
+            "Verify username and 16-character App Password (without spaces)."
+        ) from disc_err
+
+
 def _dispatch_email(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
     """
     Low-level SMTP dispatch.
@@ -93,7 +167,7 @@ def _dispatch_email(to_email: str, subject: str, html_content: str, text_content
     """
     cfg = _get_smtp_config()
 
-    is_dev = os.getenv("DEV_MODE", "false").lower() in ("true", "1", "yes", "dev", "development")
+    is_dev = is_dev_mode()
 
     if not (cfg["host"] and cfg["user"] and cfg["password"]):
         logger.error(
@@ -103,7 +177,7 @@ def _dispatch_email(to_email: str, subject: str, html_content: str, text_content
             bool(cfg["password"]),
         )
         if is_dev:
-            print(f"[Mailer DEV FALLBACK] SMTP not configured, simulating dispatch to {to_email}", flush=True)
+            print(f"[Mailer DEV FALLBACK] SMTP not configured, simulating dispatch to {mask_email(to_email)}", flush=True)
             return True
         raise RuntimeError("SMTP credentials are not configured in .env (SMTP_HOST, SMTP_USERNAME, or SMTP_PASSWORD missing)")
 
@@ -125,28 +199,42 @@ def _dispatch_email(to_email: str, subject: str, html_content: str, text_content
         context = ssl.create_default_context()
         if cfg["port"] == 465:
             with smtplib.SMTP_SSL(cfg["host"], cfg["port"], context=context, timeout=15) as server:
-                server.login(cfg["user"], cfg["password"])
+                _safe_smtp_login(server, cfg["user"], cfg["password"])
                 server.sendmail(cfg["from_"], to_email, msg.as_string())
         else:
             with smtplib.SMTP(cfg["host"], cfg["port"], timeout=15) as server:
                 server.ehlo()
                 server.starttls(context=context)
                 server.ehlo()
-                server.login(cfg["user"], cfg["password"])
+                _safe_smtp_login(server, cfg["user"], cfg["password"])
                 server.sendmail(cfg["from_"], to_email, msg.as_string())
 
         logger.info("[Mailer] Email dispatched successfully to %s", mask_email(to_email))
         print(f"[Mailer] Email dispatched successfully to {mask_email(to_email)}", flush=True)
         return True
 
-    except (smtplib.SMTPAuthenticationError, smtplib.SMTPConnectError, smtplib.SMTPException, OSError) as exc:
+    except smtplib.SMTPAuthenticationError as exc:
+        logger.error("[Mailer] SMTP authentication failed: %s", exc)
+        print(f"[Mailer] SMTP authentication failed: {exc}", flush=True)
+        if is_dev:
+            print(f"[Mailer DEV FALLBACK] Simulated email dispatch to {mask_email(to_email)} (auth failure in dev mode)", flush=True)
+            return True
+        raise RuntimeError(f"SMTP authentication failure ({exc})") from exc
+
+    except (smtplib.SMTPConnectError, smtplib.SMTPException, OSError) as exc:
         logger.error("[Mailer] SMTP error: %s: %s", type(exc).__name__, exc)
         print(f"[Mailer] SMTP error: {type(exc).__name__}: {exc}", flush=True)
+        if is_dev:
+            print(f"[Mailer DEV FALLBACK] Simulated email dispatch to {mask_email(to_email)} ({type(exc).__name__})", flush=True)
+            return True
         raise RuntimeError(f"SMTP error ({type(exc).__name__}: {exc})") from exc
 
     except Exception as exc:
         logger.exception("[Mailer] Unexpected error during email dispatch: %s", exc)
         print(f"[Mailer] Unexpected error: {type(exc).__name__}: {exc}", flush=True)
+        if is_dev:
+            print(f"[Mailer DEV FALLBACK] Simulated email dispatch to {mask_email(to_email)} after exception: {exc}", flush=True)
+            return True
         raise RuntimeError(f"Email dispatch error: {exc}") from exc
 
 

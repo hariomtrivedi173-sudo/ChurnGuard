@@ -1,1048 +1,1172 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import ChurnGuardLogo from '../components/ChurnGuardLogo'
-import { useTheme } from '../components/useTheme'
+import HeroCockpit from '../components/HeroCockpit'
+import InteractiveFigures from '../components/InteractiveFigures'
 import {
-  ArrowRight, ArrowUpRight, CheckCircle2,
-  Zap, Database, Cpu, Sliders, AlertTriangle,
-  Clock, Sparkles, Activity, FileSpreadsheet,
-  Sun, Moon
+  ArrowRight,
+  Check,
+  ChevronRight,
+  Cpu,
+  Menu,
+  Moon,
+  Radio,
+  Shield,
+  Sparkles,
+  Sun,
+  TrendingDown,
+  X,
+  Zap,
 } from 'lucide-react'
+import { useTheme } from '../components/useTheme'
+import { getValidToken } from '../utils/auth'
+
+/**
+ * ChurnGuard Landing Page
+ *
+ * Full visual redesign built with Linear-caliber craft:
+ * - Pure dusty Mauve aesthetic (50, 100, 200, 700, 800, 900, 950).
+ * - Exact structure: Hero → Product Cockpit → Predict → Explain → Act →
+ *   Interactive FIGs → Explainable AI → Retention Playbooks → Changelog → Final CTA → Footer.
+ * - Zero inline styling.
+ * - Semantic risk colors: Red (High), Amber (Medium), Green (Low).
+ * - Strictly pure monochromatic Mauve system.
+ */
 
 export default function Landing() {
   const { theme, toggleTheme } = useTheme()
-  const [activeWorkflowStep, setActiveWorkflowStep] = useState(0)
-  const [activeAnalyticsTab, setActiveAnalyticsTab] = useState('tenure')
-  const [activeRiskFilter, setActiveRiskFilter] = useState('all')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [activeStoryStep, setActiveStoryStep] = useState(0)
 
-  // Auto-advance workflow demonstration gently
+  // Auth state: resolved synchronously from storage on initial mount to eliminate flash
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getValidToken()))
+
+  useEffect(() => {
+    function syncAuthState() {
+      setIsAuthenticated(Boolean(getValidToken()))
+    }
+
+    window.addEventListener('pageshow', syncAuthState)
+    window.addEventListener('storage', syncAuthState)
+    window.addEventListener('churnguard_auth_changed', syncAuthState)
+    return () => {
+      window.removeEventListener('pageshow', syncAuthState)
+      window.removeEventListener('storage', syncAuthState)
+      window.removeEventListener('churnguard_auth_changed', syncAuthState)
+    }
+  }, [])
+
+  // Subtle cycle for Predict -> Explain -> Act indicator
   useEffect(() => {
     const timer = setInterval(() => {
-      setActiveWorkflowStep((prev) => (prev + 1) % 5)
-    }, 4500)
+      setActiveStoryStep((prev) => (prev + 1) % 3)
+    }, 4000)
     return () => clearInterval(timer)
   }, [])
 
-  const workflowSteps = [
-    {
-      num: '01',
-      title: 'Upload Customer Data',
-      tag: 'Raw Telemetry Ingestion',
-      desc: 'Ingests billing records, contract commitment parameters, tenure length, and service telemetry via CSV upload or real-time sync.',
-      icon: FileSpreadsheet,
-    },
-    {
-      num: '02',
-      title: 'AI Analyzes Signals',
-      tag: 'Ensemble Machine Learning',
-      desc: 'Processes 19 predictive behavioral dimensions across multi-model estimators with calibrated probability curves.',
-      icon: Cpu,
-    },
-    {
-      num: '03',
-      title: 'Predict Churn Risk',
-      tag: 'Risk Tier Stratification',
-      desc: 'Calculates precise attrition probabilities, segmenting the customer base into High (>65%), Medium (35–65%), and Low (<35%) risk tiers.',
-      icon: AlertTriangle,
-    },
-    {
-      num: '04',
-      title: 'Understand Why',
-      tag: 'Explainable AI Attribution',
-      desc: 'Isolates the mechanical friction drivers behind each flagged account, distinguishing pricing sensitivity from onboarding service gaps.',
-      icon: Sliders,
-    },
-    {
-      num: '05',
-      title: 'Take Action',
-      tag: 'Operational Retention Playbooks',
-      desc: 'Deploys prescribed customer success interventions, automated contract transition incentives, and proactive team workflows.',
-      icon: CheckCircle2,
-    },
-  ]
-
-  const sampleRiskAccounts = [
-    { id: '#CUST-7590', name: 'Apex Cloud Systems', tier: 'High Risk', prob: 88.4, mrr: '₹6,450', tenure: '4 mos', contract: 'Month-to-month' },
-    { id: '#CUST-5575', name: 'Vortex Media Group', tier: 'High Risk', prob: 76.2, mrr: '₹5,695', tenure: '6 mos', contract: 'Month-to-month' },
-    { id: '#CUST-3668', name: 'Krypton Logistics', tier: 'Medium Risk', prob: 48.1, mrr: '₹5,385', tenure: '14 mos', contract: 'One year' },
-    { id: '#CUST-2184', name: 'Solaria BioLabs', tier: 'Medium Risk', prob: 41.5, mrr: '₹3,200', tenure: '18 mos', contract: 'Month-to-month' },
-    { id: '#CUST-9012', name: 'Zenith Retail Corp', tier: 'Low Risk', prob: 12.8, mrr: '₹8,900', tenure: '42 mos', contract: 'Two year' },
-    { id: '#CUST-4431', name: 'Atlas Data Services', tier: 'Low Risk', prob: 8.4, mrr: '₹4,150', tenure: '56 mos', contract: 'Two year' },
-  ]
-
-  const filteredAccounts = activeRiskFilter === 'all'
-    ? sampleRiskAccounts
-    : sampleRiskAccounts.filter(acc => acc.tier.toLowerCase().includes(activeRiskFilter.toLowerCase()))
 
   return (
-    <div className="landing-page-wrap">
+    <div className="landing-page-wrap min-h-dvh bg-mauve-50 dark:bg-mauve-950 text-mauve-950 dark:text-mauve-50 antialiased selection:bg-mauve-200 dark:selection:bg-mauve-800 font-sans overflow-x-clip transition-colors">
+      
       {/* ─────────────────────────────────────────────────────────────
-          1. NAVIGATION
+          1. NAVIGATION (Sticky, Thin Border, Backdrop Blur)
          ───────────────────────────────────────────────────────────── */}
-      <nav className="landing-nav" aria-label="Main Navigation">
-        <div className="landing-nav-inner">
-          <ChurnGuardLogo
-            variant="landing"
-            size="md"
-            linkTo="/"
-            showWordmark={true}
-            showTagline={true}
-            tagline="AI Churn Intelligence"
-          />
+      <header className="sticky top-0 z-50 w-full bg-mauve-50/85 dark:bg-mauve-950/85 backdrop-blur-md border-b border-mauve-200 dark:border-mauve-800 transition-colors">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          
+          {/* Logo & Primary Links */}
+          <div className="flex items-center gap-8">
+            <ChurnGuardLogo
+              size="md"
+              showWordmark={true}
+              linkTo="/"
+            />
 
-          <ul className="landing-nav-links">
-            <li>
-              <a href="#product" className="landing-nav-link">Product</a>
-            </li>
-            <li>
-              <a href="#workflow" className="landing-nav-link">How It Works</a>
-            </li>
-            <li>
-              <a href="#analytics" className="landing-nav-link">Analytics</a>
-            </li>
-            <li>
-              <a href="#features" className="landing-nav-link">Features</a>
-            </li>
-          </ul>
+            <nav className="hidden lg:flex items-center gap-6 text-xs text-mauve-700 dark:text-mauve-200 font-medium tracking-tight">
+              <a href="#product" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">
+                Product
+              </a>
+              <a href="#solutions" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">
+                Solutions
+              </a>
+              <a href="#how-it-works" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">
+                How It Works
+              </a>
+              <a href="#figures" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">
+                Architecture
+              </a>
+              <a href="#explainable-ai" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">
+                Explainable AI
+              </a>
+              <a href="#playbooks" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">
+                Playbooks
+              </a>
+              <a href="#changelog" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">
+                Changelog
+              </a>
+            </nav>
+          </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Right Action Group */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            
+            {/* Theme Toggle Button */}
             <button
               id="landing-theme-toggle"
               type="button"
               onClick={toggleTheme}
-              className="navbar-icon-btn theme-btn"
+              className="w-8 h-8 rounded-md border border-mauve-200 dark:border-mauve-800 bg-white dark:bg-mauve-900 text-mauve-700 dark:text-mauve-200 hover:text-mauve-950 dark:hover:text-mauve-50 hover:bg-mauve-100 dark:hover:bg-mauve-800 flex items-center justify-center transition-colors cursor-pointer shadow-xs"
               title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-              aria-label={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-              aria-pressed={theme === 'dark'}
-              style={{ width: '36px', height: '36px' }}
+              aria-label="Toggle theme mode"
             >
-              {theme === 'light' ? (
-                <Moon size={16} className="theme-switch-icon moon-icon" />
-              ) : (
-                <Sun size={16} className="theme-switch-icon sun-icon" />
-              )}
+              {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
             </button>
-            <Link
-              to="/login"
-              className="landing-nav-link"
-              style={{ fontWeight: 600 }}
+
+            {isAuthenticated ? (
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-full text-xs font-semibold bg-mauve-950 text-mauve-50 hover:bg-mauve-900 dark:bg-mauve-50 dark:text-mauve-950 dark:hover:bg-mauve-100 transition-all duration-150 active:scale-95 shadow-xs"
+              >
+                Dashboard
+                <ArrowRight size={13} className="ml-1" />
+              </Link>
+            ) : (
+              <>
+                {/* Login Link */}
+                <Link
+                  to="/login"
+                  className="text-xs font-medium text-mauve-700 dark:text-mauve-200 hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors px-2 py-1"
+                >
+                  Log in
+                </Link>
+
+                {/* Primary CTA (Get Started -> /register) */}
+                <Link
+                  to="/register"
+                  className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-full text-xs font-semibold bg-mauve-950 text-mauve-50 hover:bg-mauve-900 dark:bg-mauve-50 dark:text-mauve-950 dark:hover:bg-mauve-100 transition-all duration-150 active:scale-95 shadow-xs"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
+
+            {/* Mobile Hamburger Toggle */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden w-8 h-8 rounded-md border border-mauve-200 dark:border-mauve-800 flex items-center justify-center text-mauve-700 dark:text-mauve-200"
+              aria-label="Toggle navigation menu"
             >
-              Login
-            </Link>
-            <Link
-              to="/register"
-              className="landing-btn-hero landing-btn-primary"
-              style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '10px' }}
-            >
-              Get Started
-              <ArrowRight size={14} />
-            </Link>
+              {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
+            </button>
+
           </div>
         </div>
-      </nav>
+
+        {/* Mobile Full-Width Drawer */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden w-full bg-mauve-50 dark:bg-mauve-950 border-b border-mauve-200 dark:border-mauve-800 px-4 py-6 space-y-4 animate-in fade-in duration-150">
+            <nav className="flex flex-col space-y-3 text-sm font-medium text-mauve-700 dark:text-mauve-200">
+              <a
+                href="#product"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-1 hover:text-mauve-950 dark:hover:text-mauve-50"
+              >
+                Product
+              </a>
+              <a
+                href="#solutions"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-1 hover:text-mauve-950 dark:hover:text-mauve-50"
+              >
+                Solutions
+              </a>
+              <a
+                href="#how-it-works"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-1 hover:text-mauve-950 dark:hover:text-mauve-50"
+              >
+                How It Works
+              </a>
+              <a
+                href="#figures"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-1 hover:text-mauve-950 dark:hover:text-mauve-50"
+              >
+                Architecture
+              </a>
+              <a
+                href="#explainable-ai"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-1 hover:text-mauve-950 dark:hover:text-mauve-50"
+              >
+                Explainable AI
+              </a>
+              <a
+                href="#playbooks"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-1 hover:text-mauve-950 dark:hover:text-mauve-50"
+              >
+                Playbooks
+              </a>
+              <a
+                href="#changelog"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-1 hover:text-mauve-950 dark:hover:text-mauve-50"
+              >
+                Changelog
+              </a>
+            </nav>
+
+            <div className="pt-4 border-t border-mauve-200 dark:border-mauve-800 flex items-center justify-between">
+              {isAuthenticated ? (
+                <Link
+                  to="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="inline-flex items-center justify-center w-full px-4 py-2 rounded-full text-xs font-semibold bg-mauve-950 text-mauve-50 dark:bg-mauve-50 dark:text-mauve-950 shadow-xs"
+                >
+                  Go to Dashboard
+                  <ArrowRight size={13} className="ml-1.5" />
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-sm font-medium text-mauve-700 dark:text-mauve-200"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-full text-xs font-semibold bg-mauve-950 text-mauve-50 dark:bg-mauve-50 dark:text-mauve-950 shadow-xs"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </header>
 
       {/* ─────────────────────────────────────────────────────────────
-          2. HERO
+          2. HERO SECTION
          ───────────────────────────────────────────────────────────── */}
-      <section className="landing-hero-section landing-grid-bg">
-        <div style={{ marginBottom: '16px' }}>
-          <span className="figure-badge">
-            <Sparkles size={12} />
-            Enterprise Retention Intelligence
-          </span>
-        </div>
-
-        <h1 className="landing-hero-headline">
-          Predict customer churn before it becomes revenue loss.
-        </h1>
-
-        <p className="landing-hero-sub">
-          ChurnGuard ingests customer usage telemetry, calculates calibrated attrition risk
-          with ensemble machine learning, explains the underlying behavioral drivers, and
-          prescribes targeted retention actions.
-        </p>
-
-        <div className="landing-cta-group">
-          <Link to="/register" className="landing-btn-hero landing-btn-primary">
-            Get Started
-            <ArrowRight size={16} />
-          </Link>
-          <Link to="/dashboard" className="landing-btn-hero landing-btn-secondary">
-            Explore Dashboard
-            <ArrowUpRight size={16} color="var(--slate-400)" />
-          </Link>
-        </div>
-
-        {/* Hero Capabilities Bar */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '28px',
-            marginTop: '44px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--slate-600)' }}>
-            <CheckCircle2 size={16} color="var(--success)" />
-            <span>Ensemble Machine Learning</span>
+      <section className="relative pt-20 sm:pt-28 pb-12 sm:pb-16 text-center">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          {/* Subtle 3-Step Predict -> Explain -> Act Indicator */}
+          <div className="inline-flex items-center gap-1 sm:gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 shadow-xs mb-8 text-xs font-mono">
+            {[
+              { label: '01 PREDICT', step: 0 },
+              { label: '02 EXPLAIN', step: 1 },
+              { label: '03 ACT', step: 2 },
+            ].map((item, idx) => (
+              <div key={item.label} className="flex items-center gap-1 sm:gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveStoryStep(item.step)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
+                    activeStoryStep === item.step
+                      ? 'bg-mauve-950 text-mauve-50 dark:bg-mauve-50 dark:text-mauve-950'
+                      : 'text-mauve-700/70 dark:text-mauve-200/70 hover:text-mauve-950 dark:hover:text-mauve-50'
+                  }`}
+                >
+                  {item.label}
+                </button>
+                {idx < 2 && (
+                  <span className="text-mauve-200 dark:text-mauve-800 font-sans">→</span>
+                )}
+              </div>
+            ))}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--slate-600)' }}>
-            <CheckCircle2 size={16} color="var(--success)" />
-            <span>Calibrated Risk Scoring</span>
+
+          {/* Exact Required Headline */}
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-mauve-950 dark:text-mauve-50 leading-[1.08]">
+            The customer retention system for teams and AI agents.
+          </h1>
+
+          {/* Sub-headline: Predict -> Explain -> Act story */}
+          <p className="mt-6 text-base sm:text-lg text-mauve-700/90 dark:text-mauve-200/90 max-w-2xl mx-auto leading-relaxed">
+            Stop customer churn before renewal day. ChurnGuard predicts attrition probability with calibrated ML, explains root causes through transparent SHAP drivers, and automates retention playbooks.
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <Link
+              to="/register"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold bg-mauve-950 text-mauve-50 hover:bg-mauve-900 dark:bg-mauve-50 dark:text-mauve-950 dark:hover:bg-mauve-100 transition-all duration-150 active:scale-95 shadow-sm"
+            >
+              <span>Get Started</span>
+              <ArrowRight size={15} />
+            </Link>
+
+            <a
+              href="#how-it-works"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-medium bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 text-mauve-950 dark:text-mauve-50 hover:bg-mauve-100 dark:hover:bg-mauve-800 transition-colors shadow-xs"
+            >
+              <span>See how it works</span>
+              <ChevronRight size={14} className="text-mauve-700 dark:text-mauve-200" />
+            </a>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--slate-600)' }}>
-            <CheckCircle2 size={16} color="var(--success)" />
-            <span>Explainable Factor Attribution</span>
+
+          {/* Proof Badges */}
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-xs font-mono text-mauve-700/80 dark:text-mauve-200/80">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>Sub-50ms Inference</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>SHAP Attribution Tree</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>HubSpot & Salesforce Ready</span>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--slate-600)' }}>
-            <CheckCircle2 size={16} color="var(--success)" />
-            <span>Targeted Retention Playbooks</span>
-          </div>
+
         </div>
       </section>
 
       {/* ─────────────────────────────────────────────────────────────
-          3. HERO PRODUCT VISUALIZATION
+          3. PRODUCT COCKPIT (Dominant Desktop Experience)
          ───────────────────────────────────────────────────────────── */}
-      <section id="product" style={{ padding: '0 24px 70px 24px', maxWidth: '1200px', margin: '0 auto' }}>
-        <div className="figure-card" style={{ boxShadow: 'var(--shadow-lg)' }}>
-          {/* Mock Window Bar */}
-          <div className="figure-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EF4444' }} />
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F59E0B' }} />
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981' }} />
-              <span style={{ marginLeft: '12px', fontSize: '12px', fontFamily: 'monospace', color: 'var(--slate-500)' }}>
-                churnguard.internal / telemetry / active-cohort
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="figure-badge" style={{ fontSize: '10px', padding: '2px 8px' }}>
-                Product Visualization
-              </span>
-            </div>
-          </div>
+      <section id="product" className="pb-24 sm:pb-32">
+        <HeroCockpit />
+      </section>
 
-          {/* Product Interface Preview */}
-          <div style={{ padding: '28px', backgroundColor: 'var(--background)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-              {/* Left Column: Customer Profile & Risk Level */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="card" style={{ padding: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-                    <div>
-                      <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--slate-500)' }}>#CUST-8492</span>
-                      <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-                        Apex Cloud Systems
-                      </h3>
-                      <p style={{ fontSize: '12px', color: 'var(--slate-500)' }}>Enterprise Account · 8 months tenure · ₹6,450 / month</p>
+      {/* ─────────────────────────────────────────────────────────────
+          4. PREDICT SECTION
+         ───────────────────────────────────────────────────────────── */}
+      <section id="how-it-works" className="py-20 sm:py-28 border-t border-mauve-200 dark:border-mauve-800 bg-white/40 dark:bg-mauve-900/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            
+            <div className="lg:col-span-5 space-y-4">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider text-mauve-700 dark:text-mauve-200 bg-mauve-100 dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800">
+                <Radio size={12} className="text-mauve-700 dark:text-mauve-200" />
+                <span>Phase 01 / Predict</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-mauve-950 dark:text-mauve-50 leading-tight">
+                Predict attrition 60 days before contract expiry.
+              </h2>
+              <p className="text-sm sm:text-base text-mauve-700/90 dark:text-mauve-200/90 leading-relaxed">
+                Most teams discover customer churn on cancellation day. ChurnGuard calculates Bayesian attrition probability continuously across 48+ behavioural telemetries.
+              </p>
+
+              <div className="space-y-3 pt-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-mauve-100 dark:bg-mauve-900 text-mauve-950 dark:text-mauve-50 flex items-center justify-center shrink-0 mt-0.5 border border-mauve-200 dark:border-mauve-800">
+                    <Check size={12} />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-mauve-950 dark:text-mauve-50">
+                      Multi-Signal Ingestion Pipeline
                     </div>
-                    <span className="badge badge-red" style={{ fontSize: '12px', padding: '4px 10px' }}>
-                      High Risk
+                    <div className="text-xs text-mauve-700/80 dark:text-mauve-200/80">
+                      Streams login cadence, seat allocation decay, open ticket latency, and billing changes.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-mauve-100 dark:bg-mauve-900 text-mauve-950 dark:text-mauve-50 flex items-center justify-center shrink-0 mt-0.5 border border-mauve-200 dark:border-mauve-800">
+                    <Check size={12} />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-mauve-950 dark:text-mauve-50">
+                      Three-Tier Calibrated Risk Scoring
+                    </div>
+                    <div className="text-xs text-mauve-700/80 dark:text-mauve-200/80">
+                      Accounts bucket automatically into High Risk (&gt;70%), Medium Risk (35-70%), or Low Risk (&lt;35%).
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Visual Signal Matrix */}
+            <div className="lg:col-span-7">
+              <div className="p-6 rounded-lg bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 shadow-sm space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-mauve-200 dark:border-mauve-800">
+                  <div className="text-xs font-mono font-semibold text-mauve-950 dark:text-mauve-50">
+                    RISK TIER THRESHOLDS
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-500 font-semibold">
+                    CALIBRATED AUC 0.942
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {/* High Risk Tier */}
+                  <div className="p-3.5 rounded-md bg-red-500/5 border border-red-500/20 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+                      <div>
+                        <div className="text-xs font-bold text-red-600 dark:text-red-400">
+                          Critical Risk Tier (&gt;70%)
+                        </div>
+                        <div className="text-[11px] text-mauve-700/80 dark:text-mauve-200/80">
+                          Immediate automated intervention & executive escalation dispatch.
+                        </div>
+                      </div>
+                    </div>
+                    <span className="font-mono text-xs font-bold text-red-500">
+                      14 Accounts
                     </span>
                   </div>
 
-                  {/* Probability Dial / Progress */}
-                  <div style={{ margin: '18px 0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--slate-600)' }}>Calculated Churn Probability</span>
-                      <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--danger)' }}>78.4%</span>
+                  {/* Medium Risk Tier */}
+                  <div className="p-3.5 rounded-md bg-amber-500/5 border border-amber-500/20 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+                      <div>
+                        <div className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                          Elevated Risk Tier (35% – 70%)
+                        </div>
+                        <div className="text-[11px] text-mauve-700/80 dark:text-mauve-200/80">
+                          Proactive CSM health check & feature re-onboarding workflows.
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ height: '10px', background: 'var(--slate-200)', borderRadius: '99px', overflow: 'hidden', display: 'flex' }}>
-                      <div style={{ width: '78.4%', background: 'var(--danger)', borderRadius: '99px', transition: 'width 300ms ease' }} />
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--slate-400)', marginTop: '6px' }}>
-                      <span>Safe (&lt;35%)</span>
-                      <span>Moderate (35–65%)</span>
-                      <span style={{ color: 'var(--danger)', fontWeight: 600 }}>Critical (&gt;65%)</span>
-                    </div>
+                    <span className="font-mono text-xs font-bold text-amber-500">
+                      42 Accounts
+                    </span>
                   </div>
 
-                  <div style={{ padding: '12px', borderRadius: '10px', background: 'var(--slate-50)', border: '1px solid var(--border)', fontSize: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <span style={{ color: 'var(--slate-500)' }}>Contract Type:</span>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Month-to-Month</span>
+                  {/* Low Risk Tier */}
+                  <div className="p-3.5 rounded-md bg-emerald-500/5 border border-emerald-500/20 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                      <div>
+                        <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          Healthy Tier (&lt;35%)
+                        </div>
+                        <div className="text-[11px] text-mauve-700/80 dark:text-mauve-200/80">
+                          Normal telemetry cadence, expansion signal monitoring.
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--slate-500)' }}>Support Plan:</span>
-                      <span style={{ fontWeight: 600, color: 'var(--danger)' }}>None (Self-Serve Only)</span>
-                    </div>
+                    <span className="font-mono text-xs font-bold text-emerald-500">
+                      12,424 Accounts
+                    </span>
                   </div>
                 </div>
+
+                <div className="pt-2 text-[10px] font-mono text-mauve-700/60 dark:text-mauve-200/60 flex items-center justify-between">
+                  <span>Ensemble: XGBoost + LightGBM + Bayesian Regressor</span>
+                  <span>Latency: 38ms</span>
+                </div>
               </div>
+            </div>
 
-              {/* Right Column: AI Explanation & Prescribed Recommendation */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="card" style={{ padding: '20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                    <Sliders size={16} color="var(--slate-700)" />
-                    <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                      AI Explanation — Attribution Breakdown
-                    </h4>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ─────────────────────────────────────────────────────────────
+          5. EXPLAIN SECTION
+         ───────────────────────────────────────────────────────────── */}
+      <section id="solutions" className="py-20 sm:py-28 border-t border-mauve-200 dark:border-mauve-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            
+            {/* Visual SHAP Tree Mockup */}
+            <div className="lg:col-span-7 order-2 lg:order-1">
+              <div className="p-6 rounded-lg bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 shadow-sm space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-mauve-200 dark:border-mauve-800">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={14} className="text-mauve-700 dark:text-mauve-200" />
+                    <span className="text-xs font-mono font-semibold text-mauve-950 dark:text-mauve-50">
+                      TRANSPARENT CAUSAL DRIVERS (SHAP)
+                    </span>
                   </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-mauve-100 dark:bg-mauve-800 text-mauve-700 dark:text-mauve-200">
+                    NO BLACK BOX
+                  </span>
+                </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                      <span style={{ color: 'var(--slate-700)' }}>Month-to-month commitment friction</span>
-                      <span style={{ fontWeight: 700, color: 'var(--danger)' }}>+32% Risk</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                      <span style={{ color: 'var(--slate-700)' }}>No Tech Support add-on on Fiber tier</span>
-                      <span style={{ fontWeight: 700, color: 'var(--danger)' }}>+22% Risk</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                      <span style={{ color: 'var(--slate-700)' }}>High electronic billing sensitivity</span>
-                      <span style={{ fontWeight: 700, color: 'var(--danger)' }}>+18% Risk</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                      <span style={{ color: 'var(--slate-700)' }}>Multi-user household partner anchor</span>
-                      <span style={{ fontWeight: 700, color: 'var(--success)' }}>-12% Protection</span>
-                    </div>
-                  </div>
+                <div className="p-3.5 rounded-md bg-mauve-100/50 dark:bg-mauve-950/60 text-xs text-mauve-700 dark:text-mauve-200 leading-relaxed">
+                  <strong className="text-mauve-950 dark:text-mauve-50">Plain-English Synthesis:</strong> An account does not churn because of a generic &apos;low score&apos;. ChurnGuard isolates the specific operational blocker — in this case, a 42% drop in developer seat logins following an unresolved SSO issue.
+                </div>
 
-                  {/* Recommendation Card */}
-                  <div style={{ padding: '14px', borderRadius: '12px', background: 'var(--slate-50)', border: '1px solid var(--slate-200)', borderLeft: '3px solid var(--slate-900)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                      <Zap size={15} color="var(--slate-900)" />
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--slate-900)' }}>
-                        Prescribed Retention Playbook
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-mauve-950 dark:text-mauve-50 font-medium">
+                        Active seat drop (-42%)
+                      </span>
+                      <span className="font-mono text-xs font-bold text-red-500">
+                        +36.2% Churn
                       </span>
                     </div>
-                    <p style={{ fontSize: '12px', color: 'var(--slate-700)', lineHeight: 1.45, margin: 0 }}>
-                      Transition account to Annual Commitment with complimentary 3-month Dedicated Support add-on.
-                      Estimated risk reduction: <strong>-42%</strong>.
-                    </p>
+                    <div className="w-full h-1.5 rounded-full bg-mauve-200 dark:bg-mauve-800">
+                      <div className="h-full bg-red-500 rounded-full w-[72%]" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-mauve-950 dark:text-mauve-50 font-medium">
+                        Stalled ticket latency (&gt;72h)
+                      </span>
+                      <span className="font-mono text-xs font-bold text-red-500">
+                        +27.8% Churn
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-mauve-200 dark:bg-mauve-800">
+                      <div className="h-full bg-red-500 rounded-full w-[56%]" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-mauve-950 dark:text-mauve-50 font-medium">
+                        Production API usage (Protective)
+                      </span>
+                      <span className="font-mono text-xs font-bold text-emerald-500">
+                        -9.5% Retention Shield
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-mauve-200 dark:bg-mauve-800">
+                      <div className="h-full bg-emerald-500 rounded-full w-[20%]" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ─────────────────────────────────────────────────────────────
-          4. FIG 1.0 — CHURN INTELLIGENCE (ANIMATED DATA PIPELINE)
-         ───────────────────────────────────────────────────────────── */}
-      <section style={{ padding: '60px 24px', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <span className="figure-badge">FIG 1.0</span>
-          <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', letterSpacing: '0.08em', marginTop: '6px', textTransform: 'uppercase' }}>
-            TELEMETRY INGESTION &amp; PIPELINE FLOW
-          </p>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '4px', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-            Churn Intelligence
-          </h2>
-          <p style={{ fontSize: '14px', color: 'var(--slate-600)', maxWidth: '640px', margin: '8px auto 0 auto', lineHeight: 1.5 }}>
-            Customer data streams converge into ChurnGuard's AI engine to continuously compute calibrated risk predictions and trigger proactive retention workflows.
-          </p>
-        </div>
-
-        {/* Animated Visual Canvas */}
-        <div className="figure-card" style={{ padding: '36px 24px', background: 'var(--surface)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', position: 'relative' }}>
-            {/* 1. Input Data Nodes */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '160px', flex: 1 }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase' }}>
-                Customer Data Streams
-              </span>
-              <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'var(--slate-50)', border: '1px solid var(--border)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Database size={14} color="var(--slate-600)" />
-                <span>Billing History</span>
-              </div>
-              <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'var(--slate-50)', border: '1px solid var(--border)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Clock size={14} color="var(--slate-600)" />
-                <span>Account Tenure</span>
-              </div>
-              <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'var(--slate-50)', border: '1px solid var(--border)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Activity size={14} color="var(--slate-600)" />
-                <span>Service Telemetry</span>
-              </div>
-              <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'var(--slate-50)', border: '1px solid var(--border)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sliders size={14} color="var(--slate-600)" />
-                <span>Contract Type</span>
               </div>
             </div>
 
-            {/* Connecting SVG Flow 1 */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '60px', height: '140px' }}>
-              <svg width="60" height="140" viewBox="0 0 60 140" fill="none" style={{ overflow: 'visible' }}>
-                <path d="M 0 20 Q 30 20 60 70" stroke="var(--slate-300)" strokeWidth="2" className="anim-flow-line" />
-                <path d="M 0 55 Q 30 55 60 70" stroke="var(--slate-300)" strokeWidth="2" className="anim-flow-line" />
-                <path d="M 0 85 Q 30 85 60 70" stroke="var(--slate-300)" strokeWidth="2" className="anim-flow-line" />
-                <path d="M 0 120 Q 30 120 60 70" stroke="var(--slate-300)" strokeWidth="2" className="anim-flow-line" />
-                <circle cx="30" cy="45" r="3.5" fill="var(--slate-400)" />
-                <circle cx="30" cy="95" r="3.5" fill="var(--slate-400)" />
-              </svg>
-            </div>
-
-            {/* 2. Central AI Analysis Node */}
-            <div
-              className="anim-node-pulse"
-              style={{
-                padding: '24px 20px',
-                borderRadius: '16px',
-                background: 'var(--surface)',
-                border: '1.5px solid var(--slate-300)',
-                boxShadow: 'var(--shadow-sm)',
-                textAlign: 'center',
-                minWidth: '200px',
-                flex: 1,
-              }}
-            >
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--slate-900)', margin: '0 auto 10px auto', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.12)' }}>
-                <Cpu size={22} color="#ffffff" />
+            <div className="lg:col-span-5 space-y-4 order-1 lg:order-2">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider text-mauve-700 dark:text-mauve-200 bg-mauve-100 dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800">
+                <Cpu size={12} className="text-mauve-700 dark:text-mauve-200" />
+                <span>Phase 02 / Explain</span>
               </div>
-              <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--slate-900)', margin: '0 0 4px 0' }}>
-                AI Analysis Node
-              </h4>
-              <p style={{ fontSize: '11px', color: 'var(--slate-600)', margin: 0 }}>
-                Voting Classifier Ensemble<br />(XGBoost + LightGBM + RF)
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-mauve-950 dark:text-mauve-50 leading-tight">
+                Explain the exact reasons behind every risk score.
+              </h2>
+              <p className="text-sm sm:text-base text-mauve-700/90 dark:text-mauve-200/90 leading-relaxed">
+                Black-box predictions frustrate customer success teams because they cannot diagnose why an account is slipping. ChurnGuard generates game-theoretic SHAP attributions and plain-English root causes for every customer.
               </p>
-            </div>
 
-            {/* Connecting SVG Flow 2 */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '60px', height: '140px' }}>
-              <svg width="60" height="140" viewBox="0 0 60 140" fill="none" style={{ overflow: 'visible' }}>
-                <path d="M 0 70 Q 30 70 60 40" stroke="var(--slate-300)" strokeWidth="2" className="anim-flow-line" />
-                <path d="M 0 70 Q 30 70 60 100" stroke="var(--slate-300)" strokeWidth="2" className="anim-flow-line" />
-                <circle cx="30" cy="55" r="3.5" fill="var(--danger)" />
-                <circle cx="30" cy="85" r="3.5" fill="var(--success)" />
-              </svg>
-            </div>
-
-            {/* 3. Output Stage: Prediction & Action */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '180px', flex: 1 }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase' }}>
-                Inference Outcome
-              </span>
-              <div style={{ padding: '12px', borderRadius: '10px', background: 'var(--slate-50)', border: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--slate-600)' }}>Risk Prediction</span>
-                  <span className="badge badge-red" style={{ fontSize: '10px' }}>78.4% Probability</span>
+              <div className="pt-2">
+                <div className="p-3 rounded-md bg-mauve-100/40 dark:bg-mauve-900/40 border border-mauve-200 dark:border-mauve-800 text-xs text-mauve-700 dark:text-mauve-200">
+                  <span className="font-mono font-bold text-mauve-950 dark:text-mauve-50">Local Additivity:</span> Base expected risk + Sum of feature attributions = Final predicted probability. Zero arbitrary score adjustments.
                 </div>
-                <span style={{ fontSize: '10px', color: 'var(--slate-500)' }}>Calibrated multi-model confidence</span>
-              </div>
-              <div style={{ padding: '12px', borderRadius: '10px', background: 'var(--slate-50)', border: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--slate-600)' }}>Action Dispatched</span>
-                  <span className="badge badge-green" style={{ fontSize: '10px' }}>Playbook Ready</span>
-                </div>
-                <span style={{ fontSize: '10px', color: 'var(--slate-500)' }}>CS team outreach playbook queued</span>
               </div>
             </div>
+
           </div>
+
         </div>
       </section>
 
       {/* ─────────────────────────────────────────────────────────────
-          5. FIG 2.0 — CUSTOMER RISK (MOVING CLASSIFICATION FLOW)
+          6. ACT SECTION
          ───────────────────────────────────────────────────────────── */}
-      <section style={{ padding: '60px 24px', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <span className="figure-badge">FIG 2.0</span>
-          <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', letterSpacing: '0.08em', marginTop: '6px', textTransform: 'uppercase' }}>
-            CALIBRATED RISK STRATIFICATION
-          </p>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '4px', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-            Customer Risk
-          </h2>
-          <p style={{ fontSize: '14px', color: 'var(--slate-600)', maxWidth: '640px', margin: '8px auto 0 auto', lineHeight: 1.5 }}>
-            Incoming account signals are evaluated against threshold sensitivities and dynamically categorized into operational risk cohorts.
-          </p>
-        </div>
-
-        <div className="figure-card" style={{ padding: '28px', position: 'relative' }}>
-          {/* Subtle Scanning Beam */}
-          <div className="anim-scan-beam" />
-
-          {/* Filter Pills */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => setActiveRiskFilter('all')}
-                className={`tab-pill ${activeRiskFilter === 'all' ? 'active' : ''}`}
-              >
-                All Accounts ({sampleRiskAccounts.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveRiskFilter('high')}
-                className={`tab-pill ${activeRiskFilter === 'high' ? 'active' : ''}`}
-              >
-                High Risk
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveRiskFilter('medium')}
-                className={`tab-pill ${activeRiskFilter === 'medium' ? 'active' : ''}`}
-              >
-                Medium Risk
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveRiskFilter('low')}
-                className={`tab-pill ${activeRiskFilter === 'low' ? 'active' : ''}`}
-              >
-                Low Risk
-              </button>
-            </div>
-            <span style={{ fontSize: '12px', color: 'var(--slate-500)', fontStyle: 'italic' }}>
-              Simulated Real-Time Classification
-            </span>
-          </div>
-
-          {/* 3 Risk Cohort Columns */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px' }}>
-            {/* High Risk Tier */}
-            <div style={{ borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--slate-50)', padding: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--danger)' }} />
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--danger)' }}>High Risk (&gt;65%)</span>
-                </div>
-                <span className="badge badge-red" style={{ fontSize: '10px' }}>Immediate Action</span>
+      <section className="py-20 sm:py-28 border-t border-mauve-200 dark:border-mauve-800 bg-white/40 dark:bg-mauve-900/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            
+            <div className="lg:col-span-5 space-y-4">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider text-mauve-700 dark:text-mauve-200 bg-mauve-100 dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800">
+                <Zap size={12} className="text-mauve-700 dark:text-mauve-200" />
+                <span>Phase 03 / Act</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {filteredAccounts.filter(a => a.tier === 'High Risk').map(acc => (
-                  <div key={acc.id} className="card" style={{ padding: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{acc.name}</span>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--danger)' }}>{acc.prob}%</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--slate-500)', marginTop: '4px' }}>
-                      <span>{acc.contract}</span>
-                      <span>{acc.mrr}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Medium Risk Tier */}
-            <div style={{ borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--slate-50)', padding: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--warning)' }} />
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--warning)' }}>Medium Risk (35–65%)</span>
-                </div>
-                <span className="badge badge-amber" style={{ fontSize: '10px' }}>Monitor</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {filteredAccounts.filter(a => a.tier === 'Medium Risk').map(acc => (
-                  <div key={acc.id} className="card" style={{ padding: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{acc.name}</span>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--warning)' }}>{acc.prob}%</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--slate-500)', marginTop: '4px' }}>
-                      <span>{acc.contract}</span>
-                      <span>{acc.mrr}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Low Risk Tier */}
-            <div style={{ borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--slate-50)', padding: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)' }} />
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--success)' }}>Low Risk (&lt;35%)</span>
-                </div>
-                <span className="badge badge-green" style={{ fontSize: '10px' }}>Stable</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {filteredAccounts.filter(a => a.tier === 'Low Risk').map(acc => (
-                  <div key={acc.id} className="card" style={{ padding: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{acc.name}</span>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--success)' }}>{acc.prob}%</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--slate-500)', marginTop: '4px' }}>
-                      <span>{acc.contract}</span>
-                      <span>{acc.mrr}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─────────────────────────────────────────────────────────────
-          6. FIG 3.0 — PREDICTION EXPLANATION (EXPLAINABLE AI)
-         ───────────────────────────────────────────────────────────── */}
-      <section style={{ padding: '60px 24px', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <span className="figure-badge">FIG 3.0</span>
-          <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', letterSpacing: '0.08em', marginTop: '6px', textTransform: 'uppercase' }}>
-            TRANSPARENT ATTRIBUTION ENGINE
-          </p>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '4px', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-            Prediction Explanation
-          </h2>
-          <p style={{ fontSize: '14px', color: 'var(--slate-600)', maxWidth: '640px', margin: '8px auto 0 auto', lineHeight: 1.5 }}>
-            No black-box opacity. ChurnGuard reveals the exact mechanical forces behind every prediction, separating friction drivers from loyalty anchors.
-          </p>
-        </div>
-
-        <div className="figure-card" style={{ padding: '28px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '28px' }}>
-            {/* Left: Account Attributes */}
-            <div>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase', display: 'block', marginBottom: '12px' }}>
-                Evaluated Customer Attributes
-              </span>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', borderRadius: '8px', background: 'var(--slate-50)', fontSize: '12px' }}>
-                  <span style={{ color: 'var(--slate-600)' }}>Contract Duration</span>
-                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Month-to-Month</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', borderRadius: '8px', background: 'var(--slate-50)', fontSize: '12px' }}>
-                  <span style={{ color: 'var(--slate-600)' }}>Account Tenure</span>
-                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>4 Months (Early Lifecycle)</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', borderRadius: '8px', background: 'var(--slate-50)', fontSize: '12px' }}>
-                  <span style={{ color: 'var(--slate-600)' }}>Internet Service Tier</span>
-                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Fiber Optic (No TechSupport)</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', borderRadius: '8px', background: 'var(--slate-50)', fontSize: '12px' }}>
-                  <span style={{ color: 'var(--slate-600)' }}>Payment Method</span>
-                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Electronic Check</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', borderRadius: '8px', background: 'var(--slate-50)', fontSize: '12px' }}>
-                  <span style={{ color: 'var(--slate-600)' }}>Monthly Charges</span>
-                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>₹5,850 / month</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Factor Attributions */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', textTransform: 'uppercase' }}>
-                  Attribution Factor Impact
-                </span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--danger)' }}>
-                  Overall Churn Probability: 84.6%
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--danger)' }}>Month-to-Month Contract Elasticity</span>
-                    <span style={{ fontWeight: 700, color: 'var(--danger)' }}>+34% Risk</span>
-                  </div>
-                  <div style={{ height: '7px', background: 'var(--slate-100)', borderRadius: '99px', overflow: 'hidden' }}>
-                    <div style={{ width: '85%', height: '100%', background: 'var(--danger)', borderRadius: '99px' }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--danger)' }}>Fiber Optic Without Tech Support</span>
-                    <span style={{ fontWeight: 700, color: 'var(--danger)' }}>+26% Risk</span>
-                  </div>
-                  <div style={{ height: '7px', background: 'var(--slate-100)', borderRadius: '99px', overflow: 'hidden' }}>
-                    <div style={{ width: '68%', height: '100%', background: 'var(--danger)', borderRadius: '99px' }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--danger)' }}>Electronic Check Payment Friction</span>
-                    <span style={{ fontWeight: 700, color: 'var(--danger)' }}>+16% Risk</span>
-                  </div>
-                  <div style={{ height: '7px', background: 'var(--slate-100)', borderRadius: '99px', overflow: 'hidden' }}>
-                    <div style={{ width: '42%', height: '100%', background: 'var(--danger)', borderRadius: '99px' }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--success)' }}>Multi-User Household Account (Partner)</span>
-                    <span style={{ fontWeight: 700, color: 'var(--success)' }}>-14% Retention Anchor</span>
-                  </div>
-                  <div style={{ height: '7px', background: 'var(--slate-100)', borderRadius: '99px', overflow: 'hidden' }}>
-                    <div style={{ width: '38%', height: '100%', background: 'var(--success)', borderRadius: '99px' }} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─────────────────────────────────────────────────────────────
-          7. FIG 4.0 — RECOMMENDED ACTIONS
-         ───────────────────────────────────────────────────────────── */}
-      <section style={{ padding: '60px 24px', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <span className="figure-badge">FIG 4.0</span>
-          <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', letterSpacing: '0.08em', marginTop: '6px', textTransform: 'uppercase' }}>
-            OPERATIONAL PLAYBOOK DISPATCH
-          </p>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '4px', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-            Recommended Action
-          </h2>
-          <p style={{ fontSize: '14px', color: 'var(--slate-600)', maxWidth: '640px', margin: '8px auto 0 auto', lineHeight: 1.5 }}>
-            Predictions seamlessly connect into operational playbooks for customer success teams to proactively eliminate friction before cancellation.
-          </p>
-        </div>
-
-        <div className="figure-card" style={{ padding: '32px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', position: 'relative' }}>
-            {/* Step 1: Flagged Customer */}
-            <div className="card" style={{ padding: '16px', flex: 1, minWidth: '220px' }}>
-              <span className="badge badge-red" style={{ fontSize: '10px', marginBottom: '8px' }}>High Risk Flag</span>
-              <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: '4px 0 2px 0' }}>
-                Account #7590-VHVEG
-              </h4>
-              <p style={{ fontSize: '12px', color: 'var(--slate-500)', margin: 0 }}>
-                88.4% churn risk · ₹2,985 MRR
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-mauve-950 dark:text-mauve-50 leading-tight">
+                Automate playbooks and close the retention loop.
+              </h2>
+              <p className="text-sm sm:text-base text-mauve-700/90 dark:text-mauve-200/90 leading-relaxed">
+                Insights without action produce churn. ChurnGuard connects directly to Slack, Salesforce, HubSpot, and email automation, dispatching customized playbooks the second an account passes critical thresholds.
               </p>
+
+              <div className="space-y-3 pt-3">
+                <div className="flex items-center gap-3 text-xs font-semibold text-mauve-950 dark:text-mauve-50">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>Slack alert dispatch to #customer-escalations</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs font-semibold text-mauve-950 dark:text-mauve-50">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>Automated task generation for assigned CSM in CRM</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs font-semibold text-mauve-950 dark:text-mauve-50">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>Staged pricing loyalty discounts before renewal</span>
+                </div>
+              </div>
             </div>
 
-            {/* Flow Line 1 */}
-            <div style={{ width: '40px', textAlign: 'center' }}>
-              <svg width="40" height="24" viewBox="0 0 40 24" fill="none">
-                <line x1="0" y1="12" x2="40" y2="12" stroke="var(--slate-300)" strokeWidth="2" className="anim-flow-line" />
-              </svg>
+            <div className="lg:col-span-7">
+              <div className="p-6 rounded-lg bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 shadow-sm space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-mauve-200 dark:border-mauve-800">
+                  <div className="text-xs font-mono font-semibold text-mauve-950 dark:text-mauve-50">
+                    AUTOMATED PLAYBOOK DISPATCHER
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-500 font-semibold">
+                    100% PROGRAMMATIC
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="p-3.5 rounded-md bg-mauve-100/50 dark:bg-mauve-950/60 border border-mauve-200 dark:border-mauve-800 text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded bg-mauve-950 text-mauve-50 dark:bg-mauve-50 dark:text-mauve-950 font-mono text-[10px] flex items-center justify-center font-bold">
+                        CSM
+                      </div>
+                      <div>
+                        <div className="font-semibold text-mauve-950 dark:text-mauve-50">Urgent CSM Intervention</div>
+                        <div className="text-mauve-700/80 dark:text-mauve-200/80 text-[11px]">Calendar sync + briefing pack generated</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-bold">
+                      ACTIVE
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-md bg-mauve-100/50 dark:bg-mauve-950/60 border border-mauve-200 dark:border-mauve-800 text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded bg-mauve-950 text-mauve-50 dark:bg-mauve-50 dark:text-mauve-950 font-mono text-[10px] flex items-center justify-center font-bold">
+                        SSO
+                      </div>
+                      <div>
+                        <div className="font-semibold text-mauve-950 dark:text-mauve-50">Engineering Escort</div>
+                        <div className="text-mauve-700/80 dark:text-mauve-200/80 text-[11px]">Routes stuck tickets directly to Senior Architect</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-bold">
+                      ACTIVE
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-md bg-mauve-100/50 dark:bg-mauve-950/60 border border-mauve-200 dark:border-mauve-800 text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded bg-mauve-950 text-mauve-50 dark:bg-mauve-50 dark:text-mauve-950 font-mono text-[10px] flex items-center justify-center font-bold">
+                        REV
+                      </div>
+                      <div>
+                        <div className="font-semibold text-mauve-950 dark:text-mauve-50">Loyalty Contract Incentive</div>
+                        <div className="text-mauve-700/80 dark:text-mauve-200/80 text-[11px]">15% coupon for 1-year annual lock before 18d expiry</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-bold">
+                      ACTIVE
+                    </span>
+                  </div>
+                </div>
+
+              </div>
             </div>
 
-            {/* Step 2: AI Diagnosis */}
-            <div className="card" style={{ padding: '16px', flex: 1, minWidth: '220px' }}>
-              <span className="badge badge-amber" style={{ fontSize: '10px', marginBottom: '8px' }}>Diagnosis</span>
-              <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: '4px 0 2px 0' }}>
-                Identified Friction Points
-              </h4>
-              <p style={{ fontSize: '12px', color: 'var(--slate-500)', margin: 0 }}>
-                Month-to-month commitment &amp; support gap
-              </p>
-            </div>
-
-            {/* Flow Line 2 */}
-            <div style={{ width: '40px', textAlign: 'center' }}>
-              <svg width="40" height="24" viewBox="0 0 40 24" fill="none">
-                <line x1="0" y1="12" x2="40" y2="12" stroke="var(--slate-300)" strokeWidth="2" className="anim-flow-line" />
-              </svg>
-            </div>
-
-            {/* Step 3: Prescribed Playbook */}
-            <div className="card" style={{ padding: '16px', flex: 1, minWidth: '220px', borderLeft: '3px solid var(--slate-900)' }}>
-              <span className="badge badge-green" style={{ fontSize: '10px', marginBottom: '8px' }}>Action Triggered</span>
-              <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: '4px 0 2px 0' }}>
-                Annual Plan + Support Addon
-              </h4>
-              <p style={{ fontSize: '12px', color: 'var(--slate-500)', margin: 0 }}>
-                Dispatched to Customer Success queue (-42% risk)
-              </p>
-            </div>
           </div>
+
         </div>
       </section>
 
       {/* ─────────────────────────────────────────────────────────────
-          8. FIG 5.0 — ANALYTICS
+          7. INTERACTIVE FIGURES (3-Column FIG Section)
          ───────────────────────────────────────────────────────────── */}
-      <section id="analytics" style={{ padding: '60px 24px', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <span className="figure-badge">FIG 5.0</span>
-          <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-400)', letterSpacing: '0.08em', marginTop: '6px', textTransform: 'uppercase' }}>
-            PORTFOLIO RISK DYNAMICS
-          </p>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '4px', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-            Analytics
-          </h2>
-          <p style={{ fontSize: '14px', color: 'var(--slate-600)', maxWidth: '640px', margin: '8px auto 0 auto', lineHeight: 1.5 }}>
-            Multi-cohort telemetry uncovers systemic attrition patterns across customer lifecycles, contract architectures, and revenue exposure.
-          </p>
-          <span style={{ fontSize: '11px', color: 'var(--slate-400)', display: 'block', marginTop: '4px' }}>
-            (Demo visualization — Illustrative values)
-          </span>
-        </div>
+      <InteractiveFigures />
 
-        <div className="figure-card" style={{ padding: '24px' }}>
-          {/* Tab Controls */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-            <button
-              type="button"
-              onClick={() => setActiveAnalyticsTab('tenure')}
-              className={`tab-pill ${activeAnalyticsTab === 'tenure' ? 'active' : ''}`}
-            >
-              Tenure Lifecycle (0–72m)
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveAnalyticsTab('contract')}
-              className={`tab-pill ${activeAnalyticsTab === 'contract' ? 'active' : ''}`}
-            >
-              Contract Cohorts
-            </button>
+      {/* ─────────────────────────────────────────────────────────────
+          8. EXPLAINABLE AI DEEP DIVE
+         ───────────────────────────────────────────────────────────── */}
+      <section id="explainable-ai" className="py-20 sm:py-28 lg:py-32 border-b border-mauve-200 dark:border-mauve-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="max-w-2xl mb-12 sm:mb-16">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider text-mauve-700 dark:text-mauve-200 bg-mauve-100 dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 mb-4">
+              <Sparkles size={12} className="text-mauve-700 dark:text-mauve-200" />
+              <span>Explainable AI Engine</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-mauve-950 dark:text-mauve-50">
+              Shapley decomposition for every individual account.
+            </h2>
+            <p className="mt-3 text-sm sm:text-base text-mauve-700/80 dark:text-mauve-200/80 leading-relaxed">
+              Every prediction is decomposed into additive contributions. You always know exactly what pushed the risk higher and what shielded the account.
+            </p>
           </div>
 
-          {activeAnalyticsTab === 'tenure' ? (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <div>
-                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                    Early Tenure Friction (58% of Churn Happens in Months 0–12)
-                  </h4>
-                  <p style={{ fontSize: '12px', color: 'var(--slate-500)', margin: '2px 0 0 0' }}>
-                    Attrition sensitivity drops sharply once customer lifecycle crosses the 12-month milestone.
-                  </p>
+          {/* Deep Dive Breakdown Card */}
+          <div className="rounded-lg border border-mauve-200 dark:border-mauve-800 bg-white dark:bg-mauve-900/60 p-6 sm:p-8 shadow-sm">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-mauve-200 dark:border-mauve-800 gap-4">
+              <div>
+                <div className="text-xs font-mono uppercase text-mauve-700/70 dark:text-mauve-200/70">
+                  ACCOUNT BREAKDOWN
                 </div>
-                <span className="badge badge-red" style={{ fontSize: '11px' }}>Peak Risk: 0–12m</span>
+                <div className="text-lg font-bold text-mauve-950 dark:text-mauve-50 mt-0.5">
+                  Apex Cloud Systems (CUST-8492)
+                </div>
               </div>
 
-              {/* SVG Area Sparkline / Chart */}
-              <div style={{ height: '140px', width: '100%', marginTop: '16px' }}>
-                <svg width="100%" height="100%" viewBox="0 0 600 120" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(0, 84%, 60%)" stopOpacity="0.3" />
-                      <stop offset="100%" stopColor="hsl(0, 84%, 60%)" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M 0,20 Q 80,30 150,85 T 300,105 T 450,110 T 600,115 L 600,120 L 0,120 Z"
-                    fill="url(#areaGrad)"
-                  />
-                  <path
-                    d="M 0,20 Q 80,30 150,85 T 300,105 T 450,110 T 600,115"
-                    fill="none"
-                    stroke="var(--danger)"
-                    strokeWidth="3"
-                  />
-                  <circle cx="150" cy="85" r="4" fill="var(--danger)" />
-                  <text x="160" y="80" fill="var(--slate-500)" fontSize="10" fontFamily="sans-serif">12m Inflection Point</text>
-                </svg>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--slate-400)', marginTop: '8px' }}>
-                <span>0m (New Account)</span>
-                <span>12m</span>
-                <span>24m</span>
-                <span>36m</span>
-                <span>48m</span>
-                <span>72m (Mature Baseline)</span>
+              <div className="flex items-center gap-6 font-mono text-xs">
+                <div>
+                  <span className="text-mauve-700/70 dark:text-mauve-200/70 block text-[10px]">BASE VALUE E[f(x)]</span>
+                  <span className="font-bold text-mauve-950 dark:text-mauve-50">21.0%</span>
+                </div>
+                <div>
+                  <span className="text-mauve-700/70 dark:text-mauve-200/70 block text-[10px]">OUTPUT f(x)</span>
+                  <span className="font-bold text-red-500 text-sm">88.0%</span>
+                </div>
               </div>
             </div>
-          ) : (
-            <div>
-              <div style={{ marginBottom: '14px' }}>
-                <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                  Churn Probability by Contract Commitment Type
-                </h4>
-                <p style={{ fontSize: '12px', color: 'var(--slate-500)', margin: '2px 0 0 0' }}>
-                  Two-year commitments reduce churn rate by ~90% compared to month-to-month contracts.
+
+            {/* Waterfall-Style Visual Drivers */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6">
+              
+              {/* Positive Risk Drivers (Pushing Churn Up) */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-xs font-semibold text-red-500 font-mono uppercase tracking-wider">
+                  <TrendingDown size={14} />
+                  <span>Risk Accelerators (+67.5% total push)</span>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="p-3 rounded-md bg-red-500/5 border border-red-500/20">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-mauve-950 dark:text-mauve-50">Seat Utilization Decay</span>
+                      <span className="font-mono text-red-500">+36.2%</span>
+                    </div>
+                    <div className="text-[11px] text-mauve-700/80 dark:text-mauve-200/80 mt-1">
+                      Active seats dropped from 240 to 139 over the last 14 days (-42% contraction).
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-md bg-red-500/5 border border-red-500/20">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-mauve-950 dark:text-mauve-50">Unresolved P1 Support Tickets</span>
+                      <span className="font-mono text-red-500">+27.8%</span>
+                    </div>
+                    <div className="text-[11px] text-mauve-700/80 dark:text-mauve-200/80 mt-1">
+                      3 open integration tickets stalled over 72h without engineer response.
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-md bg-red-500/5 border border-red-500/20">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-mauve-950 dark:text-mauve-50">Short Renewal Horizon</span>
+                      <span className="font-mono text-red-500">+13.5%</span>
+                    </div>
+                    <div className="text-[11px] text-mauve-700/80 dark:text-mauve-200/80 mt-1">
+                      Flexible monthly cycle expiring in 18 days with no renewal intent logged.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Negative Risk Drivers (Protective Shields) */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-500 font-mono uppercase tracking-wider">
+                  <Shield size={14} />
+                  <span>Retention Shields (-19.5% mitigation)</span>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="p-3 rounded-md bg-emerald-500/5 border border-emerald-500/20">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-mauve-950 dark:text-mauve-50">Production API Integration</span>
+                      <span className="font-mono text-emerald-500">-9.5%</span>
+                    </div>
+                    <div className="text-[11px] text-mauve-700/80 dark:text-mauve-200/80 mt-1">
+                      5 production webhooks actively processing ~45,000 monthly events.
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-md bg-emerald-500/5 border border-emerald-500/20">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-mauve-950 dark:text-mauve-50">Customer Tenure (&gt;18 Months)</span>
+                      <span className="font-mono text-emerald-500">-10.0%</span>
+                    </div>
+                    <div className="text-[11px] text-mauve-700/80 dark:text-mauve-200/80 mt-1">
+                      Historical tenure establishes established workflow stickiness.
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-md bg-mauve-100/50 dark:bg-mauve-950/60 border border-mauve-200 dark:border-mauve-800 text-xs">
+                    <div className="font-semibold text-mauve-950 dark:text-mauve-50">
+                      Recommendation for Account Executive:
+                    </div>
+                    <div className="text-mauve-700/80 dark:text-mauve-200/80 text-[11px] mt-1 leading-relaxed">
+                      Do not discuss pricing first. Solve the SAML ticket #4819 within 24 hours to eliminate the primary +27.8% friction driver, then present annual lock.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* ─────────────────────────────────────────────────────────────
+          9. RETENTION PLAYBOOKS SECTION
+         ───────────────────────────────────────────────────────────── */}
+      <section id="playbooks" className="py-20 sm:py-28 lg:py-32 border-b border-mauve-200 dark:border-mauve-800 bg-white/40 dark:bg-mauve-900/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="max-w-2xl mb-12 sm:mb-16">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider text-mauve-700 dark:text-mauve-200 bg-mauve-100 dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 mb-4">
+              <Zap size={12} className="text-mauve-700 dark:text-mauve-200" />
+              <span>Automated Interventions</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-mauve-950 dark:text-mauve-50">
+              Battle-tested playbooks triggered by telemetry.
+            </h2>
+            <p className="mt-3 text-sm sm:text-base text-mauve-700/80 dark:text-mauve-200/80 leading-relaxed">
+              Standardized, repeatable interventions designed by top SaaS customer success leaders.
+            </p>
+          </div>
+
+          {/* 4 Playbook Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            {/* Playbook 1 */}
+            <div className="p-6 rounded-lg bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-mauve-100 dark:bg-mauve-800 text-mauve-700 dark:text-mauve-200">
+                    PLAYBOOK 01
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-500 font-bold">
+                    84% Save
+                  </span>
+                </div>
+                <h3 className="text-base font-semibold text-mauve-950 dark:text-mauve-50 tracking-tight">
+                  Discount Offer & Annual Lock
+                </h3>
+                <p className="text-xs text-mauve-700/80 dark:text-mauve-200/80 mt-2 leading-relaxed">
+                  Triggered when an account with high contract sensitivity nears renewal within 30 days. Auto-stages a 15% 1-year loyalty coupon.
                 </p>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '16px' }}>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--danger)' }}>Month-to-Month Contract</span>
-                    <span style={{ fontWeight: 700, color: 'var(--danger)' }}>42.7% Churn Rate</span>
-                  </div>
-                  <div style={{ height: '8px', background: 'var(--slate-100)', borderRadius: '99px', overflow: 'hidden' }}>
-                    <div style={{ width: '42.7%', height: '100%', background: 'var(--danger)', borderRadius: '99px' }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--warning)' }}>One-Year Contract</span>
-                    <span style={{ fontWeight: 700, color: 'var(--warning)' }}>11.3% Churn Rate</span>
-                  </div>
-                  <div style={{ height: '8px', background: 'var(--slate-100)', borderRadius: '99px', overflow: 'hidden' }}>
-                    <div style={{ width: '11.3%', height: '100%', background: 'var(--warning)', borderRadius: '99px' }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--success)' }}>Two-Year Contract</span>
-                    <span style={{ fontWeight: 700, color: 'var(--success)' }}>2.8% Churn Rate</span>
-                  </div>
-                  <div style={{ height: '8px', background: 'var(--slate-100)', borderRadius: '99px', overflow: 'hidden' }}>
-                    <div style={{ width: '2.8%', height: '100%', background: 'var(--success)', borderRadius: '99px' }} />
-                  </div>
-                </div>
+              <div className="mt-6 pt-4 border-t border-mauve-200 dark:border-mauve-800 text-[11px] font-mono text-mauve-700/70 dark:text-mauve-200/70">
+                <span>Trigger: Exp &lt; 30d • Price Contraction</span>
               </div>
             </div>
-          )}
-        </div>
-      </section>
 
-      {/* ─────────────────────────────────────────────────────────────
-          9. PRODUCT WORKFLOW (01 -> 02 -> 03 -> 04 -> 05)
-         ───────────────────────────────────────────────────────────── */}
-      <section id="workflow" style={{ padding: '60px 24px', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <span className="figure-badge">Operational Architecture</span>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '8px', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-            Product Workflow
-          </h2>
-          <p style={{ fontSize: '14px', color: 'var(--slate-600)', maxWidth: '620px', margin: '8px auto 0 auto' }}>
-            A continuous closed-loop retention engine that transforms raw customer telemetry into measurable retention ROI.
-          </p>
-        </div>
-
-        {/* 5-Step Grid: Horizontal on Desktop, Vertical on Mobile */}
-        <div className="workflow-horizontal-grid">
-          {workflowSteps.map((step, idx) => {
-            const Icon = step.icon
-            const isActive = activeWorkflowStep === idx
-            return (
-              <div
-                key={step.num}
-                className="workflow-step-card"
-                onClick={() => setActiveWorkflowStep(idx)}
-                style={{
-                  cursor: 'pointer',
-                  borderColor: isActive ? 'var(--slate-900)' : 'var(--border)',
-                  backgroundColor: 'var(--surface)',
-                  boxShadow: isActive ? '0 0 0 1px var(--slate-900), var(--shadow-sm)' : 'none',
-                  transition: 'all 0.25s ease',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span className="workflow-step-num" style={{ color: isActive ? 'var(--slate-900)' : 'var(--slate-400)' }}>{step.num}</span>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: isActive ? 'var(--slate-900)' : 'var(--slate-100)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon size={15} color={isActive ? '#ffffff' : 'var(--slate-600)'} />
-                  </div>
+            {/* Playbook 2 */}
+            <div className="p-6 rounded-lg bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-mauve-100 dark:bg-mauve-800 text-mauve-700 dark:text-mauve-200">
+                    PLAYBOOK 02
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-500 font-bold">
+                    78% Save
+                  </span>
                 </div>
-                <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                  {step.title}
-                </h4>
-                <p style={{ fontSize: '11px', color: 'var(--slate-500)', lineHeight: 1.45, margin: 0 }}>
-                  {step.desc}
+                <h3 className="text-base font-semibold text-mauve-950 dark:text-mauve-50 tracking-tight">
+                  CSM Urgent Outreach
+                </h3>
+                <p className="text-xs text-mauve-700/80 dark:text-mauve-200/80 mt-2 leading-relaxed">
+                  Triggered by login contraction &gt; 35% in 14 days. Auto-schedules a 20-minute strategy review directly on the CSM&apos;s calendar with pre-filled context.
                 </p>
               </div>
-            )
-          })}
+
+              <div className="mt-6 pt-4 border-t border-mauve-200 dark:border-mauve-800 text-[11px] font-mono text-mauve-700/70 dark:text-mauve-200/70">
+                <span>Trigger: Seat Decay &gt; 35% in 14d</span>
+              </div>
+            </div>
+
+            {/* Playbook 3 */}
+            <div className="p-6 rounded-lg bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-mauve-100 dark:bg-mauve-800 text-mauve-700 dark:text-mauve-200">
+                    PLAYBOOK 03
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-500 font-bold">
+                    91% Save
+                  </span>
+                </div>
+                <h3 className="text-base font-semibold text-mauve-950 dark:text-mauve-50 tracking-tight">
+                  Onboarding Rescue
+                </h3>
+                <p className="text-xs text-mauve-700/80 dark:text-mauve-200/80 mt-2 leading-relaxed">
+                  Triggered when accounts experience integration ticket stall &gt; 48 hours. Auto-routes priority tickets to Senior Solutions Architects.
+                </p>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-mauve-200 dark:border-mauve-800 text-[11px] font-mono text-mauve-700/70 dark:text-mauve-200/70">
+                <span>Trigger: P1 Ticket &gt; 48h Stalled</span>
+              </div>
+            </div>
+
+            {/* Playbook 4 */}
+            <div className="p-6 rounded-lg bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-mauve-100 dark:bg-mauve-800 text-mauve-700 dark:text-mauve-200">
+                    PLAYBOOK 04
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-500 font-bold">
+                    73% Save
+                  </span>
+                </div>
+                <h3 className="text-base font-semibold text-mauve-950 dark:text-mauve-50 tracking-tight">
+                  Executive Escalation
+                </h3>
+                <p className="text-xs text-mauve-700/80 dark:text-mauve-200/80 mt-2 leading-relaxed">
+                  Triggered when an enterprise account (&gt;₹5,00,000 MRR) breaches 70% attrition risk. Alerts VP of Customer Success with a 1-page executive brief.
+                </p>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-mauve-200 dark:border-mauve-800 text-[11px] font-mono text-mauve-700/70 dark:text-mauve-200/70">
+                <span>Trigger: MRR &gt; ₹5L &amp; Risk &gt; 70%</span>
+              </div>
+            </div>
+
+          </div>
+
         </div>
       </section>
 
       {/* ─────────────────────────────────────────────────────────────
-          10. FINAL CTA
+          10. CHANGELOG SECTION
          ───────────────────────────────────────────────────────────── */}
-      <section style={{ padding: '80px 24px', textAlign: 'center', backgroundColor: 'var(--background)' }}>
-        <div
-          style={{
-            maxWidth: '800px',
-            margin: '0 auto',
-            padding: '50px 32px',
-            borderRadius: '24px',
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow-md)',
-          }}
-        >
-          <span className="figure-badge" style={{ marginBottom: '14px' }}>
-            Enterprise Retention System
-          </span>
-          <h2 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--text-primary)', marginTop: '8px' }}>
-            Turn churn signals into action.
+      <section id="changelog" className="py-20 sm:py-28 lg:py-32 border-b border-mauve-200 dark:border-mauve-800">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="mb-12 sm:mb-16">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider text-mauve-700 dark:text-mauve-200 bg-mauve-100 dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 mb-4">
+              <span>Changelog</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-mauve-950 dark:text-mauve-50">
+              Shipped continuously with velocity.
+            </h2>
+            <p className="mt-3 text-sm sm:text-base text-mauve-700/80 dark:text-mauve-200/80 leading-relaxed">
+              Every month we deploy improvements to model inference speed, CRM integrations, and automated playbooks.
+            </p>
+          </div>
+
+          {/* Timeline List */}
+          <div className="space-y-8 border-l border-mauve-200 dark:border-mauve-800 pl-6 sm:pl-8 ml-2">
+            
+            {/* Version 3.4 */}
+            <div className="relative">
+              <span className="absolute -left-[31px] sm:-left-[39px] top-1.5 w-3 h-3 rounded-full bg-mauve-950 dark:bg-mauve-50 border-2 border-mauve-50 dark:border-mauve-950" />
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-mono text-xs font-bold text-mauve-950 dark:text-mauve-50">
+                  v3.4.0
+                </span>
+                <span className="text-xs font-mono text-mauve-700/70 dark:text-mauve-200/70">
+                  October 2026
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-semibold">
+                  LATEST
+                </span>
+              </div>
+              <h3 className="text-base font-semibold text-mauve-950 dark:text-mauve-50 mt-1">
+                SHAP Local Attribution Trees &amp; Agent Webhooks
+              </h3>
+              <p className="text-xs sm:text-sm text-mauve-700/80 dark:text-mauve-200/80 mt-1 leading-relaxed">
+                Replaced static heuristic alerts with real-time SHAP force attributions. Playbooks can now dispatch direct webhooks to custom internal agent frameworks.
+              </p>
+            </div>
+
+            {/* Version 3.3 */}
+            <div className="relative">
+              <span className="absolute -left-[31px] sm:-left-[39px] top-1.5 w-3 h-3 rounded-full bg-mauve-200 dark:bg-mauve-800 border-2 border-mauve-50 dark:border-mauve-950" />
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-mono text-xs font-bold text-mauve-950 dark:text-mauve-50">
+                  v3.3.0
+                </span>
+                <span className="text-xs font-mono text-mauve-700/70 dark:text-mauve-200/70">
+                  September 2026
+                </span>
+              </div>
+              <h3 className="text-base font-semibold text-mauve-950 dark:text-mauve-50 mt-1">
+                Local LLM Briefing Generator
+              </h3>
+              <p className="text-xs sm:text-sm text-mauve-700/80 dark:text-mauve-200/80 mt-1 leading-relaxed">
+                Automated 1-paragraph CSM summaries synthesized directly from telemetry logs without transmitting sensitive PII data to third-party endpoints.
+              </p>
+            </div>
+
+            {/* Version 3.2 */}
+            <div className="relative">
+              <span className="absolute -left-[31px] sm:-left-[39px] top-1.5 w-3 h-3 rounded-full bg-mauve-200 dark:bg-mauve-800 border-2 border-mauve-50 dark:border-mauve-950" />
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-mono text-xs font-bold text-mauve-950 dark:text-mauve-50">
+                  v3.2.0
+                </span>
+                <span className="text-xs font-mono text-mauve-700/70 dark:text-mauve-200/70">
+                  August 2026
+                </span>
+              </div>
+              <h3 className="text-base font-semibold text-mauve-950 dark:text-mauve-50 mt-1">
+                Bidirectional Salesforce &amp; HubSpot Sync
+              </h3>
+              <p className="text-xs sm:text-sm text-mauve-700/80 dark:text-mauve-200/80 mt-1 leading-relaxed">
+                Real-time two-way synchronization for churn risk scores, primary risk drivers, and dispatched playbook tasks directly inside CRM contact records.
+              </p>
+            </div>
+
+            {/* Version 3.1 */}
+            <div className="relative">
+              <span className="absolute -left-[31px] sm:-left-[39px] top-1.5 w-3 h-3 rounded-full bg-mauve-200 dark:bg-mauve-800 border-2 border-mauve-50 dark:border-mauve-950" />
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-mono text-xs font-bold text-mauve-950 dark:text-mauve-50">
+                  v3.1.0
+                </span>
+                <span className="text-xs font-mono text-mauve-700/70 dark:text-mauve-200/70">
+                  July 2026
+                </span>
+              </div>
+              <h3 className="text-base font-semibold text-mauve-950 dark:text-mauve-50 mt-1">
+                Sub-50ms Inference Engine Architecture
+              </h3>
+              <p className="text-xs sm:text-sm text-mauve-700/80 dark:text-mauve-200/80 mt-1 leading-relaxed">
+                Architectural redesign migrating from scheduled batch scoring to continuous stream processing with sub-50ms evaluation speed.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* ─────────────────────────────────────────────────────────────
+          11. FINAL CTA SECTION
+         ───────────────────────────────────────────────────────────── */}
+      <section className="py-24 sm:py-32 text-center bg-white/60 dark:bg-mauve-900/40">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-mauve-950 dark:text-mauve-50 leading-tight">
+            Ready to stop customer churn before it happens?
           </h2>
-          <p style={{ fontSize: '15px', color: 'var(--slate-600)', maxWidth: '560px', margin: '12px auto 28px auto', lineHeight: 1.55 }}>
-            Equip your retention and customer success teams with predictive intelligence that safeguards recurring revenue.
+
+          <p className="mt-4 text-base sm:text-lg text-mauve-700/80 dark:text-mauve-200/80 max-w-2xl mx-auto leading-relaxed">
+            Join modern customer success teams and AI agents safeguarding recurring revenue with ChurnGuard.
           </p>
-          <div className="landing-cta-group">
-            <Link to="/register" className="landing-btn-hero landing-btn-primary" style={{ padding: '12px 28px' }}>
-              Get Started
-              <ArrowRight size={16} />
+
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              to="/register"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-sm font-semibold bg-mauve-950 text-mauve-50 hover:bg-mauve-900 dark:bg-mauve-50 dark:text-mauve-950 dark:hover:bg-mauve-100 transition-all duration-150 active:scale-95 shadow-sm"
+            >
+              <span>Get Started</span>
+              <ArrowRight size={15} />
             </Link>
-            <Link to="/login" className="landing-btn-hero landing-btn-secondary" style={{ padding: '12px 24px' }}>
-              Login
+
+            <Link
+              to="/login"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 text-mauve-950 dark:text-mauve-50 hover:bg-mauve-100 dark:hover:bg-mauve-800 transition-colors shadow-xs"
+            >
+              <span>Log in to your workspace</span>
             </Link>
           </div>
+
+          <div className="mt-8 text-xs font-mono text-mauve-700/70 dark:text-mauve-200/70">
+            No credit card required • 14-day trial • Ready in under 10 minutes
+          </div>
+
         </div>
       </section>
 
       {/* ─────────────────────────────────────────────────────────────
-          11. FOOTER
+          12. FOOTER
          ───────────────────────────────────────────────────────────── */}
-      <footer
-        style={{
-          borderTop: '1px solid var(--border)',
-          backgroundColor: 'var(--surface)',
-          padding: '44px 24px 32px 24px',
-          color: 'var(--slate-600)',
-          fontSize: '13px',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '20px',
-            paddingBottom: '28px',
-            borderBottom: '1px solid var(--border)',
-          }}
-        >
-          <ChurnGuardLogo
-            variant="navbar"
-            size="sm"
-            linkTo="/"
-            showWordmark={true}
-            showTagline={false}
-          />
+      <footer className="border-t border-mauve-200 dark:border-mauve-800 bg-mauve-50 dark:bg-mauve-950 py-12 sm:py-16 text-xs transition-colors">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
+            
+            {/* Brand Column */}
+            <div className="col-span-2 lg:col-span-2 space-y-4">
+              <ChurnGuardLogo
+                size="md"
+                showWordmark={true}
+                linkTo="/"
+              />
+              <p className="text-mauve-700/80 dark:text-mauve-200/80 max-w-sm leading-relaxed">
+                The customer retention intelligence system for SaaS teams and AI agents. Continuous risk prediction, causal SHAP attribution, and automated playbook dispatch.
+              </p>
+              <div className="flex items-center gap-2 text-[11px] font-mono text-mauve-700/70 dark:text-mauve-200/70 pt-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span>All Systems Operational (99.99%)</span>
+              </div>
+            </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
-            <Link to="/dashboard" style={{ color: 'var(--slate-600)', textDecoration: 'none' }}>
-              Dashboard
-            </Link>
-            <Link to="/customers" style={{ color: 'var(--slate-600)', textDecoration: 'none' }}>
-              Customers
-            </Link>
-            <Link to="/predict" style={{ color: 'var(--slate-600)', textDecoration: 'none' }}>
-              Predict
-            </Link>
-            <Link to="/analytics" style={{ color: 'var(--slate-600)', textDecoration: 'none' }}>
-              Analytics
-            </Link>
-            <Link to="/reports" style={{ color: 'var(--slate-600)', textDecoration: 'none' }}>
-              Reports
-            </Link>
-            <Link to="/login" style={{ color: 'var(--slate-600)', textDecoration: 'none' }}>
-              Login
-            </Link>
-            <Link to="/register" style={{ color: 'var(--slate-900)', textDecoration: 'none', fontWeight: 600 }}>
-              Get Started
-            </Link>
+            {/* Product */}
+            <div className="space-y-3">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-mauve-950 dark:text-mauve-50 font-semibold">
+                Product
+              </div>
+              <ul className="space-y-2 text-mauve-700/80 dark:text-mauve-200/80">
+                <li><a href="#product" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">Cockpit</a></li>
+                <li><a href="#how-it-works" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">Risk Engine</a></li>
+                <li><a href="#explainable-ai" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">Explainable AI</a></li>
+                <li><a href="#playbooks" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">Playbooks</a></li>
+                <li><a href="#changelog" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">Changelog</a></li>
+              </ul>
+            </div>
+
+            {/* Platform */}
+            <div className="space-y-3">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-mauve-950 dark:text-mauve-50 font-semibold">
+                Platform
+              </div>
+              <ul className="space-y-2 text-mauve-700/80 dark:text-mauve-200/80">
+                {isAuthenticated ? (
+                  <li><Link to="/dashboard" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">Dashboard</Link></li>
+                ) : (
+                  <>
+                    <li><Link to="/login" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">Log In</Link></li>
+                    <li><Link to="/register" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">Sign Up</Link></li>
+                  </>
+                )}
+                <li><a href="#figures" className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors">Architecture</a></li>
+                <li><span className="text-mauve-700/75 dark:text-mauve-200/70">API Docs</span></li>
+                <li><span className="text-mauve-700/75 dark:text-mauve-200/70">Integrations</span></li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div className="space-y-3">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-mauve-950 dark:text-mauve-50 font-semibold">
+                Security &amp; Trust
+              </div>
+              <ul className="space-y-2 text-mauve-700/80 dark:text-mauve-200/80">
+                <li><span className="text-mauve-700/70 dark:text-mauve-200/70">SOC 2 Type II</span></li>
+                <li><span className="text-mauve-700/70 dark:text-mauve-200/70">GDPR Compliant</span></li>
+                <li><span className="text-mauve-700/70 dark:text-mauve-200/70">Data Isolation</span></li>
+                <li><span className="text-mauve-700/70 dark:text-mauve-200/70">Privacy Policy</span></li>
+                <li><span className="text-mauve-700/70 dark:text-mauve-200/70">Terms of Service</span></li>
+              </ul>
+            </div>
+
           </div>
-        </div>
 
-        <div
-          style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            paddingTop: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px',
-            color: 'var(--slate-500)',
-            fontSize: '12px',
-          }}
-        >
-          <span>&copy; {new Date().getFullYear()} ChurnGuard Inc. All rights reserved. Enterprise AI Customer Retention Intelligence Platform.</span>
-          <span>Preserving customer relationships through machine learning.</span>
+          <div className="pt-8 border-t border-mauve-200 dark:border-mauve-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono text-mauve-700/70 dark:text-mauve-200/70">
+            <div>
+              © 2026 ChurnGuard Inc. All rights reserved.
+            </div>
+            <div className="flex items-center gap-4">
+              <span>Designed with precision</span>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors cursor-pointer"
+              >
+                Theme: {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+              </button>
+            </div>
+          </div>
+
         </div>
       </footer>
+
     </div>
   )
 }

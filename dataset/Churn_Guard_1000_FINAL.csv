@@ -1,0 +1,1001 @@
+CustomerID,gender,SeniorCitizen,Partner,Dependents,tenure,PhoneService,InternetService,OnlineSecurity,OnlineBackup,DeviceProtection,TechSupport,StreamingTV,StreamingMovies,Contract,PaperlessBilling,PaymentMethod,MonthlyCharges,TotalCharges,Churn
+CG10001,Male,0,No,No,72,Yes,Fiber optic,Yes,No,Yes,Yes,No internet service,Yes,Month-to-month,Yes,Credit card (automatic),87.36,6368.42,Yes
+CG10002,Female,0,Yes,No,34,Yes,Fiber optic,No,Yes,Yes,No internet service,Yes,Yes,Month-to-month,Yes,Credit card (automatic),92.86,3154.48,No
+CG10003,Male,0,Yes,No,50,No,Fiber optic,No,Yes,No internet service,No internet service,Yes,Yes,One year,No,Credit card (automatic),69.93,3422.05,No
+CG10004,Male,0,Yes,No,36,Yes,No,No,No internet service,Yes,Yes,No internet service,No internet service,Month-to-month,Yes,Bank transfer (automatic),31.43,1153.21,No
+CG10005,Male,0,Yes,Yes,56,Yes,Fiber optic,Yes,Yes,No,Yes,No internet service,No internet service,Two year,No,Mailed check,85.56,4805.52,No
+CG10006,Female,0,Yes,Yes,7,Yes,No,No,Yes,Yes,Yes,No internet service,Yes,Month-to-month,Yes,Electronic check,50.36,305.21,No
+CG10007,Male,1,No,No,19,Yes,DSL,Yes,No,No,No internet service,No internet service,Yes,One year,Yes,Electronic check,61.28,1122.82,No
+CG10008,Male,0,No,No,52,Yes,Fiber optic,Yes,Yes,Yes,No internet service,Yes,Yes,Two year,Yes,Credit card (automatic),91.55,4759.49,No
+CG10009,Male,1,No,No,11,Yes,No,No,No internet service,No internet service,Yes,No,No,One year,Yes,Electronic check,40.19,457.83,No
+CG10010,Female,0,No,No,48,Yes,Fiber optic,No,Yes,No,No,Yes,No,Two year,No,Bank transfer (automatic),71.14,3303.54,No
+CG10011,Male,0,No,Yes,16,No,Fiber optic,No internet service,Yes,No,Yes,Yes,No,Two year,Yes,Mailed check,71.92,1198.11,No
+CG10012,Male,0,No,No,63,Yes,Fiber optic,Yes,Yes,No,Yes,No,Yes,Month-to-month,Yes,Mailed check,92.29,5792.02,No
+CG10013,Male,1,No,No,41,Yes,DSL,Yes,Yes,No,Yes,Yes,No,One year,Yes,Credit card (automatic),78.38,3153.65,No
+CG10014,Male,1,Yes,No,28,Yes,Fiber optic,Yes,No internet service,Yes,Yes,No,No,Month-to-month,Yes,Electronic check,73.81,2109.03,No
+CG10015,Female,0,Yes,No,18,Yes,Fiber optic,Yes,No,No internet service,Yes,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),104.68,1883.18,Yes
+CG10016,Male,0,Yes,No,10,Yes,No,No internet service,Yes,No internet service,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,56.51,619.83,No
+CG10017,Female,0,No,Yes,49,Yes,DSL,No,Yes,Yes,No,Yes,Yes,One year,No,Electronic check,63.66,3139.05,No
+CG10018,Female,0,No,No,70,Yes,No,No internet service,No,No internet service,Yes,Yes,Yes,Month-to-month,No,Mailed check,51.95,3636.43,No
+CG10019,Female,1,Yes,No,57,Yes,No,Yes,No,No,No,Yes,No internet service,Month-to-month,Yes,Electronic check,37.94,2155.71,No
+CG10020,Male,0,No,No,33,Yes,DSL,No internet service,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Credit card (automatic),80.47,2677.23,No
+CG10021,Female,0,Yes,No,19,No,DSL,Yes,Yes,Yes,Yes,No internet service,No internet service,Two year,Yes,Mailed check,57.66,1076.93,No
+CG10022,Male,0,No,Yes,49,Yes,No,No internet service,Yes,Yes,Yes,Yes,No,Month-to-month,Yes,Electronic check,51.59,2489.54,No
+CG10023,Female,1,Yes,Yes,9,No,No,Yes,No,Yes,Yes,Yes,Yes,Month-to-month,No,Electronic check,43.71,420.84,No
+CG10024,Female,1,Yes,No,31,Yes,Fiber optic,Yes,No internet service,Yes,Yes,No,No,Month-to-month,No,Bank transfer (automatic),85.92,2657.02,No
+CG10025,Female,0,No,No,51,Yes,DSL,Yes,Yes,Yes,Yes,No,Yes,Two year,Yes,Credit card (automatic),64.75,3303.76,No
+CG10026,Female,0,Yes,Yes,14,Yes,Fiber optic,No internet service,No,Yes,Yes,Yes,Yes,Two year,No,Mailed check,80.13,1170.84,No
+CG10027,Female,0,Yes,Yes,2,Yes,Fiber optic,Yes,Yes,Yes,Yes,No,Yes,One year,Yes,Mailed check,93.94,182.76,Yes
+CG10028,Female,0,Yes,No,36,Yes,DSL,Yes,Yes,No internet service,No,No,Yes,Two year,Yes,Credit card (automatic),76.82,2766.2,No
+CG10029,Female,0,No,Yes,39,Yes,Fiber optic,No internet service,Yes,Yes,No,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),86.18,3334.04,No
+CG10030,Female,1,No,No,71,Yes,DSL,Yes,No internet service,Yes,Yes,Yes,Yes,Two year,Yes,Electronic check,82.61,5884.69,No
+CG10031,Male,0,Yes,No,39,Yes,DSL,Yes,Yes,Yes,Yes,No internet service,Yes,Month-to-month,No,Bank transfer (automatic),82.59,3236.75,Yes
+CG10032,Male,1,No,No,55,Yes,Fiber optic,Yes,Yes,Yes,Yes,No internet service,Yes,Month-to-month,Yes,Bank transfer (automatic),97.52,5404.13,No
+CG10033,Female,1,No,Yes,22,Yes,Fiber optic,Yes,Yes,No,No,No,No internet service,Month-to-month,Yes,Bank transfer (automatic),70.51,1525.16,No
+CG10034,Female,0,Yes,Yes,10,Yes,DSL,No internet service,Yes,No,Yes,Yes,Yes,One year,No,Bank transfer (automatic),63.27,612.1,Yes
+CG10035,Female,0,Yes,No,63,Yes,Fiber optic,No,Yes,No,Yes,Yes,No,One year,No,Credit card (automatic),63.34,4026.07,No
+CG10036,Male,1,Yes,No,7,Yes,DSL,Yes,No,Yes,Yes,No,Yes,Month-to-month,No,Electronic check,66.9,479.65,No
+CG10037,Female,1,Yes,No,55,Yes,DSL,No internet service,Yes,No,No internet service,Yes,No,Two year,No,Credit card (automatic),68.42,3722.32,No
+CG10038,Male,0,No,Yes,59,No,DSL,Yes,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Mailed check,60.01,3599.38,No
+CG10039,Male,0,Yes,No,9,Yes,No,Yes,Yes,Yes,No,No,No internet service,Month-to-month,No,Bank transfer (automatic),48.6,360.97,No
+CG10040,Male,0,No,No,38,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,No,Electronic check,91.4,3508.49,No
+CG10041,Male,1,No,No,27,Yes,Fiber optic,Yes,Yes,Yes,No internet service,No,No internet service,One year,No,Mailed check,78.85,2072.02,No
+CG10042,Male,0,Yes,No,48,Yes,Fiber optic,Yes,Yes,Yes,No,No internet service,Yes,Two year,No,Bank transfer (automatic),91.66,4484.54,Yes
+CG10043,Female,0,No,No,35,Yes,No,No internet service,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),53.72,1810.69,No
+CG10044,Female,0,Yes,No,12,Yes,DSL,No,Yes,No internet service,No internet service,No internet service,No,One year,No,Electronic check,52.36,680.17,No
+CG10045,Female,0,No,Yes,35,Yes,Fiber optic,Yes,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Mailed check,90.68,3170.13,Yes
+CG10046,Female,0,No,No,25,Yes,Fiber optic,No,No,Yes,No internet service,No internet service,Yes,One year,Yes,Electronic check,81.64,2024.5,No
+CG10047,Female,0,No,Yes,3,Yes,Fiber optic,No,Yes,Yes,No internet service,Yes,Yes,Two year,Yes,Credit card (automatic),90.88,280.98,No
+CG10048,Male,0,No,No,63,Yes,DSL,No internet service,Yes,No,Yes,Yes,No,Month-to-month,No,Credit card (automatic),64.45,4088.79,No
+CG10049,Female,0,Yes,No,37,Yes,Fiber optic,No internet service,Yes,Yes,No,No,No internet service,Two year,Yes,Electronic check,85.47,3121.69,No
+CG10050,Female,0,No,Yes,21,No,DSL,Yes,Yes,No internet service,Yes,Yes,Yes,One year,Yes,Credit card (automatic),74.3,1523.59,No
+CG10051,Male,0,No,No,1,Yes,Fiber optic,No,Yes,No internet service,Yes,No internet service,No internet service,Month-to-month,Yes,Credit card (automatic),67.48,96.71,Yes
+CG10052,Female,1,No,Yes,30,Yes,Fiber optic,No,No internet service,Yes,Yes,Yes,Yes,Two year,No,Mailed check,88.31,2572.47,No
+CG10053,Male,0,No,No,10,Yes,DSL,No,Yes,Yes,No,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),71.39,687.61,No
+CG10054,Female,0,No,No,45,Yes,No,Yes,Yes,Yes,Yes,Yes,No internet service,Month-to-month,No,Mailed check,56.64,2685.63,No
+CG10055,Male,1,Yes,Yes,61,No,DSL,Yes,Yes,No,Yes,Yes,No internet service,Month-to-month,No,Bank transfer (automatic),81.2,4909.64,No
+CG10056,Female,0,Yes,No,68,Yes,No,Yes,Yes,Yes,No,Yes,No,Month-to-month,Yes,Mailed check,53.97,3721.61,No
+CG10057,Female,0,No,No,63,Yes,Fiber optic,Yes,No,Yes,Yes,No,Yes,Two year,Yes,Electronic check,69.71,4365.36,No
+CG10058,Male,0,Yes,Yes,9,Yes,DSL,Yes,Yes,Yes,Yes,No,Yes,One year,No,Mailed check,69.66,649.85,Yes
+CG10059,Male,0,No,Yes,39,Yes,DSL,No,Yes,No,Yes,No internet service,Yes,Two year,No,Electronic check,48.54,1922.51,No
+CG10060,Male,0,No,No,23,Yes,No,Yes,No,Yes,Yes,No internet service,Yes,Month-to-month,No,Credit card (automatic),48.36,1163.08,No
+CG10061,Male,0,Yes,No,43,Yes,DSL,No,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Mailed check,61.1,2618.29,No
+CG10062,Male,0,Yes,No,59,No,DSL,Yes,No,No,Yes,No,No internet service,Month-to-month,No,Mailed check,41.03,2510.27,No
+CG10063,Male,0,No,Yes,61,Yes,DSL,No internet service,No,No,No internet service,Yes,No internet service,Month-to-month,Yes,Credit card (automatic),41.83,2525.11,No
+CG10064,Male,0,Yes,Yes,16,Yes,Fiber optic,Yes,Yes,No internet service,No,No,Yes,Two year,Yes,Mailed check,84.07,1355.66,No
+CG10065,Male,0,No,No,64,Yes,Fiber optic,Yes,No,Yes,Yes,Yes,Yes,One year,No,Mailed check,94.0,6027.04,No
+CG10066,Female,0,Yes,Yes,56,Yes,DSL,No,Yes,No,Yes,No internet service,No internet service,Month-to-month,Yes,Credit card (automatic),58.42,3221.03,No
+CG10067,Female,0,No,Yes,54,Yes,DSL,No internet service,Yes,No,Yes,No,Yes,Two year,No,Credit card (automatic),63.16,3397.78,No
+CG10068,Male,0,Yes,Yes,52,Yes,DSL,No internet service,Yes,Yes,No,No internet service,No,One year,Yes,Electronic check,44.85,2339.47,No
+CG10069,Female,1,No,No,55,Yes,DSL,Yes,Yes,No,Yes,No internet service,Yes,Month-to-month,No,Mailed check,73.11,4001.6,No
+CG10070,Female,0,Yes,No,8,Yes,Fiber optic,Yes,No,Yes,Yes,No internet service,Yes,Two year,Yes,Credit card (automatic),101.38,920.88,No
+CG10071,Female,0,No,No,21,Yes,Fiber optic,No internet service,No internet service,No internet service,No internet service,No internet service,No internet service,Month-to-month,Yes,Mailed check,66.27,1353.93,No
+CG10072,Female,0,Yes,No,12,Yes,DSL,Yes,No internet service,Yes,Yes,Yes,Yes,Month-to-month,No,Mailed check,73.59,936.15,No
+CG10073,Male,0,No,No,47,Yes,Fiber optic,No,No,No,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,72.58,3449.8,No
+CG10074,Female,0,No,No,17,Yes,Fiber optic,Yes,Yes,Yes,No internet service,Yes,Yes,Month-to-month,Yes,Electronic check,86.74,1473.96,No
+CG10075,Male,1,Yes,Yes,39,Yes,No,Yes,Yes,No internet service,No,Yes,No internet service,Month-to-month,No,Bank transfer (automatic),49.62,1896.25,No
+CG10076,Female,1,Yes,No,16,Yes,No,Yes,Yes,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Bank transfer (automatic),64.58,998.71,No
+CG10077,Female,0,Yes,No,14,Yes,No,Yes,Yes,No internet service,No,Yes,Yes,Month-to-month,No,Credit card (automatic),56.09,761.95,No
+CG10078,Female,1,No,No,14,Yes,DSL,No,Yes,No internet service,Yes,Yes,Yes,One year,Yes,Bank transfer (automatic),78.4,1017.24,No
+CG10079,Male,0,No,No,62,No,DSL,No internet service,No internet service,Yes,No,No internet service,No,Two year,Yes,Electronic check,48.66,2971.76,No
+CG10080,Female,0,No,No,38,Yes,DSL,Yes,Yes,No internet service,Yes,No internet service,Yes,One year,No,Electronic check,73.05,2709.19,No
+CG10081,Male,0,Yes,Yes,12,Yes,DSL,No internet service,Yes,No internet service,No internet service,Yes,No,Month-to-month,No,Credit card (automatic),53.73,705.32,No
+CG10082,Female,1,Yes,No,31,Yes,Fiber optic,Yes,Yes,Yes,No internet service,Yes,Yes,Month-to-month,Yes,Mailed check,95.39,2984.92,No
+CG10083,Male,0,No,No,8,Yes,Fiber optic,Yes,No internet service,Yes,No internet service,Yes,Yes,Month-to-month,Yes,Electronic check,82.21,693.05,Yes
+CG10084,Female,0,No,No,39,Yes,No,Yes,No,Yes,No internet service,Yes,No,Month-to-month,No,Credit card (automatic),46.14,1825.96,No
+CG10085,Male,0,No,No,19,No,No,No internet service,No,Yes,Yes,No,Yes,One year,Yes,Bank transfer (automatic),40.65,779.86,No
+CG10086,Male,0,Yes,No,72,Yes,Fiber optic,No,Yes,Yes,Yes,Yes,No internet service,One year,Yes,Electronic check,99.43,7224.69,No
+CG10087,Female,0,No,Yes,62,No,Fiber optic,No,No internet service,Yes,Yes,No,Yes,One year,Yes,Credit card (automatic),62.52,3848.76,No
+CG10088,Male,0,Yes,No,43,No,DSL,No internet service,Yes,Yes,No,No internet service,Yes,One year,Yes,Credit card (automatic),59.85,2578.35,No
+CG10089,Female,0,Yes,Yes,37,Yes,DSL,No,No internet service,Yes,No internet service,No internet service,No internet service,Month-to-month,Yes,Electronic check,62.85,2359.07,Yes
+CG10090,Female,0,No,No,59,Yes,Fiber optic,No internet service,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Credit card (automatic),100.07,5844.68,No
+CG10091,Female,0,No,No,70,Yes,DSL,No,Yes,No internet service,No internet service,No,No,One year,Yes,Mailed check,57.66,4175.55,No
+CG10092,Female,0,No,No,47,Yes,Fiber optic,No internet service,Yes,No,No internet service,Yes,Yes,Month-to-month,Yes,Mailed check,88.7,4170.19,Yes
+CG10093,Female,0,Yes,No,17,Yes,DSL,Yes,No,Yes,No internet service,Yes,No,Month-to-month,Yes,Credit card (automatic),74.39,1271.02,No
+CG10094,Female,0,Yes,No,15,Yes,Fiber optic,Yes,Yes,No,No internet service,Yes,No,Month-to-month,No,Credit card (automatic),72.3,1141.06,No
+CG10095,Female,1,No,Yes,54,Yes,Fiber optic,Yes,No internet service,No,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,77.91,4248.31,No
+CG10096,Female,0,No,No,38,Yes,DSL,Yes,Yes,No internet service,Yes,Yes,No internet service,Month-to-month,No,Electronic check,68.95,2621.81,No
+CG10097,Female,0,Yes,Yes,67,Yes,No,No,Yes,Yes,Yes,Yes,No,Two year,No,Electronic check,33.71,2264.43,No
+CG10098,Female,0,Yes,No,58,Yes,DSL,Yes,Yes,Yes,Yes,No,Yes,Two year,Yes,Bank transfer (automatic),83.85,4795.61,No
+CG10099,Female,0,Yes,Yes,61,Yes,Fiber optic,No,Yes,No internet service,No,No,No,Month-to-month,No,Electronic check,77.77,4718.93,No
+CG10100,Male,0,No,Yes,12,Yes,Fiber optic,Yes,Yes,No internet service,No internet service,Yes,No,Month-to-month,Yes,Mailed check,77.53,953.63,Yes
+CG10101,Male,0,Yes,No,5,Yes,Fiber optic,Yes,Yes,No,No internet service,Yes,Yes,One year,No,Electronic check,86.03,450.13,Yes
+CG10102,Female,0,Yes,Yes,59,Yes,No,Yes,No,No,No,No internet service,Yes,Month-to-month,No,Mailed check,40.42,2439.73,No
+CG10103,Female,0,Yes,No,13,Yes,DSL,No internet service,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,77.42,1001.04,Yes
+CG10104,Female,0,Yes,No,53,Yes,Fiber optic,Yes,No internet service,Yes,Yes,No internet service,Yes,Month-to-month,No,Credit card (automatic),87.02,4549.63,No
+CG10105,Female,0,Yes,Yes,3,Yes,Fiber optic,Yes,No,Yes,Yes,No,No,Month-to-month,Yes,Electronic check,82.47,294.96,No
+CG10106,Female,0,No,No,38,Yes,No,No,No internet service,Yes,Yes,Yes,Yes,One year,Yes,Electronic check,52.62,2064.18,No
+CG10107,Female,0,Yes,Yes,71,Yes,DSL,No,Yes,No internet service,Yes,Yes,No internet service,Two year,No,Credit card (automatic),71.55,5120.47,No
+CG10108,Female,0,No,Yes,24,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),102.57,2454.32,Yes
+CG10109,Female,0,Yes,No,31,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,94.14,2965.34,No
+CG10110,Male,0,No,Yes,58,Yes,DSL,Yes,No,No internet service,Yes,Yes,No,Month-to-month,Yes,Electronic check,74.68,4485.74,No
+CG10111,Female,0,No,No,62,Yes,Fiber optic,No internet service,No internet service,Yes,No,No,Yes,Month-to-month,No,Bank transfer (automatic),65.13,4043.24,No
+CG10112,Male,0,No,Yes,37,Yes,DSL,Yes,Yes,No internet service,Yes,Yes,Yes,Two year,Yes,Mailed check,76.26,2762.59,No
+CG10113,Female,0,No,Yes,52,Yes,Fiber optic,Yes,Yes,No internet service,Yes,Yes,Yes,One year,No,Bank transfer (automatic),101.74,5264.1,No
+CG10114,Female,0,Yes,No,66,Yes,No,Yes,No internet service,No,Yes,No,Yes,Month-to-month,Yes,Mailed check,40.22,2682.67,No
+CG10115,Male,1,Yes,No,27,Yes,Fiber optic,Yes,Yes,Yes,No internet service,Yes,Yes,One year,Yes,Mailed check,96.48,2532.74,No
+CG10116,Female,1,No,Yes,2,Yes,Fiber optic,No,No,Yes,Yes,Yes,No internet service,Two year,No,Mailed check,85.35,178.32,No
+CG10117,Male,0,No,No,21,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,Two year,Yes,Bank transfer (automatic),92.12,1951.64,No
+CG10118,Female,0,No,Yes,37,Yes,DSL,Yes,No internet service,Yes,No,Yes,No internet service,Month-to-month,No,Credit card (automatic),63.42,2415.62,No
+CG10119,Female,0,No,No,71,Yes,DSL,Yes,Yes,Yes,No,No,No,Month-to-month,Yes,Electronic check,59.75,4301.21,No
+CG10120,Male,0,No,No,71,Yes,Fiber optic,Yes,Yes,No internet service,No internet service,Yes,Yes,One year,Yes,Mailed check,84.59,6044.8,No
+CG10121,Female,0,Yes,No,61,Yes,DSL,Yes,No,Yes,Yes,No,Yes,Month-to-month,Yes,Electronic check,87.41,5234.69,No
+CG10122,Male,0,Yes,No,56,Yes,DSL,No internet service,No internet service,No,Yes,Yes,No internet service,Two year,No,Mailed check,52.9,3003.85,No
+CG10123,Female,0,No,No,5,Yes,Fiber optic,No,Yes,Yes,Yes,Yes,No internet service,One year,Yes,Credit card (automatic),94.04,501.95,Yes
+CG10124,Male,0,No,No,31,Yes,DSL,No internet service,Yes,No,No,Yes,Yes,Two year,No,Mailed check,63.86,1991.18,No
+CG10125,Male,0,Yes,No,9,Yes,DSL,No internet service,No,No internet service,Yes,No,Yes,Month-to-month,Yes,Credit card (automatic),50.31,374.93,No
+CG10126,Female,0,No,No,2,No,Fiber optic,No,No internet service,Yes,Yes,Yes,Yes,Two year,Yes,Bank transfer (automatic),81.82,128.69,No
+CG10127,Female,0,Yes,Yes,58,Yes,DSL,Yes,No internet service,Yes,Yes,Yes,Yes,Month-to-month,Yes,Credit card (automatic),82.19,4714.51,No
+CG10128,Male,0,No,No,48,Yes,No,No,No internet service,No,Yes,No,No,Two year,No,Bank transfer (automatic),40.36,1846.6,No
+CG10129,Female,0,Yes,No,58,Yes,No,No internet service,Yes,No,Yes,Yes,No internet service,Month-to-month,No,Electronic check,58.5,3392.87,No
+CG10130,Female,0,Yes,No,30,Yes,Fiber optic,No,Yes,No,No,Yes,Yes,Month-to-month,No,Electronic check,107.56,3190.9,No
+CG10131,Female,0,No,No,68,Yes,DSL,Yes,No,Yes,No,No,No,One year,Yes,Mailed check,58.0,4062.14,No
+CG10132,Male,1,Yes,No,61,Yes,Fiber optic,Yes,No internet service,Yes,Yes,Yes,No,Month-to-month,Yes,Electronic check,80.7,4915.11,No
+CG10133,Male,0,No,Yes,51,Yes,No,No internet service,Yes,No internet service,Yes,No,Yes,Month-to-month,Yes,Mailed check,49.62,2588.84,No
+CG10134,Male,0,No,Yes,40,Yes,Fiber optic,No,Yes,No internet service,No,Yes,Yes,Two year,No,Mailed check,81.87,3204.19,No
+CG10135,Male,0,No,No,30,Yes,DSL,No internet service,No,Yes,Yes,No,No,Month-to-month,Yes,Credit card (automatic),63.41,1878.45,No
+CG10136,Male,0,Yes,No,21,Yes,Fiber optic,Yes,Yes,No internet service,Yes,No,No internet service,One year,Yes,Mailed check,67.62,1424.38,No
+CG10137,Male,0,Yes,No,3,Yes,No,Yes,Yes,Yes,Yes,Yes,No,Month-to-month,Yes,Credit card (automatic),74.95,183.98,No
+CG10138,Male,0,Yes,No,12,Yes,Fiber optic,Yes,Yes,Yes,No,No,Yes,Two year,Yes,Credit card (automatic),92.85,1095.2,No
+CG10139,Male,0,No,No,44,Yes,Fiber optic,No,No,Yes,No internet service,No internet service,Yes,One year,Yes,Credit card (automatic),62.53,2741.51,No
+CG10140,Male,0,No,No,41,Yes,Fiber optic,Yes,No,Yes,No,Yes,Yes,Month-to-month,No,Electronic check,83.33,3406.0,Yes
+CG10141,Female,0,No,Yes,48,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,No,Month-to-month,Yes,Mailed check,97.53,4764.92,No
+CG10142,Male,0,No,Yes,19,Yes,DSL,No internet service,No,Yes,Yes,No,No,One year,No,Mailed check,65.41,1259.81,No
+CG10143,Female,0,No,No,53,Yes,Fiber optic,Yes,No,Yes,No internet service,No,Yes,Month-to-month,No,Mailed check,70.82,3775.04,No
+CG10144,Female,0,No,No,35,No,DSL,No internet service,Yes,No,Yes,Yes,No internet service,Month-to-month,Yes,Mailed check,61.7,2183.78,No
+CG10145,Female,0,Yes,Yes,0,Yes,Fiber optic,Yes,No,No,No internet service,No internet service,No,One year,Yes,Credit card (automatic),52.42,27.57,No
+CG10146,Male,1,No,No,14,Yes,DSL,No internet service,Yes,No,No internet service,Yes,No,Month-to-month,Yes,Mailed check,58.29,812.33,No
+CG10147,Male,0,Yes,No,16,Yes,Fiber optic,No,Yes,No internet service,Yes,No,No internet service,Month-to-month,No,Mailed check,81.9,1295.97,No
+CG10148,Male,0,No,No,23,Yes,DSL,No internet service,Yes,Yes,No internet service,No,Yes,One year,Yes,Credit card (automatic),59.59,1378.08,No
+CG10149,Male,0,No,No,57,Yes,Fiber optic,No internet service,Yes,No,Yes,No internet service,No internet service,Month-to-month,Yes,Electronic check,60.94,3525.64,No
+CG10150,Female,0,No,No,71,Yes,Fiber optic,Yes,Yes,No,No internet service,Yes,Yes,Month-to-month,Yes,Mailed check,90.17,6452.75,Yes
+CG10151,Male,0,Yes,Yes,22,Yes,DSL,Yes,No internet service,Yes,Yes,No,Yes,Month-to-month,Yes,Bank transfer (automatic),64.16,1400.7,No
+CG10152,Male,0,Yes,No,45,Yes,DSL,Yes,No,Yes,Yes,Yes,No internet service,One year,Yes,Electronic check,74.04,3366.35,No
+CG10153,Male,0,Yes,No,71,Yes,DSL,No,No,Yes,No,Yes,No internet service,One year,Yes,Bank transfer (automatic),51.92,3677.56,No
+CG10154,Male,0,Yes,Yes,7,Yes,No,No internet service,Yes,No internet service,No,Yes,Yes,One year,No,Electronic check,42.82,301.26,No
+CG10155,Male,0,Yes,No,58,Yes,Fiber optic,Yes,Yes,Yes,Yes,No,No,Month-to-month,No,Credit card (automatic),66.83,3854.83,No
+CG10156,Female,0,No,No,58,Yes,Fiber optic,No,Yes,No internet service,No,Yes,No,Month-to-month,Yes,Electronic check,77.36,4478.71,No
+CG10157,Male,0,No,No,12,Yes,DSL,Yes,Yes,No,Yes,Yes,No internet service,Month-to-month,Yes,Electronic check,67.71,872.88,No
+CG10158,Female,0,Yes,No,38,Yes,Fiber optic,No internet service,Yes,No,Yes,No,Yes,Month-to-month,No,Bank transfer (automatic),71.49,2720.78,No
+CG10159,Male,0,Yes,Yes,27,Yes,No,No internet service,No,No internet service,Yes,No,No internet service,Two year,Yes,Electronic check,34.55,938.94,No
+CG10160,Female,0,Yes,No,60,Yes,No,Yes,No internet service,No,Yes,No,Yes,Month-to-month,No,Electronic check,54.22,3188.08,No
+CG10161,Male,0,No,No,15,Yes,Fiber optic,Yes,Yes,Yes,Yes,No internet service,Yes,Month-to-month,Yes,Mailed check,89.28,1325.28,No
+CG10162,Male,1,No,No,1,Yes,DSL,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,No,Mailed check,84.15,73.29,No
+CG10163,Female,0,No,Yes,16,Yes,DSL,No,No,No internet service,Yes,No internet service,Yes,One year,Yes,Mailed check,61.19,941.73,No
+CG10164,Female,0,No,No,29,Yes,DSL,Yes,Yes,Yes,Yes,No internet service,No internet service,One year,Yes,Bank transfer (automatic),56.37,1635.7,No
+CG10165,Female,0,No,No,12,Yes,DSL,Yes,No internet service,Yes,Yes,Yes,Yes,One year,No,Bank transfer (automatic),93.45,1102.09,No
+CG10166,Male,0,No,Yes,12,Yes,DSL,Yes,No,Yes,No internet service,Yes,No internet service,Two year,Yes,Bank transfer (automatic),60.23,726.36,No
+CG10167,Female,0,Yes,Yes,42,No,DSL,Yes,No internet service,No internet service,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,69.25,2913.97,No
+CG10168,Male,0,No,No,20,Yes,Fiber optic,Yes,Yes,Yes,No internet service,Yes,No,Month-to-month,Yes,Electronic check,92.15,1799.99,No
+CG10169,Male,0,Yes,No,54,Yes,No,No,No,No,No,No,No internet service,Month-to-month,No,Bank transfer (automatic),26.88,1433.58,No
+CG10170,Female,0,No,No,39,Yes,Fiber optic,Yes,Yes,Yes,No,No,No,One year,Yes,Credit card (automatic),82.85,3234.63,No
+CG10171,Female,0,Yes,No,14,Yes,No,No,No,Yes,No,No,No,One year,No,Electronic check,34.97,542.87,No
+CG10172,Male,1,No,No,72,Yes,Fiber optic,No,Yes,No,No internet service,Yes,No,Month-to-month,Yes,Mailed check,64.66,4667.07,No
+CG10173,Male,0,No,No,51,Yes,DSL,Yes,Yes,Yes,Yes,Yes,No internet service,One year,Yes,Mailed check,71.34,3608.55,No
+CG10174,Female,0,No,Yes,52,Yes,Fiber optic,Yes,Yes,No,Yes,No internet service,No internet service,One year,No,Mailed check,73.1,3819.16,No
+CG10175,Female,0,No,No,51,No,DSL,No,Yes,No,No,Yes,Yes,Two year,Yes,Bank transfer (automatic),55.31,2897.65,No
+CG10176,Female,1,Yes,Yes,29,No,Fiber optic,No internet service,No internet service,No internet service,No,No internet service,No internet service,One year,Yes,Electronic check,44.57,1333.78,No
+CG10177,Male,0,Yes,No,32,Yes,DSL,Yes,No,Yes,No internet service,Yes,Yes,One year,Yes,Bank transfer (automatic),81.01,2616.96,No
+CG10178,Male,0,Yes,Yes,56,Yes,No,Yes,No,No internet service,Yes,No internet service,Yes,Month-to-month,Yes,Electronic check,58.82,3326.57,No
+CG10179,Male,1,Yes,Yes,51,Yes,DSL,Yes,Yes,No,No,Yes,No internet service,One year,No,Mailed check,71.82,3727.62,No
+CG10180,Male,1,No,No,8,Yes,DSL,No,No,No internet service,Yes,Yes,Yes,Two year,Yes,Credit card (automatic),77.16,665.68,No
+CG10181,Male,0,Yes,Yes,53,Yes,No,Yes,Yes,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Mailed check,53.24,2847.22,No
+CG10182,Male,0,No,No,0,Yes,DSL,Yes,No internet service,Yes,Yes,No,Yes,One year,Yes,Electronic check,63.91,48.09,No
+CG10183,Female,0,No,Yes,43,Yes,Fiber optic,No,No internet service,No internet service,No,No internet service,Yes,One year,Yes,Credit card (automatic),64.77,2736.44,No
+CG10184,Male,0,No,No,8,Yes,Fiber optic,No,Yes,No internet service,No internet service,Yes,Yes,Month-to-month,Yes,Credit card (automatic),89.15,645.6,No
+CG10185,Male,1,Yes,No,31,Yes,No,Yes,No internet service,Yes,Yes,No internet service,Yes,One year,No,Bank transfer (automatic),52.82,1644.49,No
+CG10186,Male,0,No,Yes,14,Yes,No,Yes,Yes,Yes,No internet service,No,No,Month-to-month,No,Mailed check,42.38,596.41,No
+CG10187,Female,0,No,Yes,11,Yes,No,No,Yes,Yes,Yes,No,Yes,Two year,Yes,Electronic check,61.36,650.48,No
+CG10188,Male,0,No,No,56,Yes,DSL,Yes,Yes,Yes,Yes,No internet service,Yes,Two year,Yes,Credit card (automatic),77.24,4362.6,No
+CG10189,Male,0,No,No,7,Yes,No,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,No,Mailed check,57.29,317.2,No
+CG10190,Female,0,No,No,71,Yes,Fiber optic,No internet service,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Credit card (automatic),83.55,5907.99,No
+CG10191,Male,0,Yes,No,26,Yes,Fiber optic,Yes,Yes,No internet service,Yes,No internet service,No,One year,Yes,Mailed check,83.46,2148.14,Yes
+CG10192,Male,0,No,No,61,Yes,DSL,No,Yes,Yes,Yes,No internet service,Yes,Month-to-month,No,Electronic check,77.33,4643.5,No
+CG10193,Male,0,Yes,Yes,11,Yes,Fiber optic,No internet service,No,No,No,No internet service,No,Month-to-month,Yes,Credit card (automatic),67.41,808.77,No
+CG10194,Male,0,Yes,No,64,Yes,No,Yes,No,Yes,No,No internet service,No internet service,Month-to-month,Yes,Mailed check,53.18,3342.36,No
+CG10195,Male,0,Yes,No,41,No,No,Yes,No internet service,Yes,Yes,Yes,No,Month-to-month,No,Electronic check,56.08,2272.8,No
+CG10196,Female,0,Yes,No,61,Yes,Fiber optic,No,No,Yes,Yes,No internet service,No internet service,Month-to-month,No,Electronic check,76.53,4709.19,No
+CG10197,Female,0,Yes,No,10,No,DSL,No internet service,No,Yes,Yes,Yes,Yes,Two year,Yes,Mailed check,57.29,601.97,No
+CG10198,Female,0,Yes,No,42,Yes,Fiber optic,No internet service,Yes,No,Yes,No internet service,Yes,Two year,Yes,Electronic check,70.52,2911.97,No
+CG10199,Male,0,No,No,16,Yes,No,No,Yes,No internet service,Yes,Yes,No internet service,One year,Yes,Mailed check,42.9,717.11,No
+CG10200,Male,0,No,No,31,Yes,Fiber optic,Yes,Yes,Yes,Yes,No,No,Two year,No,Mailed check,89.03,2772.97,No
+CG10201,Male,0,No,No,39,Yes,Fiber optic,No,Yes,Yes,No internet service,Yes,No,Month-to-month,Yes,Bank transfer (automatic),95.61,3833.78,No
+CG10202,Female,0,Yes,No,22,No,DSL,Yes,No,Yes,No internet service,Yes,No,Month-to-month,Yes,Mailed check,59.34,1323.66,No
+CG10203,Male,0,Yes,Yes,55,Yes,Fiber optic,Yes,Yes,No internet service,Yes,Yes,Yes,Month-to-month,No,Credit card (automatic),103.35,5677.89,No
+CG10204,Male,0,No,Yes,5,Yes,Fiber optic,Yes,No,No,Yes,No internet service,Yes,One year,Yes,Electronic check,79.04,356.66,No
+CG10205,Female,0,Yes,No,49,Yes,No,Yes,Yes,Yes,Yes,No internet service,No,Two year,Yes,Bank transfer (automatic),52.98,2562.53,No
+CG10206,Male,1,Yes,No,36,Yes,Fiber optic,No,Yes,No,No,Yes,No,One year,Yes,Electronic check,82.59,2936.08,No
+CG10207,Female,0,No,Yes,63,Yes,DSL,Yes,Yes,No internet service,Yes,No,Yes,Two year,Yes,Bank transfer (automatic),53.16,3410.78,No
+CG10208,Female,0,Yes,Yes,53,Yes,Fiber optic,Yes,No internet service,Yes,Yes,No,No internet service,One year,Yes,Credit card (automatic),74.69,3959.38,No
+CG10209,Female,0,No,Yes,71,Yes,DSL,Yes,No,Yes,No,Yes,Yes,Month-to-month,No,Credit card (automatic),79.6,5677.04,No
+CG10210,Male,0,No,Yes,48,Yes,No,No internet service,No internet service,No internet service,Yes,Yes,Yes,Month-to-month,No,Mailed check,51.2,2525.74,No
+CG10211,Male,0,Yes,No,10,Yes,Fiber optic,No,Yes,No,Yes,No internet service,No internet service,Month-to-month,Yes,Mailed check,63.43,528.17,Yes
+CG10212,Male,0,Yes,No,48,Yes,Fiber optic,Yes,No internet service,Yes,Yes,No,No,Month-to-month,Yes,Credit card (automatic),58.56,2868.43,No
+CG10213,Male,0,No,No,20,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,One year,Yes,Credit card (automatic),96.07,1923.89,No
+CG10214,Male,0,Yes,No,65,Yes,Fiber optic,Yes,Yes,Yes,Yes,No,Yes,Month-to-month,Yes,Credit card (automatic),90.43,5897.53,No
+CG10215,Male,0,Yes,Yes,62,Yes,Fiber optic,No internet service,No internet service,Yes,Yes,Yes,Yes,One year,Yes,Mailed check,81.93,5042.38,No
+CG10216,Male,1,No,Yes,27,Yes,Fiber optic,No,Yes,No,Yes,Yes,No,One year,No,Credit card (automatic),82.14,2183.8,No
+CG10217,Female,0,Yes,No,16,Yes,DSL,Yes,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,81.05,1318.8,No
+CG10218,Male,1,No,No,5,Yes,DSL,No,Yes,No,No,Yes,No internet service,Month-to-month,Yes,Electronic check,64.37,429.16,Yes
+CG10219,Female,0,No,No,18,No,DSL,Yes,No,No internet service,Yes,No,No internet service,Month-to-month,Yes,Electronic check,29.15,569.85,No
+CG10220,Male,0,Yes,Yes,55,Yes,Fiber optic,No internet service,No internet service,Yes,Yes,No internet service,No internet service,Month-to-month,Yes,Electronic check,62.49,3493.9,No
+CG10221,Male,1,Yes,No,27,Yes,DSL,Yes,Yes,Yes,No,Yes,Yes,Two year,Yes,Bank transfer (automatic),74.56,2004.48,No
+CG10222,Male,0,Yes,No,65,Yes,Fiber optic,Yes,No,Yes,No,Yes,No,Month-to-month,Yes,Credit card (automatic),85.58,5535.69,No
+CG10223,Female,0,Yes,No,37,Yes,No,Yes,Yes,No,No internet service,No,Yes,One year,Yes,Bank transfer (automatic),49.91,1811.53,No
+CG10224,Female,0,Yes,No,36,Yes,No,Yes,No,Yes,Yes,No internet service,Yes,Two year,No,Bank transfer (automatic),54.77,1949.75,No
+CG10225,Female,0,No,No,67,No,Fiber optic,No internet service,Yes,No,Yes,No,Yes,Two year,Yes,Mailed check,69.93,4592.93,No
+CG10226,Female,1,Yes,No,48,Yes,Fiber optic,Yes,Yes,No internet service,No,No internet service,Yes,Two year,Yes,Bank transfer (automatic),78.38,3729.62,No
+CG10227,Male,0,No,Yes,42,Yes,DSL,No internet service,Yes,Yes,No,Yes,No internet service,Month-to-month,Yes,Mailed check,58.17,2417.92,Yes
+CG10228,Female,0,No,Yes,35,Yes,Fiber optic,No,Yes,No internet service,Yes,No,Yes,Month-to-month,No,Credit card (automatic),87.15,3042.36,No
+CG10229,Male,0,No,Yes,57,Yes,No,Yes,No internet service,No internet service,No internet service,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),41.64,2379.41,No
+CG10230,Male,0,No,No,12,Yes,DSL,Yes,Yes,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Bank transfer (automatic),80.8,985.91,Yes
+CG10231,Female,0,Yes,No,51,Yes,Fiber optic,Yes,Yes,Yes,No internet service,Yes,Yes,Two year,Yes,Mailed check,95.66,4877.99,No
+CG10232,Female,0,No,No,57,Yes,No,No,Yes,No internet service,No internet service,Yes,No,One year,No,Credit card (automatic),40.64,2290.32,No
+CG10233,Female,0,No,Yes,31,Yes,No,Yes,Yes,No internet service,No,No internet service,Yes,Month-to-month,Yes,Electronic check,40.75,1174.9,No
+CG10234,Female,0,Yes,No,59,Yes,DSL,Yes,No,Yes,No internet service,No internet service,Yes,Month-to-month,Yes,Mailed check,53.16,3110.55,No
+CG10235,Female,0,Yes,No,57,Yes,Fiber optic,Yes,No internet service,Yes,No,Yes,No internet service,Month-to-month,Yes,Bank transfer (automatic),75.82,4277.98,No
+CG10236,Female,1,No,No,55,Yes,DSL,No,Yes,Yes,Yes,Yes,Yes,One year,Yes,Mailed check,74.36,4110.77,No
+CG10237,Female,0,Yes,No,27,Yes,DSL,Yes,No internet service,No internet service,Yes,Yes,No,One year,Yes,Credit card (automatic),45.05,1257.27,No
+CG10238,Female,0,Yes,No,0,Yes,No,Yes,No,Yes,Yes,Yes,Yes,Two year,Yes,Mailed check,57.42,42.24,No
+CG10239,Male,0,Yes,No,41,Yes,No,Yes,Yes,Yes,Yes,No,Yes,Two year,No,Mailed check,63.39,2633.05,No
+CG10240,Female,0,Yes,Yes,47,Yes,Fiber optic,Yes,No,No internet service,No,No internet service,Yes,Month-to-month,No,Credit card (automatic),80.54,3779.37,No
+CG10241,Female,0,No,No,39,No,DSL,No internet service,Yes,Yes,Yes,No internet service,Yes,Month-to-month,Yes,Mailed check,57.03,2200.68,No
+CG10242,Male,0,No,Yes,62,Yes,No,Yes,No,No,Yes,No,Yes,Month-to-month,Yes,Mailed check,46.38,2841.94,No
+CG10243,Female,0,No,Yes,71,Yes,Fiber optic,No internet service,No internet service,Yes,No,No internet service,No,Month-to-month,Yes,Electronic check,63.55,4444.21,Yes
+CG10244,Male,0,Yes,Yes,3,Yes,DSL,No,Yes,No internet service,No internet service,Yes,Yes,Two year,Yes,Electronic check,68.19,249.2,No
+CG10245,Male,0,Yes,No,37,Yes,Fiber optic,No,No internet service,Yes,Yes,Yes,Yes,One year,No,Bank transfer (automatic),101.32,3740.98,No
+CG10246,Female,1,No,No,26,Yes,DSL,No,No,No,Yes,Yes,Yes,One year,No,Electronic check,74.75,1887.41,Yes
+CG10247,Male,0,Yes,No,8,Yes,Fiber optic,Yes,Yes,No,Yes,No,No internet service,Month-to-month,Yes,Credit card (automatic),82.17,620.17,Yes
+CG10248,Male,0,Yes,Yes,15,Yes,Fiber optic,Yes,No,Yes,No,No,No internet service,Month-to-month,Yes,Bank transfer (automatic),69.06,996.89,No
+CG10249,Male,1,No,No,55,Yes,DSL,No,Yes,Yes,Yes,Yes,No,Month-to-month,Yes,Electronic check,75.0,4126.94,No
+CG10250,Male,0,Yes,No,30,Yes,DSL,Yes,No internet service,Yes,No,Yes,No internet service,Month-to-month,No,Bank transfer (automatic),50.5,1563.04,No
+CG10251,Female,0,No,No,13,Yes,DSL,No,No,Yes,Yes,Yes,Yes,One year,No,Bank transfer (automatic),69.98,894.08,No
+CG10252,Male,1,Yes,No,24,No,DSL,Yes,Yes,No internet service,Yes,No internet service,Yes,Month-to-month,No,Electronic check,65.67,1474.72,No
+CG10253,Female,0,Yes,Yes,33,Yes,Fiber optic,No internet service,Yes,No internet service,No internet service,Yes,No,One year,No,Electronic check,81.92,2694.85,No
+CG10254,Male,0,Yes,No,66,Yes,No,No,No,Yes,Yes,No,No,Two year,Yes,Mailed check,43.36,2854.73,No
+CG10255,Male,0,No,No,23,Yes,DSL,Yes,Yes,No,Yes,No,Yes,Month-to-month,No,Bank transfer (automatic),71.36,1631.16,No
+CG10256,Male,0,No,Yes,72,Yes,DSL,Yes,Yes,No,Yes,Yes,Yes,One year,No,Bank transfer (automatic),75.43,5402.72,No
+CG10257,Male,0,No,No,25,No,Fiber optic,No,Yes,No internet service,Yes,No,No internet service,Month-to-month,Yes,Mailed check,69.3,1742.28,No
+CG10258,Female,0,No,No,19,Yes,No,No,Yes,Yes,Yes,No internet service,No internet service,One year,Yes,Bank transfer (automatic),35.38,675.2,No
+CG10259,Female,1,Yes,No,63,Yes,DSL,Yes,Yes,Yes,Yes,Yes,Yes,One year,No,Bank transfer (automatic),75.24,4739.0,No
+CG10260,Male,0,No,Yes,9,Yes,DSL,No internet service,Yes,Yes,Yes,No internet service,No,Two year,Yes,Bank transfer (automatic),61.49,571.98,No
+CG10261,Male,0,Yes,Yes,66,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,No,Credit card (automatic),100.39,6606.4,No
+CG10262,Female,0,No,Yes,23,Yes,DSL,Yes,No,Yes,No,Yes,Yes,Month-to-month,No,Electronic check,57.4,1298.3,No
+CG10263,Male,0,Yes,No,4,Yes,DSL,No internet service,Yes,Yes,No,No internet service,Yes,Month-to-month,No,Credit card (automatic),67.64,332.67,No
+CG10264,Male,0,No,No,66,Yes,Fiber optic,No internet service,Yes,Yes,Yes,No internet service,Yes,Month-to-month,No,Bank transfer (automatic),92.18,6109.05,No
+CG10265,Male,0,Yes,Yes,57,Yes,Fiber optic,No,Yes,No,No,No internet service,Yes,One year,Yes,Credit card (automatic),75.38,4333.87,No
+CG10266,Female,0,Yes,No,26,Yes,Fiber optic,No internet service,No,Yes,Yes,No,No internet service,Two year,No,Mailed check,92.0,2447.17,No
+CG10267,Female,0,No,No,14,Yes,Fiber optic,Yes,Yes,Yes,Yes,No internet service,Yes,Month-to-month,Yes,Electronic check,85.54,1221.23,No
+CG10268,Female,1,Yes,Yes,34,Yes,Fiber optic,No internet service,Yes,Yes,Yes,No internet service,No,Month-to-month,Yes,Mailed check,75.11,2595.52,No
+CG10269,Male,0,Yes,No,52,Yes,DSL,Yes,Yes,Yes,Yes,No internet service,Yes,Month-to-month,Yes,Mailed check,70.84,3612.61,No
+CG10270,Male,0,Yes,No,43,Yes,Fiber optic,Yes,No internet service,No,Yes,No,Yes,Month-to-month,Yes,Bank transfer (automatic),80.39,3465.96,No
+CG10271,Female,0,Yes,Yes,25,Yes,DSL,Yes,No,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Mailed check,66.37,1651.03,No
+CG10272,Female,1,No,Yes,46,Yes,DSL,Yes,No,Yes,No,No internet service,No,Month-to-month,No,Credit card (automatic),44.75,2134.0,No
+CG10273,Female,0,No,No,33,Yes,Fiber optic,Yes,No,Yes,No internet service,Yes,No internet service,One year,Yes,Bank transfer (automatic),76.63,2570.53,No
+CG10274,Female,0,No,No,49,Yes,No,Yes,No,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Bank transfer (automatic),50.22,2432.41,No
+CG10275,Male,0,No,No,11,Yes,No,Yes,Yes,Yes,No,Yes,Yes,Month-to-month,Yes,Electronic check,68.83,773.91,Yes
+CG10276,Female,0,Yes,No,3,Yes,Fiber optic,Yes,No,No internet service,No internet service,No,Yes,One year,Yes,Credit card (automatic),93.62,288.41,No
+CG10277,Male,0,No,Yes,47,Yes,DSL,No,Yes,Yes,No,Yes,No internet service,Month-to-month,No,Credit card (automatic),74.68,3530.4,No
+CG10278,Female,0,Yes,Yes,54,Yes,DSL,Yes,No,Yes,Yes,Yes,No internet service,One year,Yes,Credit card (automatic),62.8,3345.35,No
+CG10279,Male,0,Yes,No,0,Yes,No,Yes,No,Yes,Yes,No internet service,No,One year,No,Electronic check,37.43,16.2,No
+CG10280,Female,0,No,Yes,65,Yes,Fiber optic,No,Yes,Yes,Yes,Yes,No,One year,No,Mailed check,84.73,5497.18,No
+CG10281,Female,0,Yes,Yes,29,Yes,Fiber optic,No internet service,Yes,No,Yes,No,No,Month-to-month,Yes,Electronic check,87.28,2543.83,No
+CG10282,Female,0,No,No,2,Yes,Fiber optic,No,Yes,No,No,Yes,Yes,Month-to-month,No,Mailed check,82.68,132.76,No
+CG10283,Female,0,Yes,No,20,Yes,Fiber optic,Yes,No,No,Yes,Yes,No,Two year,Yes,Electronic check,70.38,1381.27,No
+CG10284,Male,0,No,No,48,Yes,No,No,No,Yes,Yes,Yes,No internet service,One year,Yes,Mailed check,41.99,2068.34,No
+CG10285,Female,0,No,No,61,Yes,DSL,Yes,No internet service,Yes,No,No,No,Month-to-month,No,Bank transfer (automatic),62.06,3738.34,No
+CG10286,Male,1,No,Yes,37,Yes,Fiber optic,Yes,Yes,No internet service,No,Yes,Yes,Month-to-month,No,Mailed check,94.52,3453.24,No
+CG10287,Male,0,No,No,14,Yes,No,Yes,No,No internet service,Yes,No internet service,Yes,Month-to-month,Yes,Mailed check,44.4,619.28,No
+CG10288,Male,0,No,Yes,51,Yes,DSL,No internet service,No,Yes,No,Yes,Yes,Month-to-month,Yes,Credit card (automatic),72.47,3661.23,Yes
+CG10289,Male,0,Yes,No,45,Yes,Fiber optic,Yes,No internet service,Yes,Yes,Yes,Yes,One year,Yes,Electronic check,75.81,3371.62,No
+CG10290,Female,1,No,No,24,Yes,DSL,Yes,Yes,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Credit card (automatic),74.83,1800.65,No
+CG10291,Male,0,Yes,No,20,Yes,No,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,No,Electronic check,70.89,1350.07,No
+CG10292,Male,0,No,No,4,Yes,DSL,No internet service,No,Yes,No,No,Yes,One year,Yes,Electronic check,52.34,164.0,No
+CG10293,Male,0,No,No,69,Yes,Fiber optic,No,No,Yes,No internet service,No internet service,Yes,Month-to-month,Yes,Electronic check,69.31,4874.82,No
+CG10294,Female,0,No,Yes,46,No,DSL,Yes,No internet service,No,Yes,No,No,One year,No,Bank transfer (automatic),33.07,1541.9,No
+CG10295,Female,0,Yes,No,67,Yes,Fiber optic,No,Yes,Yes,Yes,Yes,Yes,One year,Yes,Mailed check,106.72,7116.64,No
+CG10296,Female,1,Yes,No,17,Yes,DSL,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Credit card (automatic),76.24,1314.9,No
+CG10297,Female,1,No,Yes,20,Yes,DSL,No,No internet service,Yes,Yes,Yes,Yes,One year,No,Mailed check,73.93,1504.13,No
+CG10298,Male,0,Yes,No,22,Yes,Fiber optic,Yes,Yes,No internet service,Yes,No internet service,Yes,One year,No,Electronic check,90.83,2043.01,No
+CG10299,Male,0,Yes,No,63,No,No,No internet service,No,Yes,Yes,Yes,Yes,Month-to-month,No,Bank transfer (automatic),58.1,3654.58,No
+CG10300,Female,1,Yes,Yes,66,Yes,DSL,Yes,Yes,No,No internet service,No,Yes,Month-to-month,Yes,Electronic check,62.77,4186.76,No
+CG10301,Male,0,No,No,39,Yes,DSL,No,Yes,Yes,No,Yes,No internet service,Month-to-month,No,Credit card (automatic),59.68,2235.79,No
+CG10302,Male,0,No,No,9,Yes,Fiber optic,Yes,No,No,Yes,Yes,Yes,Two year,Yes,Electronic check,90.38,765.89,No
+CG10303,Male,0,Yes,No,51,Yes,Fiber optic,Yes,No,Yes,Yes,Yes,Yes,One year,Yes,Mailed check,104.27,5325.14,No
+CG10304,Female,0,Yes,No,71,Yes,No,Yes,Yes,Yes,Yes,Yes,No,Month-to-month,No,Bank transfer (automatic),54.64,3894.27,No
+CG10305,Female,0,Yes,No,60,Yes,DSL,Yes,Yes,Yes,Yes,No,Yes,One year,Yes,Credit card (automatic),66.36,3940.57,No
+CG10306,Male,0,No,No,63,No,Fiber optic,Yes,No internet service,Yes,No internet service,Yes,No,Month-to-month,No,Mailed check,60.67,3833.88,No
+CG10307,Female,1,No,No,4,Yes,DSL,No,Yes,Yes,No internet service,No,Yes,One year,Yes,Credit card (automatic),54.23,188.85,No
+CG10308,Female,1,Yes,Yes,52,Yes,DSL,Yes,No internet service,No,Yes,Yes,No,One year,Yes,Electronic check,70.92,3675.38,No
+CG10309,Female,0,Yes,No,54,Yes,Fiber optic,No,Yes,Yes,Yes,No internet service,No,Month-to-month,No,Credit card (automatic),75.44,4119.87,No
+CG10310,Female,0,Yes,No,36,Yes,Fiber optic,No internet service,No,Yes,No internet service,Yes,No internet service,Two year,Yes,Bank transfer (automatic),71.14,2601.94,No
+CG10311,Female,1,No,Yes,55,Yes,Fiber optic,No,No internet service,Yes,Yes,No internet service,Yes,One year,No,Electronic check,75.27,4094.98,No
+CG10312,Male,0,No,No,58,Yes,DSL,No,No,No,No,No internet service,Yes,One year,Yes,Electronic check,54.68,3123.86,No
+CG10313,Female,0,Yes,No,68,Yes,Fiber optic,No,Yes,No internet service,Yes,No internet service,Yes,Month-to-month,No,Electronic check,79.08,5358.94,Yes
+CG10314,Male,1,Yes,Yes,72,Yes,Fiber optic,Yes,No,No,No,Yes,No internet service,Two year,Yes,Mailed check,73.81,5313.12,No
+CG10315,Male,1,Yes,No,58,Yes,No,No internet service,Yes,Yes,Yes,No,No internet service,Two year,Yes,Electronic check,53.79,3090.21,No
+CG10316,Female,0,No,No,1,No,DSL,Yes,Yes,No,No internet service,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),76.3,123.13,Yes
+CG10317,Male,0,Yes,No,64,Yes,DSL,No,No internet service,No internet service,No,Yes,Yes,Month-to-month,No,Credit card (automatic),49.12,3159.31,No
+CG10318,Male,0,No,Yes,59,Yes,Fiber optic,No,No,No internet service,Yes,Yes,Yes,Month-to-month,No,Electronic check,86.62,5128.85,No
+CG10319,Male,0,No,Yes,50,Yes,Fiber optic,Yes,No,Yes,No,Yes,Yes,One year,No,Mailed check,82.79,4082.51,No
+CG10320,Female,0,Yes,No,29,Yes,DSL,Yes,Yes,Yes,No internet service,No internet service,Yes,One year,Yes,Bank transfer (automatic),67.01,1995.82,No
+CG10321,Female,0,Yes,No,10,Yes,No,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Credit card (automatic),66.47,537.79,No
+CG10322,Male,0,Yes,Yes,38,Yes,DSL,No internet service,Yes,Yes,Yes,No,No,Two year,Yes,Mailed check,59.3,2290.93,No
+CG10323,Female,0,No,No,71,Yes,No,No internet service,No,No,Yes,No,No internet service,Month-to-month,Yes,Mailed check,34.84,2515.68,No
+CG10324,Female,0,No,Yes,62,Yes,DSL,Yes,No,Yes,Yes,Yes,No internet service,One year,Yes,Mailed check,74.38,4592.1,No
+CG10325,Female,0,No,No,63,Yes,Fiber optic,No,Yes,Yes,Yes,No,Yes,Month-to-month,No,Electronic check,88.36,5623.96,No
+CG10326,Female,1,No,No,60,Yes,No,No internet service,No internet service,No,No,Yes,No,Month-to-month,No,Electronic check,30.83,1846.96,No
+CG10327,Male,0,Yes,No,53,Yes,DSL,Yes,Yes,No internet service,Yes,No,No internet service,Month-to-month,Yes,Mailed check,55.97,2969.22,No
+CG10328,Male,0,No,Yes,72,Yes,No,Yes,Yes,Yes,No internet service,Yes,Yes,Month-to-month,Yes,Electronic check,47.48,3433.84,No
+CG10329,Female,0,No,No,57,Yes,Fiber optic,No,Yes,No,Yes,No internet service,No,One year,No,Mailed check,66.17,3915.09,No
+CG10330,Female,0,Yes,Yes,55,Yes,No,No internet service,Yes,Yes,Yes,No,Yes,One year,Yes,Electronic check,66.7,3729.0,No
+CG10331,Male,0,No,No,33,Yes,Fiber optic,No internet service,Yes,No internet service,Yes,No internet service,Yes,Month-to-month,Yes,Mailed check,74.66,2495.33,No
+CG10332,Male,0,No,No,30,Yes,DSL,Yes,No internet service,No internet service,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,62.45,1832.42,No
+CG10333,Female,0,No,Yes,51,Yes,DSL,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Credit card (automatic),84.56,4319.02,No
+CG10334,Male,0,No,Yes,0,No,DSL,Yes,No internet service,No,Yes,Yes,No,One year,No,Credit card (automatic),55.12,0.0,No
+CG10335,Female,0,No,No,54,Yes,DSL,Yes,Yes,No internet service,Yes,Yes,Yes,One year,Yes,Electronic check,75.44,4110.75,No
+CG10336,Female,0,No,No,21,No,DSL,Yes,No internet service,Yes,No,Yes,Yes,Month-to-month,Yes,Mailed check,75.27,1586.99,No
+CG10337,Male,1,Yes,No,39,Yes,DSL,No,No,Yes,No,No,Yes,One year,Yes,Bank transfer (automatic),63.39,2421.61,No
+CG10338,Male,0,Yes,Yes,0,Yes,Fiber optic,Yes,No internet service,No,Yes,Yes,No internet service,Month-to-month,No,Electronic check,76.76,3.65,No
+CG10339,Female,0,No,No,64,Yes,Fiber optic,No internet service,Yes,Yes,No,Yes,Yes,Two year,Yes,Mailed check,85.6,5440.18,No
+CG10340,Female,0,Yes,No,62,Yes,DSL,Yes,No,Yes,No,No internet service,No,Two year,Yes,Electronic check,51.98,3229.56,No
+CG10341,Male,0,Yes,No,53,Yes,DSL,No,No internet service,No internet service,Yes,No,No,One year,No,Credit card (automatic),58.0,3035.34,No
+CG10342,Female,0,Yes,No,41,Yes,Fiber optic,Yes,Yes,No,No internet service,Yes,Yes,Two year,No,Credit card (automatic),86.53,3548.97,No
+CG10343,Male,0,Yes,No,20,No,DSL,Yes,Yes,Yes,No internet service,Yes,Yes,Two year,No,Bank transfer (automatic),54.65,1126.77,No
+CG10344,Female,1,No,No,21,Yes,DSL,Yes,Yes,Yes,Yes,Yes,No,Two year,No,Mailed check,73.61,1543.42,No
+CG10345,Male,0,No,No,37,Yes,DSL,No internet service,No internet service,Yes,Yes,Yes,Yes,One year,Yes,Credit card (automatic),59.7,2191.31,No
+CG10346,Male,0,Yes,No,7,Yes,No,No internet service,Yes,Yes,Yes,No,Yes,Month-to-month,Yes,Credit card (automatic),68.47,488.44,No
+CG10347,Male,0,Yes,No,61,Yes,No,Yes,Yes,Yes,Yes,Yes,No,Month-to-month,Yes,Credit card (automatic),48.27,2975.84,No
+CG10348,Female,1,Yes,Yes,46,Yes,Fiber optic,Yes,Yes,No,No,No internet service,Yes,Month-to-month,Yes,Electronic check,79.71,3616.84,Yes
+CG10349,Female,0,No,No,16,Yes,Fiber optic,No internet service,Yes,Yes,Yes,No,Yes,One year,No,Electronic check,88.07,1420.85,Yes
+CG10350,Male,0,No,No,16,No,Fiber optic,Yes,No internet service,Yes,No,No,Yes,Month-to-month,No,Bank transfer (automatic),70.69,1190.33,No
+CG10351,Female,0,Yes,No,12,Yes,Fiber optic,Yes,Yes,Yes,No,Yes,Yes,Month-to-month,No,Mailed check,91.68,1125.97,No
+CG10352,Male,0,No,Yes,16,Yes,Fiber optic,No,No,No internet service,No,Yes,No,Month-to-month,Yes,Electronic check,74.37,1192.52,No
+CG10353,Male,0,No,Yes,37,Yes,Fiber optic,No internet service,No internet service,Yes,No,No,No,Month-to-month,No,Electronic check,80.21,2996.56,No
+CG10354,Female,1,No,No,44,Yes,DSL,Yes,Yes,Yes,Yes,Yes,No,One year,No,Credit card (automatic),80.14,3546.52,No
+CG10355,Female,0,No,Yes,5,Yes,DSL,Yes,No,Yes,Yes,Yes,No,Two year,Yes,Credit card (automatic),80.83,438.06,No
+CG10356,Male,0,Yes,No,34,Yes,Fiber optic,No internet service,Yes,No,No,Yes,Yes,One year,No,Mailed check,75.63,2480.34,No
+CG10357,Female,0,No,Yes,13,Yes,No,Yes,No,No,Yes,Yes,Yes,One year,Yes,Credit card (automatic),56.54,665.11,No
+CG10358,Female,0,Yes,Yes,71,Yes,Fiber optic,Yes,Yes,Yes,Yes,No,Yes,One year,Yes,Bank transfer (automatic),92.24,6594.26,No
+CG10359,Male,0,No,Yes,60,Yes,No,No,No,Yes,No internet service,Yes,Yes,Month-to-month,No,Credit card (automatic),51.81,3040.86,No
+CG10360,Male,0,No,Yes,14,No,No,No internet service,Yes,Yes,No,Yes,No internet service,Month-to-month,No,Mailed check,49.01,704.21,No
+CG10361,Female,0,No,No,53,Yes,DSL,Yes,Yes,Yes,Yes,Yes,No internet service,Two year,Yes,Electronic check,72.23,3812.35,No
+CG10362,Male,0,No,Yes,26,Yes,Fiber optic,No internet service,No,Yes,No,No,Yes,Month-to-month,Yes,Mailed check,72.76,1846.93,No
+CG10363,Male,0,Yes,No,12,Yes,Fiber optic,No,Yes,Yes,No,No internet service,Yes,Month-to-month,No,Mailed check,85.27,1038.97,No
+CG10364,Female,0,No,No,30,Yes,No,Yes,No,Yes,Yes,No internet service,Yes,One year,No,Mailed check,36.77,1112.15,No
+CG10365,Male,0,No,No,34,Yes,No,No internet service,Yes,Yes,Yes,Yes,Yes,Month-to-month,No,Electronic check,57.11,2036.71,Yes
+CG10366,Male,0,No,No,59,Yes,Fiber optic,Yes,No,Yes,No internet service,Yes,Yes,Month-to-month,Yes,Credit card (automatic),87.93,5159.75,No
+CG10367,Female,0,Yes,No,5,Yes,DSL,Yes,Yes,No,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,69.64,413.0,Yes
+CG10368,Female,0,Yes,No,68,Yes,Fiber optic,No,No,Yes,Yes,No,No internet service,Month-to-month,Yes,Electronic check,81.46,5555.14,No
+CG10369,Male,1,Yes,Yes,57,Yes,DSL,Yes,Yes,Yes,Yes,No,No,Month-to-month,Yes,Mailed check,57.5,3247.75,No
+CG10370,Male,1,No,No,48,Yes,Fiber optic,Yes,Yes,Yes,No,No,Yes,Month-to-month,Yes,Mailed check,84.91,4111.65,No
+CG10371,Female,0,No,No,22,Yes,No,Yes,Yes,No internet service,Yes,Yes,Yes,One year,Yes,Mailed check,61.35,1375.16,No
+CG10372,Female,0,Yes,No,33,Yes,Fiber optic,Yes,No,No internet service,Yes,No,Yes,Two year,Yes,Bank transfer (automatic),91.83,3032.0,No
+CG10373,Female,0,No,No,25,Yes,Fiber optic,No internet service,Yes,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Mailed check,85.92,2159.98,Yes
+CG10374,Female,0,No,No,46,Yes,Fiber optic,No,No internet service,Yes,No internet service,No,No internet service,Two year,No,Bank transfer (automatic),75.49,3445.68,No
+CG10375,Male,0,No,No,4,Yes,Fiber optic,No internet service,No internet service,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Bank transfer (automatic),86.6,309.24,Yes
+CG10376,Female,0,No,No,19,No,DSL,Yes,Yes,Yes,No,No,Yes,Month-to-month,Yes,Electronic check,61.99,1211.98,No
+CG10377,Female,0,No,No,5,Yes,Fiber optic,Yes,No,Yes,No internet service,Yes,No,Month-to-month,Yes,Bank transfer (automatic),72.28,351.32,Yes
+CG10378,Male,0,No,Yes,69,No,No,Yes,Yes,No,Yes,Yes,Yes,One year,Yes,Credit card (automatic),39.52,2723.28,No
+CG10379,Female,0,Yes,No,58,Yes,No,Yes,Yes,Yes,No internet service,No,No,Month-to-month,Yes,Electronic check,43.85,2555.89,No
+CG10380,Male,0,No,Yes,63,Yes,DSL,Yes,No,No internet service,No internet service,Yes,Yes,One year,No,Mailed check,62.66,3959.52,No
+CG10381,Female,0,No,No,17,Yes,No,No,No,Yes,No internet service,No,Yes,One year,No,Credit card (automatic),48.35,757.63,No
+CG10382,Female,0,No,No,3,No,Fiber optic,No internet service,No,No internet service,Yes,No,No,Month-to-month,Yes,Mailed check,65.97,255.79,Yes
+CG10383,Female,0,No,Yes,16,Yes,DSL,No internet service,Yes,No,No,No,Yes,One year,Yes,Mailed check,57.52,925.77,No
+CG10384,Male,0,No,Yes,13,Yes,DSL,Yes,Yes,Yes,No,Yes,Yes,Two year,Yes,Credit card (automatic),67.74,871.5,No
+CG10385,Male,0,Yes,Yes,12,Yes,DSL,No internet service,Yes,Yes,No internet service,Yes,Yes,Month-to-month,No,Electronic check,76.09,932.47,No
+CG10386,Female,0,Yes,No,6,Yes,No,Yes,No,Yes,Yes,No,Yes,Month-to-month,Yes,Electronic check,42.86,267.8,Yes
+CG10387,Male,0,Yes,No,43,Yes,Fiber optic,Yes,Yes,Yes,No,Yes,Yes,One year,Yes,Credit card (automatic),87.93,3815.51,No
+CG10388,Male,0,Yes,No,14,Yes,Fiber optic,No internet service,No,Yes,Yes,No,Yes,One year,No,Credit card (automatic),73.16,1048.45,No
+CG10389,Male,0,No,No,18,Yes,DSL,No,Yes,No,Yes,Yes,Yes,Month-to-month,No,Mailed check,70.89,1308.32,No
+CG10390,Male,0,No,No,62,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,No,Mailed check,108.36,6779.11,No
+CG10391,Male,0,Yes,No,34,Yes,DSL,Yes,Yes,No internet service,No,Yes,No internet service,Month-to-month,No,Credit card (automatic),63.96,2214.4,No
+CG10392,Male,1,Yes,No,34,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,No,Bank transfer (automatic),95.45,3238.08,No
+CG10393,Female,0,No,No,18,Yes,Fiber optic,No,Yes,No internet service,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,76.8,1331.87,Yes
+CG10394,Female,0,Yes,No,19,Yes,DSL,Yes,No internet service,Yes,No internet service,No,Yes,Two year,Yes,Electronic check,68.42,1375.03,No
+CG10395,Male,0,No,Yes,34,Yes,No,No internet service,No internet service,No,Yes,No,No internet service,One year,No,Mailed check,26.76,899.14,No
+CG10396,Female,0,No,No,31,Yes,DSL,Yes,Yes,Yes,No,Yes,No,Month-to-month,No,Credit card (automatic),69.94,2146.85,No
+CG10397,Female,0,No,No,47,Yes,Fiber optic,Yes,Yes,Yes,Yes,No internet service,Yes,One year,No,Credit card (automatic),88.17,4065.84,No
+CG10398,Female,1,Yes,Yes,43,Yes,Fiber optic,Yes,Yes,No internet service,Yes,Yes,No,Two year,Yes,Credit card (automatic),92.71,4001.76,No
+CG10399,Female,0,Yes,No,23,Yes,Fiber optic,Yes,No internet service,Yes,No,No internet service,No,Month-to-month,Yes,Credit card (automatic),71.74,1656.72,Yes
+CG10400,Male,0,No,Yes,60,Yes,DSL,Yes,Yes,No,No internet service,No,No,Month-to-month,Yes,Bank transfer (automatic),55.53,3263.62,No
+CG10401,Female,0,No,Yes,16,Yes,DSL,No,No internet service,No,Yes,No,No,Month-to-month,Yes,Mailed check,54.89,898.64,Yes
+CG10402,Female,0,Yes,No,70,Yes,No,No internet service,Yes,Yes,No,Yes,No internet service,One year,Yes,Bank transfer (automatic),62.86,4377.78,No
+CG10403,Male,0,No,Yes,49,Yes,DSL,No internet service,Yes,Yes,Yes,Yes,No internet service,Month-to-month,No,Bank transfer (automatic),76.11,3850.45,No
+CG10404,Male,0,Yes,No,64,No,No,No internet service,No internet service,No,Yes,Yes,No,Two year,Yes,Mailed check,32.29,2040.94,No
+CG10405,Female,0,No,No,31,Yes,No,No internet service,Yes,Yes,Yes,No,Yes,Month-to-month,No,Electronic check,51.03,1562.35,No
+CG10406,Female,1,Yes,Yes,35,Yes,DSL,No,No,No,Yes,Yes,No,Month-to-month,No,Credit card (automatic),54.8,1878.64,No
+CG10407,Female,0,No,No,12,Yes,DSL,No internet service,Yes,No internet service,Yes,No,No internet service,Month-to-month,Yes,Mailed check,48.4,638.3,Yes
+CG10408,Female,0,Yes,Yes,69,No,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Mailed check,86.58,5957.25,No
+CG10409,Female,0,Yes,No,57,Yes,No,Yes,Yes,Yes,Yes,No internet service,No internet service,One year,No,Bank transfer (automatic),41.82,2351.12,No
+CG10410,Female,0,Yes,No,13,Yes,No,Yes,No,No,Yes,Yes,Yes,Two year,No,Bank transfer (automatic),59.23,801.8,No
+CG10411,Male,0,Yes,Yes,36,Yes,Fiber optic,Yes,No,Yes,Yes,Yes,Yes,Month-to-month,No,Electronic check,85.43,3013.36,No
+CG10412,Female,0,No,Yes,67,Yes,Fiber optic,Yes,Yes,Yes,No,Yes,No internet service,Two year,No,Credit card (automatic),96.67,6505.02,No
+CG10413,Female,0,No,No,39,Yes,DSL,No internet service,No internet service,Yes,No internet service,Yes,Yes,Two year,No,Electronic check,73.02,2927.94,No
+CG10414,Male,0,Yes,No,58,Yes,No,Yes,Yes,Yes,No,Yes,Yes,Month-to-month,Yes,Electronic check,59.16,3456.78,No
+CG10415,Male,0,Yes,Yes,15,Yes,No,Yes,Yes,Yes,Yes,No,Yes,One year,No,Mailed check,56.0,868.71,No
+CG10416,Male,0,No,No,61,Yes,DSL,Yes,Yes,Yes,No internet service,Yes,Yes,Month-to-month,No,Bank transfer (automatic),72.54,4464.09,No
+CG10417,Male,0,No,No,3,Yes,DSL,Yes,Yes,No,No,Yes,Yes,One year,No,Credit card (automatic),74.16,299.42,Yes
+CG10418,Female,1,No,No,44,Yes,DSL,Yes,Yes,Yes,Yes,No internet service,Yes,Month-to-month,Yes,Credit card (automatic),82.7,3693.25,No
+CG10419,Female,0,Yes,No,27,No,DSL,Yes,No internet service,Yes,Yes,Yes,Yes,One year,No,Credit card (automatic),63.37,1730.78,No
+CG10420,Female,0,Yes,No,65,Yes,No,Yes,Yes,No internet service,No,No internet service,No internet service,Month-to-month,Yes,Electronic check,25.73,1713.13,No
+CG10421,Female,1,No,No,30,Yes,Fiber optic,Yes,Yes,No,No,No internet service,No internet service,Two year,No,Electronic check,78.63,2319.03,No
+CG10422,Female,0,Yes,No,2,Yes,DSL,No,Yes,No internet service,No,Yes,Yes,Two year,Yes,Mailed check,69.59,174.11,No
+CG10423,Female,1,No,No,7,Yes,DSL,No,No,Yes,No,Yes,No,Month-to-month,Yes,Electronic check,50.04,305.03,Yes
+CG10424,Male,0,Yes,Yes,23,No,No,Yes,No internet service,No,No,Yes,Yes,Month-to-month,Yes,Credit card (automatic),35.13,791.47,No
+CG10425,Female,0,No,No,14,Yes,Fiber optic,Yes,Yes,Yes,No internet service,No,Yes,Month-to-month,Yes,Bank transfer (automatic),79.13,969.1,No
+CG10426,Male,0,Yes,No,42,Yes,Fiber optic,Yes,Yes,Yes,Yes,No,Yes,One year,Yes,Credit card (automatic),85.2,3596.46,No
+CG10427,Male,0,No,No,30,Yes,DSL,No,Yes,Yes,Yes,No,No internet service,Month-to-month,No,Electronic check,58.41,1723.33,Yes
+CG10428,Female,0,No,No,72,Yes,No,Yes,Yes,Yes,No internet service,No,No internet service,One year,Yes,Mailed check,40.87,2992.64,No
+CG10429,Male,0,No,No,44,Yes,No,Yes,Yes,No internet service,Yes,Yes,Yes,Month-to-month,Yes,Mailed check,53.79,2384.32,No
+CG10430,Female,0,Yes,No,65,Yes,DSL,No,Yes,Yes,No,No internet service,Yes,Month-to-month,Yes,Electronic check,57.93,3816.03,No
+CG10431,Male,0,No,No,7,Yes,DSL,Yes,Yes,No,No internet service,No,Yes,Month-to-month,Yes,Bank transfer (automatic),62.17,386.43,No
+CG10432,Female,0,No,No,70,No,DSL,Yes,Yes,No,No,No,Yes,Month-to-month,Yes,Mailed check,57.34,4060.53,No
+CG10433,Male,1,No,Yes,56,No,DSL,Yes,Yes,No,No,No internet service,No,One year,Yes,Mailed check,45.47,2641.08,No
+CG10434,Female,0,No,No,29,Yes,Fiber optic,No internet service,No internet service,Yes,Yes,No,Yes,Two year,Yes,Mailed check,90.27,2652.22,No
+CG10435,Female,0,No,No,17,Yes,No,No internet service,No internet service,No,Yes,Yes,No,Month-to-month,No,Electronic check,45.06,801.59,No
+CG10436,Female,0,No,Yes,68,Yes,Fiber optic,No,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Mailed check,76.27,5193.99,No
+CG10437,Female,0,Yes,No,38,Yes,No,Yes,Yes,Yes,No,Yes,No internet service,Month-to-month,Yes,Electronic check,55.19,2073.61,No
+CG10438,Female,1,No,No,59,Yes,Fiber optic,Yes,Yes,No internet service,No,Yes,No,One year,Yes,Electronic check,85.84,5098.81,No
+CG10439,Male,0,No,No,42,Yes,Fiber optic,No internet service,Yes,Yes,No,No internet service,Yes,Month-to-month,No,Electronic check,77.52,3188.07,No
+CG10440,Male,0,Yes,Yes,44,Yes,Fiber optic,No internet service,No,Yes,Yes,Yes,No,One year,Yes,Electronic check,69.04,3018.96,No
+CG10441,Male,0,Yes,Yes,22,Yes,DSL,Yes,Yes,No internet service,Yes,No,No internet service,Two year,Yes,Mailed check,61.06,1263.62,No
+CG10442,Female,0,Yes,No,68,Yes,Fiber optic,No internet service,No internet service,Yes,No,Yes,Yes,Month-to-month,Yes,Electronic check,83.94,5676.26,No
+CG10443,Male,0,No,Yes,5,Yes,Fiber optic,Yes,No internet service,No,Yes,Yes,Yes,One year,Yes,Mailed check,80.03,429.04,No
+CG10444,Female,0,No,No,55,Yes,DSL,Yes,Yes,Yes,Yes,No internet service,No internet service,Month-to-month,Yes,Bank transfer (automatic),54.39,3014.19,No
+CG10445,Female,0,No,No,3,Yes,Fiber optic,No,No,Yes,No,No internet service,Yes,Month-to-month,Yes,Bank transfer (automatic),75.3,228.19,No
+CG10446,Male,0,No,Yes,22,Yes,Fiber optic,Yes,Yes,Yes,No,Yes,Yes,Month-to-month,Yes,Credit card (automatic),92.14,2034.75,No
+CG10447,Male,0,Yes,No,5,Yes,No,No internet service,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Mailed check,55.66,193.44,Yes
+CG10448,Female,1,Yes,No,31,Yes,Fiber optic,Yes,Yes,Yes,No internet service,Yes,No internet service,Month-to-month,Yes,Mailed check,85.33,2628.46,No
+CG10449,Male,1,Yes,No,17,Yes,No,Yes,Yes,No,Yes,Yes,No,Month-to-month,No,Credit card (automatic),42.18,686.4,No
+CG10450,Female,0,Yes,No,14,Yes,Fiber optic,No internet service,No internet service,Yes,No internet service,Yes,No internet service,Month-to-month,No,Mailed check,72.52,985.62,Yes
+CG10451,Female,0,Yes,No,39,Yes,Fiber optic,No internet service,Yes,No internet service,Yes,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),93.27,3664.51,No
+CG10452,Female,0,Yes,No,72,Yes,Fiber optic,Yes,Yes,Yes,Yes,No internet service,Yes,One year,No,Mailed check,88.2,6311.68,No
+CG10453,Female,0,No,No,5,Yes,No,Yes,No,Yes,No internet service,No,No,Two year,No,Mailed check,24.62,95.89,No
+CG10454,Female,1,No,No,62,Yes,Fiber optic,No,No,No,Yes,No internet service,No,Month-to-month,No,Bank transfer (automatic),64.22,3887.72,No
+CG10455,Male,0,No,No,66,Yes,Fiber optic,Yes,Yes,No internet service,No,No,Yes,Month-to-month,Yes,Electronic check,72.44,4767.8,No
+CG10456,Male,0,No,No,10,Yes,Fiber optic,No internet service,No internet service,Yes,No internet service,Yes,Yes,Month-to-month,No,Electronic check,86.14,812.45,Yes
+CG10457,Female,0,No,No,42,No,Fiber optic,No internet service,No,No,No internet service,No internet service,Yes,Two year,Yes,Electronic check,65.55,2756.66,No
+CG10458,Female,0,Yes,No,16,No,DSL,Yes,Yes,No internet service,No internet service,Yes,No,One year,Yes,Mailed check,42.73,640.88,No
+CG10459,Male,0,No,Yes,3,Yes,DSL,Yes,Yes,Yes,Yes,No internet service,No internet service,Month-to-month,Yes,Electronic check,72.07,220.91,Yes
+CG10460,Male,0,No,No,62,Yes,DSL,Yes,Yes,No internet service,No,Yes,No,Month-to-month,Yes,Bank transfer (automatic),55.1,3409.69,No
+CG10461,Female,0,Yes,Yes,67,Yes,No,No internet service,No internet service,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Credit card (automatic),58.47,3992.73,No
+CG10462,Male,0,Yes,No,40,Yes,DSL,Yes,No,No,Yes,No internet service,Yes,Month-to-month,Yes,Credit card (automatic),63.61,2566.77,No
+CG10463,Female,0,No,No,4,No,DSL,Yes,No internet service,No internet service,No internet service,No,No internet service,Two year,No,Mailed check,33.03,49.34,No
+CG10464,Male,0,Yes,No,31,Yes,Fiber optic,Yes,Yes,No,Yes,No internet service,No internet service,Two year,Yes,Credit card (automatic),68.86,2077.74,No
+CG10465,Female,0,No,No,69,Yes,DSL,No,Yes,Yes,No,No internet service,Yes,Month-to-month,Yes,Bank transfer (automatic),66.78,4610.3,No
+CG10466,Male,0,No,No,34,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Mailed check,87.87,2945.74,No
+CG10467,Female,0,Yes,No,21,No,DSL,Yes,Yes,No internet service,No,Yes,Yes,Month-to-month,Yes,Credit card (automatic),63.23,1194.25,No
+CG10468,Male,0,Yes,No,64,Yes,No,No internet service,No,Yes,No internet service,Yes,No internet service,Month-to-month,Yes,Bank transfer (automatic),53.9,3510.33,No
+CG10469,Male,0,Yes,No,21,Yes,No,No internet service,No,Yes,Yes,No,No internet service,Two year,No,Bank transfer (automatic),32.41,713.02,No
+CG10470,Female,0,Yes,No,10,Yes,No,No,Yes,No,No,No,No,Month-to-month,Yes,Electronic check,33.48,358.24,No
+CG10471,Male,0,Yes,No,2,Yes,Fiber optic,Yes,Yes,Yes,No internet service,Yes,No,Month-to-month,Yes,Mailed check,97.36,167.39,No
+CG10472,Female,1,No,Yes,8,Yes,Fiber optic,Yes,Yes,Yes,Yes,No,Yes,Month-to-month,No,Credit card (automatic),93.16,764.53,Yes
+CG10473,Male,0,Yes,No,59,Yes,DSL,No,Yes,Yes,Yes,No,Yes,Two year,Yes,Mailed check,56.15,3281.15,No
+CG10474,Female,0,No,No,13,No,DSL,Yes,Yes,Yes,No,Yes,Yes,One year,No,Bank transfer (automatic),73.04,958.74,No
+CG10475,Male,0,Yes,No,17,No,DSL,No internet service,Yes,No,Yes,No internet service,No,Month-to-month,Yes,Bank transfer (automatic),38.7,616.47,No
+CG10476,Female,0,No,Yes,72,Yes,Fiber optic,No,Yes,No,Yes,No,No,Month-to-month,Yes,Credit card (automatic),84.25,6134.23,No
+CG10477,Male,0,Yes,No,22,Yes,Fiber optic,Yes,Yes,Yes,No internet service,No internet service,No internet service,Month-to-month,Yes,Electronic check,71.42,1500.58,No
+CG10478,Female,0,Yes,Yes,46,Yes,Fiber optic,No internet service,Yes,No internet service,Yes,Yes,Yes,Two year,Yes,Bank transfer (automatic),112.76,5242.41,No
+CG10479,Male,0,No,No,68,Yes,DSL,No internet service,Yes,No internet service,No internet service,Yes,No internet service,Month-to-month,Yes,Electronic check,70.74,4812.07,No
+CG10480,Female,0,No,No,46,Yes,Fiber optic,Yes,No,No,No internet service,Yes,No internet service,Month-to-month,No,Bank transfer (automatic),69.63,3180.95,No
+CG10481,Female,0,Yes,No,29,Yes,Fiber optic,Yes,Yes,Yes,No,Yes,No,Month-to-month,No,Bank transfer (automatic),86.16,2506.16,No
+CG10482,Female,0,No,Yes,24,Yes,Fiber optic,Yes,No internet service,No,Yes,No internet service,Yes,One year,No,Electronic check,87.03,2121.72,No
+CG10483,Male,0,Yes,No,27,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,No,Bank transfer (automatic),105.27,2903.79,No
+CG10484,Female,0,No,No,24,Yes,DSL,Yes,Yes,No,Yes,No,Yes,Month-to-month,Yes,Mailed check,72.54,1755.05,No
+CG10485,Male,0,Yes,No,57,Yes,No,No,Yes,No,No internet service,Yes,No,One year,No,Electronic check,51.02,2868.06,No
+CG10486,Female,0,Yes,No,40,Yes,Fiber optic,No internet service,Yes,Yes,Yes,Yes,No,One year,Yes,Mailed check,85.02,3403.3,No
+CG10487,Male,0,No,Yes,24,Yes,DSL,Yes,No internet service,No internet service,Yes,Yes,No internet service,One year,No,Electronic check,61.07,1547.44,No
+CG10488,Female,0,No,No,47,Yes,DSL,Yes,Yes,Yes,Yes,No,Yes,Two year,Yes,Mailed check,71.23,3408.46,No
+CG10489,Male,0,Yes,No,9,Yes,Fiber optic,No,No internet service,No,Yes,No,Yes,Month-to-month,No,Mailed check,82.87,786.72,Yes
+CG10490,Male,0,No,No,10,Yes,No,Yes,No internet service,Yes,Yes,Yes,No,Month-to-month,No,Bank transfer (automatic),53.92,575.01,Yes
+CG10491,Female,0,No,Yes,20,Yes,Fiber optic,No internet service,Yes,No internet service,No,No internet service,No internet service,Two year,Yes,Bank transfer (automatic),70.33,1438.08,Yes
+CG10492,Male,0,Yes,No,44,Yes,DSL,Yes,Yes,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Bank transfer (automatic),80.36,3587.98,No
+CG10493,Male,0,No,No,6,Yes,No,Yes,No,Yes,Yes,Yes,No internet service,One year,Yes,Electronic check,34.59,186.99,No
+CG10494,Female,0,Yes,No,63,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,One year,Yes,Credit card (automatic),101.48,6332.26,No
+CG10495,Male,0,No,Yes,63,Yes,Fiber optic,No,No,Yes,No,Yes,No,Month-to-month,No,Bank transfer (automatic),77.75,4901.36,No
+CG10496,Male,0,No,No,1,Yes,Fiber optic,Yes,Yes,Yes,No,No internet service,No internet service,Month-to-month,No,Electronic check,91.35,54.56,Yes
+CG10497,Male,1,No,Yes,41,Yes,DSL,No,Yes,No,Yes,Yes,Yes,One year,Yes,Credit card (automatic),59.77,2403.09,No
+CG10498,Female,0,Yes,No,53,Yes,Fiber optic,Yes,Yes,Yes,No,Yes,Yes,Two year,Yes,Electronic check,106.46,5609.97,No
+CG10499,Male,1,Yes,Yes,15,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,One year,No,Bank transfer (automatic),99.6,1605.84,No
+CG10500,Female,0,Yes,No,17,Yes,No,Yes,No internet service,Yes,No internet service,No,Yes,Month-to-month,Yes,Mailed check,49.91,854.6,No
+CG10501,Male,0,Yes,No,58,Yes,Fiber optic,No internet service,Yes,No internet service,Yes,Yes,No,Month-to-month,Yes,Mailed check,94.41,5492.07,No
+CG10502,Male,0,Yes,No,15,Yes,Fiber optic,No internet service,No internet service,No,No,No,Yes,Month-to-month,No,Credit card (automatic),75.49,1077.34,No
+CG10503,Male,1,No,Yes,5,Yes,Fiber optic,Yes,Yes,No,No internet service,Yes,Yes,Month-to-month,No,Mailed check,92.2,378.03,No
+CG10504,Female,0,Yes,No,56,Yes,No,Yes,Yes,No,No internet service,Yes,Yes,Month-to-month,Yes,Electronic check,55.94,3095.78,No
+CG10505,Male,0,Yes,No,46,Yes,No,Yes,Yes,Yes,Yes,No internet service,No,Two year,Yes,Credit card (automatic),44.13,2094.7,No
+CG10506,Male,0,No,No,47,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,One year,No,Credit card (automatic),98.77,4657.23,No
+CG10507,Female,0,Yes,No,41,Yes,Fiber optic,Yes,Yes,Yes,No,No internet service,No,One year,No,Bank transfer (automatic),72.28,2990.42,No
+CG10508,Male,1,No,Yes,59,Yes,Fiber optic,No internet service,Yes,No internet service,Yes,Yes,Yes,Month-to-month,No,Mailed check,88.64,5263.0,No
+CG10509,Female,0,Yes,No,3,Yes,Fiber optic,No internet service,No internet service,No internet service,No internet service,No internet service,Yes,Month-to-month,Yes,Electronic check,52.31,130.32,No
+CG10510,Female,0,No,Yes,1,Yes,DSL,Yes,Yes,Yes,No,Yes,Yes,Two year,No,Credit card (automatic),80.43,142.89,No
+CG10511,Male,0,Yes,No,58,Yes,Fiber optic,Yes,Yes,Yes,No,No,Yes,Month-to-month,Yes,Electronic check,85.03,4903.26,Yes
+CG10512,Female,1,Yes,Yes,26,Yes,DSL,No internet service,No internet service,Yes,Yes,Yes,Yes,Month-to-month,No,Electronic check,69.31,1865.34,No
+CG10513,Male,1,No,No,26,Yes,No,No internet service,No,Yes,No,Yes,Yes,Month-to-month,Yes,Mailed check,50.76,1339.66,No
+CG10514,Female,0,Yes,No,71,Yes,DSL,Yes,Yes,No,No,Yes,No internet service,Two year,Yes,Electronic check,52.53,3649.12,No
+CG10515,Female,0,No,No,6,Yes,No,Yes,Yes,Yes,No internet service,Yes,No,Two year,No,Electronic check,66.43,364.92,No
+CG10516,Male,1,Yes,No,62,No,Fiber optic,Yes,No internet service,No internet service,Yes,Yes,Yes,Month-to-month,Yes,Mailed check,80.18,4890.84,No
+CG10517,Female,0,Yes,No,45,Yes,Fiber optic,Yes,No,Yes,Yes,Yes,Yes,Two year,Yes,Electronic check,92.83,4229.7,No
+CG10518,Female,0,No,No,62,Yes,Fiber optic,Yes,Yes,No internet service,Yes,No,No internet service,Month-to-month,No,Electronic check,70.28,4356.25,Yes
+CG10519,Female,1,Yes,Yes,11,Yes,DSL,Yes,Yes,No,Yes,No,No,Month-to-month,No,Electronic check,61.19,572.81,No
+CG10520,Female,0,No,No,12,Yes,Fiber optic,No,No internet service,No,No,No,Yes,Two year,No,Electronic check,82.1,1002.11,No
+CG10521,Female,0,No,Yes,42,No,DSL,Yes,Yes,No,No internet service,No,No,Two year,Yes,Bank transfer (automatic),56.29,2340.01,No
+CG10522,Male,0,No,No,16,Yes,Fiber optic,Yes,No internet service,No,Yes,Yes,No,One year,Yes,Credit card (automatic),87.84,1338.67,No
+CG10523,Female,1,No,No,62,No,Fiber optic,Yes,Yes,No,No internet service,Yes,No,One year,No,Mailed check,77.37,4872.45,No
+CG10524,Male,1,Yes,No,35,Yes,Fiber optic,No internet service,No,No,Yes,Yes,Yes,Two year,Yes,Mailed check,81.13,2844.38,No
+CG10525,Female,1,Yes,Yes,7,Yes,DSL,No internet service,Yes,No,Yes,No internet service,Yes,One year,No,Electronic check,52.4,353.6,No
+CG10526,Male,0,Yes,No,68,Yes,DSL,Yes,Yes,No internet service,Yes,Yes,Yes,Two year,Yes,Electronic check,75.39,5108.55,No
+CG10527,Male,1,No,No,35,Yes,Fiber optic,Yes,No internet service,No,Yes,Yes,No internet service,One year,No,Electronic check,79.11,2700.75,No
+CG10528,Female,1,No,No,27,Yes,No,No internet service,Yes,No,No internet service,No,No,Two year,Yes,Mailed check,41.39,1058.83,No
+CG10529,Female,0,Yes,No,46,Yes,Fiber optic,Yes,Yes,No internet service,Yes,Yes,Yes,Two year,Yes,Bank transfer (automatic),96.48,4495.9,No
+CG10530,Female,0,No,No,29,Yes,Fiber optic,Yes,Yes,Yes,No,No internet service,No internet service,Month-to-month,No,Bank transfer (automatic),90.9,2614.78,Yes
+CG10531,Male,0,Yes,Yes,22,Yes,Fiber optic,Yes,Yes,Yes,Yes,No internet service,No internet service,Two year,Yes,Mailed check,92.58,2037.75,No
+CG10532,Female,0,No,No,15,No,DSL,Yes,Yes,Yes,No internet service,Yes,No internet service,Month-to-month,No,Electronic check,57.35,768.26,No
+CG10533,Male,0,Yes,No,13,Yes,No,Yes,No,Yes,Yes,Yes,No internet service,Month-to-month,No,Credit card (automatic),36.64,417.01,No
+CG10534,Male,0,No,Yes,70,Yes,Fiber optic,No internet service,Yes,No internet service,Yes,Yes,No internet service,One year,No,Mailed check,92.08,6473.04,No
+CG10535,Male,0,No,Yes,51,Yes,DSL,No,Yes,Yes,Yes,No,Yes,Month-to-month,No,Bank transfer (automatic),79.88,4090.88,No
+CG10536,Female,0,Yes,Yes,36,Yes,Fiber optic,Yes,Yes,No,Yes,Yes,No internet service,Month-to-month,Yes,Mailed check,75.07,2781.42,Yes
+CG10537,Female,0,Yes,No,28,No,DSL,No internet service,No,Yes,Yes,No,No internet service,Two year,Yes,Bank transfer (automatic),60.07,1742.39,No
+CG10538,Male,0,Yes,No,66,Yes,No,Yes,No,Yes,No internet service,No,Yes,Month-to-month,Yes,Credit card (automatic),49.06,3227.58,No
+CG10539,Male,0,Yes,Yes,14,Yes,DSL,Yes,Yes,No,No,Yes,Yes,Month-to-month,Yes,Credit card (automatic),73.29,1047.34,No
+CG10540,Female,0,Yes,No,46,Yes,Fiber optic,No,Yes,No internet service,No,Yes,No internet service,Two year,Yes,Mailed check,88.92,4076.07,No
+CG10541,Male,0,No,Yes,45,Yes,DSL,No,No internet service,Yes,Yes,No,Yes,Month-to-month,Yes,Mailed check,74.76,3456.67,No
+CG10542,Female,0,No,No,51,Yes,Fiber optic,Yes,Yes,No,Yes,Yes,No internet service,Month-to-month,Yes,Electronic check,91.21,4703.42,No
+CG10543,Male,0,No,Yes,18,Yes,Fiber optic,Yes,No internet service,No,Yes,No internet service,Yes,Month-to-month,Yes,Credit card (automatic),84.79,1533.86,No
+CG10544,Female,0,Yes,No,20,Yes,Fiber optic,No,No internet service,Yes,No internet service,Yes,Yes,Month-to-month,Yes,Mailed check,88.93,1787.62,No
+CG10545,Male,1,No,No,63,Yes,Fiber optic,No,No,Yes,No internet service,No,Yes,One year,No,Electronic check,72.8,4651.42,No
+CG10546,Female,0,No,No,36,No,No,No,Yes,No internet service,No internet service,No internet service,Yes,Two year,Yes,Mailed check,32.56,1198.24,No
+CG10547,Male,0,Yes,No,26,Yes,DSL,Yes,No internet service,Yes,No internet service,No internet service,No,Month-to-month,Yes,Electronic check,48.78,1338.42,No
+CG10548,Female,0,No,No,54,Yes,DSL,Yes,No,Yes,Yes,Yes,No,Two year,No,Mailed check,66.34,3483.65,No
+CG10549,Female,1,No,No,28,No,DSL,Yes,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),66.07,1870.72,No
+CG10550,Male,0,Yes,Yes,19,Yes,No,Yes,Yes,No,Yes,No,Yes,Month-to-month,No,Electronic check,45.92,849.29,No
+CG10551,Male,1,Yes,Yes,24,Yes,Fiber optic,No internet service,Yes,No,Yes,Yes,Yes,One year,No,Electronic check,90.09,2241.2,No
+CG10552,Female,0,No,No,69,Yes,Fiber optic,Yes,Yes,No,Yes,Yes,Yes,One year,Yes,Credit card (automatic),91.41,6376.88,No
+CG10553,Male,1,Yes,Yes,62,No,Fiber optic,Yes,Yes,Yes,Yes,No internet service,No,One year,No,Bank transfer (automatic),79.02,4900.72,No
+CG10554,Female,0,No,Yes,35,Yes,DSL,No,No,No internet service,No,Yes,Yes,Month-to-month,No,Credit card (automatic),49.02,1784.8,No
+CG10555,Male,1,No,No,1,Yes,DSL,Yes,Yes,Yes,No internet service,Yes,Yes,Month-to-month,Yes,Mailed check,76.09,156.33,Yes
+CG10556,Female,0,No,No,21,Yes,DSL,Yes,Yes,Yes,No,Yes,Yes,Month-to-month,No,Bank transfer (automatic),78.05,1642.4,No
+CG10557,Female,0,Yes,No,15,Yes,Fiber optic,No internet service,Yes,Yes,No internet service,No,Yes,Month-to-month,Yes,Mailed check,78.51,1288.89,No
+CG10558,Female,0,Yes,Yes,17,Yes,DSL,No internet service,No,Yes,Yes,No,Yes,One year,Yes,Electronic check,62.62,1063.13,No
+CG10559,Female,0,No,Yes,68,Yes,DSL,No,No internet service,No internet service,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,54.32,3684.11,No
+CG10560,Female,0,No,No,53,Yes,No,Yes,Yes,No internet service,No,Yes,No internet service,One year,Yes,Mailed check,48.85,2628.01,No
+CG10561,Female,1,Yes,Yes,29,Yes,No,No,Yes,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Electronic check,56.18,1613.3,No
+CG10562,Male,1,No,Yes,44,No,DSL,No,Yes,No internet service,Yes,No,No internet service,Month-to-month,No,Credit card (automatic),51.95,2289.64,No
+CG10563,Male,0,No,No,18,Yes,DSL,Yes,No,No,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,80.31,1509.0,Yes
+CG10564,Male,0,Yes,No,33,Yes,DSL,Yes,No,No internet service,Yes,No internet service,Yes,Month-to-month,Yes,Mailed check,65.61,2165.99,No
+CG10565,Female,0,Yes,No,12,Yes,Fiber optic,No internet service,No internet service,Yes,Yes,Yes,Yes,Two year,Yes,Mailed check,92.83,1037.68,No
+CG10566,Female,0,No,Yes,42,Yes,No,Yes,Yes,No,Yes,No internet service,No,Month-to-month,No,Electronic check,44.25,1875.03,Yes
+CG10567,Female,0,Yes,Yes,61,Yes,DSL,No,No internet service,Yes,Yes,Yes,No internet service,Month-to-month,No,Bank transfer (automatic),69.5,4208.17,No
+CG10568,Female,0,Yes,No,21,Yes,DSL,Yes,Yes,No internet service,No,No,Yes,Two year,No,Electronic check,51.38,1117.92,No
+CG10569,Male,0,Yes,Yes,51,Yes,Fiber optic,Yes,No,Yes,Yes,Yes,Yes,One year,No,Credit card (automatic),86.85,4460.68,No
+CG10570,Male,0,Yes,No,51,Yes,Fiber optic,Yes,Yes,No,Yes,Yes,No,Month-to-month,No,Electronic check,98.7,5099.91,No
+CG10571,Female,0,No,No,35,Yes,DSL,No internet service,No internet service,Yes,Yes,No internet service,No internet service,Month-to-month,No,Bank transfer (automatic),36.32,1312.04,No
+CG10572,Male,0,No,No,72,Yes,Fiber optic,Yes,Yes,Yes,Yes,No internet service,No internet service,One year,No,Bank transfer (automatic),81.88,5944.42,No
+CG10573,Male,0,Yes,No,18,Yes,DSL,Yes,No,No,No,Yes,No,Two year,Yes,Credit card (automatic),68.38,1200.73,No
+CG10574,Female,0,No,Yes,37,Yes,Fiber optic,No,No internet service,No internet service,No,No,No internet service,Two year,Yes,Credit card (automatic),62.25,2339.43,No
+CG10575,Male,1,No,No,69,Yes,Fiber optic,No,Yes,No,No,No,Yes,Month-to-month,No,Bank transfer (automatic),72.76,5109.02,No
+CG10576,Female,0,No,No,56,Yes,No,No internet service,Yes,No internet service,Yes,No internet service,No internet service,Two year,Yes,Mailed check,39.04,2155.25,No
+CG10577,Male,0,Yes,No,19,Yes,Fiber optic,Yes,No internet service,Yes,No,Yes,No internet service,Month-to-month,Yes,Mailed check,78.18,1566.41,No
+CG10578,Female,0,Yes,Yes,8,Yes,No,Yes,Yes,Yes,No,Yes,No internet service,Month-to-month,Yes,Bank transfer (automatic),51.25,385.28,No
+CG10579,Female,0,No,Yes,31,Yes,Fiber optic,No internet service,Yes,Yes,Yes,Yes,Yes,Two year,No,Credit card (automatic),88.53,2706.09,No
+CG10580,Female,1,No,No,3,Yes,Fiber optic,No,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,102.87,321.94,Yes
+CG10581,Female,0,Yes,No,49,Yes,Fiber optic,Yes,No,No,Yes,No internet service,Yes,Month-to-month,No,Mailed check,92.39,4559.33,No
+CG10582,Male,0,Yes,No,4,Yes,No,Yes,Yes,No,No,Yes,Yes,Month-to-month,No,Bank transfer (automatic),52.93,252.75,No
+CG10583,Female,0,Yes,Yes,19,No,No,No internet service,Yes,No,No,Yes,No internet service,Month-to-month,No,Mailed check,21.91,373.01,No
+CG10584,Female,1,No,No,36,Yes,DSL,Yes,Yes,No,Yes,No,Yes,One year,No,Electronic check,64.81,2352.71,No
+CG10585,Female,1,No,No,21,No,No,No,Yes,No,No,No,Yes,One year,No,Mailed check,31.53,631.28,No
+CG10586,Male,0,No,No,57,Yes,No,Yes,No internet service,Yes,Yes,Yes,No,Month-to-month,Yes,Bank transfer (automatic),55.04,3070.28,No
+CG10587,Female,0,Yes,No,67,Yes,Fiber optic,Yes,No internet service,Yes,Yes,Yes,Yes,Month-to-month,Yes,Credit card (automatic),85.94,5716.19,No
+CG10588,Male,0,No,Yes,43,Yes,DSL,No,No,No,No internet service,No internet service,Yes,Two year,Yes,Mailed check,47.85,2023.76,No
+CG10589,Female,1,No,No,33,Yes,No,Yes,Yes,Yes,No internet service,Yes,Yes,Two year,No,Electronic check,63.09,2105.44,No
+CG10590,Male,0,Yes,Yes,41,Yes,No,Yes,No internet service,Yes,Yes,No,No,Month-to-month,No,Electronic check,50.51,2122.76,No
+CG10591,Male,1,No,No,8,Yes,DSL,Yes,Yes,Yes,Yes,No,Yes,Two year,No,Electronic check,69.03,485.95,Yes
+CG10592,Female,0,No,No,6,Yes,No,Yes,Yes,No,Yes,Yes,No internet service,One year,Yes,Mailed check,40.33,257.82,No
+CG10593,Male,0,Yes,No,67,Yes,DSL,No,No internet service,Yes,Yes,No internet service,Yes,Month-to-month,Yes,Mailed check,90.27,5995.14,No
+CG10594,Female,0,No,No,18,Yes,DSL,No internet service,No,No,No internet service,No,No internet service,Month-to-month,Yes,Electronic check,52.27,969.17,Yes
+CG10595,Female,0,Yes,Yes,30,Yes,Fiber optic,No,No,No,No internet service,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),76.86,2277.78,No
+CG10596,Female,0,No,No,34,Yes,Fiber optic,Yes,No,Yes,No,No,Yes,One year,Yes,Bank transfer (automatic),87.95,2942.99,No
+CG10597,Male,0,No,No,56,No,Fiber optic,Yes,Yes,No,Yes,No,Yes,Month-to-month,Yes,Electronic check,77.0,4347.98,No
+CG10598,Male,0,No,Yes,60,Yes,DSL,Yes,Yes,No,No,No,Yes,Month-to-month,No,Mailed check,70.94,4229.99,No
+CG10599,Female,0,No,Yes,30,Yes,No,No internet service,No,No,Yes,No internet service,Yes,Month-to-month,Yes,Credit card (automatic),42.28,1254.18,No
+CG10600,Female,0,Yes,No,52,Yes,DSL,No internet service,Yes,No,No internet service,Yes,Yes,Two year,Yes,Mailed check,67.73,3422.06,No
+CG10601,Male,0,No,Yes,31,Yes,DSL,No internet service,Yes,Yes,No internet service,Yes,Yes,Month-to-month,No,Bank transfer (automatic),71.09,2246.38,No
+CG10602,Female,1,No,No,65,Yes,DSL,Yes,No,No,No,Yes,No,Two year,Yes,Mailed check,47.42,3119.24,No
+CG10603,Female,1,Yes,No,58,Yes,Fiber optic,Yes,No,Yes,Yes,Yes,Yes,Two year,Yes,Credit card (automatic),109.5,6351.25,No
+CG10604,Female,1,No,No,9,Yes,No,Yes,Yes,No internet service,Yes,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),51.47,394.49,No
+CG10605,Male,1,No,Yes,1,Yes,Fiber optic,Yes,No,No internet service,Yes,No internet service,No,Month-to-month,Yes,Bank transfer (automatic),62.12,116.54,No
+CG10606,Male,0,Yes,No,65,Yes,No,Yes,No internet service,No,No internet service,No,No internet service,Month-to-month,Yes,Credit card (automatic),31.3,2004.52,No
+CG10607,Male,0,No,No,59,No,DSL,No internet service,No,Yes,Yes,No,Yes,Two year,Yes,Credit card (automatic),48.31,2829.89,No
+CG10608,Female,0,No,Yes,16,Yes,Fiber optic,Yes,Yes,Yes,Yes,No,Yes,Month-to-month,Yes,Bank transfer (automatic),90.59,1553.48,Yes
+CG10609,Female,0,Yes,No,15,Yes,Fiber optic,Yes,Yes,Yes,Yes,No internet service,No internet service,Month-to-month,Yes,Electronic check,88.5,1295.84,No
+CG10610,Female,0,No,No,15,Yes,Fiber optic,Yes,Yes,Yes,No internet service,Yes,Yes,Month-to-month,Yes,Mailed check,101.96,1562.8,No
+CG10611,Male,0,Yes,No,45,Yes,DSL,No internet service,Yes,Yes,Yes,No internet service,No internet service,Month-to-month,No,Bank transfer (automatic),67.52,3063.69,No
+CG10612,Female,0,Yes,Yes,38,Yes,Fiber optic,No,Yes,Yes,No internet service,Yes,Yes,Two year,Yes,Bank transfer (automatic),86.55,3306.46,No
+CG10613,Female,0,Yes,No,30,Yes,Fiber optic,No,Yes,Yes,No internet service,No internet service,No internet service,One year,No,Electronic check,73.4,2214.69,No
+CG10614,Female,0,No,Yes,0,Yes,Fiber optic,No internet service,Yes,No internet service,No internet service,No,Yes,Two year,Yes,Electronic check,79.26,16.94,No
+CG10615,Female,0,No,Yes,10,Yes,Fiber optic,Yes,No internet service,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Bank transfer (automatic),71.94,731.64,No
+CG10616,Male,0,Yes,No,3,Yes,DSL,No,Yes,No internet service,Yes,No,Yes,Month-to-month,No,Electronic check,68.56,203.34,No
+CG10617,Male,0,Yes,No,70,Yes,Fiber optic,Yes,No,No internet service,Yes,Yes,No,Two year,Yes,Mailed check,69.34,4921.81,No
+CG10618,Female,1,No,Yes,25,Yes,DSL,Yes,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),93.32,2273.93,No
+CG10619,Male,0,Yes,Yes,49,Yes,No,No internet service,Yes,No,Yes,No,Yes,Two year,No,Bank transfer (automatic),42.76,2141.21,No
+CG10620,Male,0,No,Yes,11,Yes,Fiber optic,No,No internet service,Yes,No,Yes,No,Month-to-month,Yes,Electronic check,74.52,856.73,Yes
+CG10621,Female,1,No,Yes,64,Yes,DSL,Yes,No,No,Yes,Yes,Yes,Month-to-month,No,Electronic check,65.84,4245.19,No
+CG10622,Female,1,No,Yes,46,Yes,No,Yes,Yes,Yes,No internet service,No internet service,No internet service,One year,No,Electronic check,37.96,1796.42,No
+CG10623,Male,1,No,Yes,52,Yes,Fiber optic,Yes,No,Yes,Yes,No,Yes,Two year,Yes,Electronic check,104.19,5413.71,No
+CG10624,Female,0,Yes,No,70,Yes,DSL,Yes,Yes,No,No,No internet service,No internet service,Two year,Yes,Bank transfer (automatic),63.52,4362.3,No
+CG10625,Male,0,No,No,1,Yes,Fiber optic,Yes,No,Yes,No,No,Yes,Month-to-month,Yes,Mailed check,68.61,65.36,Yes
+CG10626,Female,0,No,No,23,Yes,DSL,Yes,Yes,No,No,Yes,No internet service,Month-to-month,No,Electronic check,76.03,1704.09,No
+CG10627,Male,0,No,No,3,Yes,No,Yes,No internet service,Yes,No internet service,Yes,No internet service,One year,No,Electronic check,55.55,133.72,No
+CG10628,Female,0,Yes,Yes,18,Yes,No,No internet service,Yes,Yes,No,No,Yes,One year,No,Electronic check,43.75,731.59,No
+CG10629,Male,0,No,No,25,Yes,No,Yes,No,Yes,No internet service,No internet service,No internet service,One year,Yes,Credit card (automatic),40.45,989.77,No
+CG10630,Male,0,Yes,No,39,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,No internet service,Month-to-month,No,Mailed check,90.88,3517.47,Yes
+CG10631,Male,0,Yes,No,49,Yes,Fiber optic,Yes,No,Yes,Yes,No internet service,Yes,Two year,Yes,Credit card (automatic),101.78,4880.23,No
+CG10632,Female,0,Yes,No,42,Yes,Fiber optic,No internet service,No,Yes,Yes,No internet service,No,One year,Yes,Credit card (automatic),66.63,2829.97,No
+CG10633,Male,0,No,No,66,Yes,DSL,Yes,Yes,Yes,Yes,No,Yes,Two year,No,Mailed check,75.17,5061.13,No
+CG10634,Male,0,No,No,11,Yes,Fiber optic,Yes,No,No internet service,Yes,No internet service,No internet service,Month-to-month,Yes,Bank transfer (automatic),69.57,792.55,Yes
+CG10635,Female,0,No,Yes,66,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,No,Electronic check,87.54,5768.51,No
+CG10636,Female,0,No,No,26,Yes,DSL,No,No internet service,No,Yes,No internet service,Yes,Two year,Yes,Bank transfer (automatic),76.53,1987.32,No
+CG10637,Male,1,Yes,No,53,Yes,Fiber optic,No,Yes,Yes,Yes,No,Yes,One year,No,Electronic check,76.55,4038.21,No
+CG10638,Male,0,No,No,65,Yes,No,No internet service,No internet service,No internet service,Yes,Yes,No,Two year,Yes,Credit card (automatic),42.76,2783.45,No
+CG10639,Female,0,Yes,No,48,No,No,No internet service,No internet service,Yes,No internet service,No internet service,No internet service,Two year,Yes,Electronic check,18.0,862.33,No
+CG10640,Female,0,No,Yes,15,Yes,DSL,No,Yes,Yes,Yes,Yes,No internet service,One year,Yes,Bank transfer (automatic),65.81,949.3,No
+CG10641,Female,0,No,No,1,No,DSL,No,Yes,Yes,No,Yes,Yes,Month-to-month,Yes,Electronic check,67.38,143.11,No
+CG10642,Female,0,No,No,59,Yes,DSL,Yes,Yes,Yes,Yes,No,Yes,Month-to-month,Yes,Credit card (automatic),67.4,3909.68,No
+CG10643,Female,0,No,No,53,Yes,No,Yes,No internet service,No,No internet service,Yes,No,Month-to-month,No,Electronic check,45.69,2453.89,No
+CG10644,Male,0,Yes,No,29,Yes,DSL,No internet service,Yes,Yes,No internet service,Yes,No,Month-to-month,Yes,Bank transfer (automatic),61.85,1789.1,No
+CG10645,Female,0,Yes,Yes,37,Yes,Fiber optic,Yes,Yes,No internet service,No,No internet service,Yes,Month-to-month,Yes,Mailed check,90.28,3425.9,No
+CG10646,Male,1,No,No,27,Yes,DSL,Yes,No internet service,Yes,No,Yes,Yes,Month-to-month,Yes,Mailed check,82.89,2253.37,No
+CG10647,Male,0,Yes,No,24,Yes,Fiber optic,No,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),89.31,2127.24,No
+CG10648,Male,0,Yes,No,9,Yes,Fiber optic,Yes,No,No,No internet service,Yes,Yes,Month-to-month,No,Credit card (automatic),84.61,750.34,No
+CG10649,Female,1,No,No,59,Yes,Fiber optic,No,Yes,Yes,No internet service,Yes,No,Month-to-month,No,Electronic check,82.47,4867.53,No
+CG10650,Male,1,No,No,41,Yes,DSL,No,Yes,No internet service,No internet service,No,Yes,Month-to-month,Yes,Credit card (automatic),63.95,2570.52,No
+CG10651,Male,0,Yes,No,39,Yes,Fiber optic,Yes,No,Yes,No,No,No internet service,Month-to-month,Yes,Bank transfer (automatic),73.12,2817.17,Yes
+CG10652,Female,0,Yes,Yes,41,Yes,DSL,No internet service,Yes,No,Yes,No internet service,Yes,One year,No,Credit card (automatic),65.52,2606.0,No
+CG10653,Male,0,No,No,46,Yes,Fiber optic,Yes,Yes,Yes,No internet service,No,Yes,Month-to-month,Yes,Mailed check,84.05,3824.77,No
+CG10654,Male,0,No,No,36,No,No,Yes,No internet service,No internet service,Yes,Yes,No internet service,Month-to-month,Yes,Mailed check,38.92,1405.35,No
+CG10655,Female,0,Yes,No,21,Yes,DSL,Yes,Yes,No,No,No internet service,No,One year,Yes,Credit card (automatic),66.38,1407.49,No
+CG10656,Male,0,Yes,No,56,No,No,No,No internet service,Yes,Yes,No,Yes,Two year,Yes,Mailed check,43.17,2328.45,No
+CG10657,Male,0,Yes,No,26,Yes,Fiber optic,No,No internet service,Yes,No internet service,No,No,Month-to-month,Yes,Mailed check,73.61,1907.69,No
+CG10658,Male,1,Yes,Yes,40,Yes,DSL,Yes,Yes,Yes,Yes,No,Yes,One year,Yes,Electronic check,79.78,3216.55,No
+CG10659,Female,1,Yes,No,33,Yes,Fiber optic,No,Yes,No internet service,Yes,No internet service,No internet service,Two year,No,Electronic check,71.77,2361.08,No
+CG10660,Female,0,No,Yes,31,Yes,DSL,Yes,No,Yes,No,No,Yes,Two year,Yes,Bank transfer (automatic),66.55,2034.53,No
+CG10661,Female,0,No,No,65,Yes,Fiber optic,No internet service,Yes,Yes,No,Yes,No,Month-to-month,Yes,Bank transfer (automatic),72.32,4682.25,Yes
+CG10662,Male,0,No,Yes,11,Yes,Fiber optic,Yes,Yes,Yes,No,No,Yes,One year,Yes,Bank transfer (automatic),96.15,1033.32,Yes
+CG10663,Male,0,Yes,No,39,Yes,DSL,No,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,49.74,1911.21,No
+CG10664,Female,0,No,No,72,Yes,Fiber optic,Yes,Yes,No,Yes,Yes,No internet service,One year,Yes,Mailed check,85.3,6149.42,No
+CG10665,Male,0,Yes,Yes,72,Yes,No,Yes,No internet service,No internet service,No,Yes,No internet service,Two year,No,Mailed check,50.13,3713.21,No
+CG10666,Male,0,No,No,9,Yes,No,Yes,Yes,Yes,No internet service,Yes,Yes,Month-to-month,Yes,Mailed check,48.09,399.34,No
+CG10667,Female,0,No,No,47,Yes,Fiber optic,No internet service,Yes,No internet service,No internet service,Yes,Yes,Two year,No,Credit card (automatic),87.2,4084.08,No
+CG10668,Female,0,Yes,Yes,19,Yes,No,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),58.55,1110.12,No
+CG10669,Male,0,No,No,38,Yes,Fiber optic,No internet service,No internet service,Yes,No internet service,No,No,Two year,No,Electronic check,65.05,2440.97,No
+CG10670,Male,0,Yes,No,59,Yes,Fiber optic,Yes,No,Yes,Yes,No internet service,No,One year,Yes,Credit card (automatic),85.57,5098.05,No
+CG10671,Male,0,No,No,65,Yes,No,Yes,No internet service,No,Yes,No internet service,No,Month-to-month,Yes,Mailed check,39.58,2466.01,No
+CG10672,Female,1,Yes,Yes,64,Yes,Fiber optic,Yes,Yes,No internet service,Yes,Yes,Yes,One year,No,Bank transfer (automatic),77.73,4950.82,No
+CG10673,Female,0,Yes,Yes,50,Yes,Fiber optic,No internet service,Yes,No internet service,Yes,No,No internet service,Month-to-month,Yes,Electronic check,65.19,3296.32,No
+CG10674,Female,0,No,Yes,35,Yes,Fiber optic,Yes,Yes,Yes,No,No internet service,Yes,Month-to-month,No,Bank transfer (automatic),93.8,3269.77,No
+CG10675,Female,0,Yes,Yes,23,Yes,No,No internet service,Yes,Yes,Yes,Yes,Yes,Two year,Yes,Electronic check,62.59,1402.63,No
+CG10676,Male,0,No,Yes,26,Yes,No,No internet service,No,Yes,Yes,No,No,Month-to-month,No,Mailed check,51.99,1371.57,No
+CG10677,Female,0,Yes,No,1,No,Fiber optic,No internet service,No,No internet service,Yes,No,No internet service,One year,No,Electronic check,73.46,114.25,No
+CG10678,Female,0,No,No,30,No,DSL,Yes,Yes,No internet service,Yes,Yes,No,Month-to-month,No,Electronic check,58.26,1757.28,No
+CG10679,Female,0,No,No,56,Yes,Fiber optic,No,No internet service,No,No,No internet service,No,Month-to-month,Yes,Electronic check,83.03,4613.63,No
+CG10680,Female,0,No,No,65,Yes,Fiber optic,No,Yes,Yes,Yes,No internet service,No,Two year,Yes,Electronic check,78.2,5103.53,No
+CG10681,Female,1,Yes,Yes,28,Yes,DSL,Yes,No internet service,Yes,Yes,Yes,No internet service,Month-to-month,No,Electronic check,61.3,1698.31,No
+CG10682,Male,0,Yes,Yes,14,Yes,Fiber optic,No,Yes,Yes,No,Yes,Yes,One year,No,Bank transfer (automatic),83.93,1208.55,No
+CG10683,Male,0,Yes,No,11,Yes,Fiber optic,Yes,Yes,Yes,No,Yes,Yes,One year,No,Electronic check,75.95,902.2,No
+CG10684,Female,1,Yes,Yes,27,Yes,DSL,Yes,Yes,Yes,No,Yes,No internet service,One year,Yes,Bank transfer (automatic),81.86,2092.97,No
+CG10685,Male,0,No,No,23,No,DSL,Yes,Yes,Yes,Yes,Yes,No internet service,Two year,No,Electronic check,78.76,1816.48,No
+CG10686,Female,1,No,No,20,Yes,DSL,Yes,No,Yes,No internet service,Yes,Yes,One year,Yes,Credit card (automatic),63.88,1199.49,No
+CG10687,Female,0,No,No,9,Yes,No,Yes,Yes,No internet service,No internet service,Yes,Yes,Month-to-month,Yes,Credit card (automatic),52.18,579.5,Yes
+CG10688,Male,0,No,No,17,Yes,DSL,Yes,Yes,No,No internet service,No internet service,Yes,Two year,Yes,Electronic check,64.76,1079.85,No
+CG10689,Male,0,No,No,13,Yes,DSL,No,No,Yes,No,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),59.32,804.75,No
+CG10690,Female,0,No,No,33,Yes,Fiber optic,Yes,No,Yes,Yes,Yes,No internet service,Month-to-month,No,Electronic check,71.96,2373.09,No
+CG10691,Female,0,Yes,No,57,No,DSL,Yes,No internet service,Yes,No internet service,Yes,Yes,Two year,Yes,Credit card (automatic),62.32,3516.1,No
+CG10692,Female,0,No,No,21,Yes,DSL,Yes,Yes,No,Yes,Yes,No internet service,One year,No,Mailed check,66.43,1353.54,No
+CG10693,Male,0,No,No,69,Yes,DSL,No,No,No,Yes,Yes,Yes,Two year,Yes,Electronic check,63.89,4479.77,No
+CG10694,Female,0,No,No,35,Yes,Fiber optic,No,No,No,Yes,Yes,Yes,One year,Yes,Mailed check,85.78,3045.32,No
+CG10695,Female,0,Yes,No,44,Yes,Fiber optic,No,Yes,No,Yes,Yes,Yes,Two year,Yes,Electronic check,100.44,4506.82,No
+CG10696,Female,1,Yes,No,35,Yes,Fiber optic,No,Yes,Yes,No internet service,No internet service,No,Two year,Yes,Mailed check,70.58,2472.8,No
+CG10697,Male,1,Yes,No,21,Yes,Fiber optic,Yes,Yes,Yes,No,No internet service,No,Month-to-month,Yes,Bank transfer (automatic),79.36,1679.52,No
+CG10698,Female,1,No,No,60,Yes,No,No,Yes,Yes,No,Yes,No,Month-to-month,No,Mailed check,51.81,3096.58,No
+CG10699,Female,0,No,Yes,55,Yes,Fiber optic,Yes,Yes,Yes,No,Yes,Yes,Month-to-month,No,Mailed check,98.43,5400.73,No
+CG10700,Male,0,Yes,No,32,Yes,DSL,Yes,Yes,No,Yes,No,Yes,One year,Yes,Electronic check,64.08,2003.68,No
+CG10701,Female,0,No,No,44,Yes,DSL,No,No,Yes,Yes,No,Yes,Month-to-month,Yes,Electronic check,64.77,2853.66,No
+CG10702,Female,0,Yes,No,35,Yes,Fiber optic,Yes,No,Yes,No,Yes,Yes,Month-to-month,Yes,Electronic check,93.38,3232.78,No
+CG10703,Male,0,Yes,Yes,19,Yes,Fiber optic,No,No internet service,Yes,No,No internet service,No,Month-to-month,No,Credit card (automatic),58.97,1140.32,Yes
+CG10704,Female,0,Yes,No,17,Yes,DSL,No,No,No internet service,Yes,No,No,Two year,Yes,Electronic check,61.11,1046.52,No
+CG10705,Male,0,No,No,37,Yes,Fiber optic,Yes,Yes,Yes,No,Yes,No,One year,Yes,Bank transfer (automatic),97.45,3618.6,No
+CG10706,Male,0,No,No,66,Yes,DSL,Yes,No internet service,No,Yes,No,Yes,Month-to-month,Yes,Mailed check,58.22,3917.9,No
+CG10707,Female,0,Yes,No,22,Yes,Fiber optic,Yes,No internet service,Yes,Yes,No internet service,Yes,Month-to-month,No,Electronic check,87.55,1924.4,No
+CG10708,Female,0,No,No,15,Yes,Fiber optic,No internet service,Yes,Yes,Yes,No,Yes,Month-to-month,Yes,Bank transfer (automatic),91.14,1401.15,Yes
+CG10709,Female,0,Yes,No,58,Yes,DSL,No,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Mailed check,67.64,4015.44,No
+CG10710,Female,1,No,No,68,Yes,Fiber optic,Yes,No internet service,No,No internet service,Yes,No internet service,Month-to-month,No,Mailed check,79.85,5488.6,No
+CG10711,Male,0,No,Yes,67,Yes,DSL,Yes,Yes,Yes,No internet service,Yes,No,Two year,No,Bank transfer (automatic),70.31,4762.66,No
+CG10712,Female,0,No,No,20,Yes,Fiber optic,No,No internet service,No internet service,Yes,Yes,Yes,Two year,No,Mailed check,72.26,1431.4,No
+CG10713,Male,0,Yes,Yes,69,Yes,DSL,No internet service,Yes,Yes,No,No,Yes,Month-to-month,Yes,Electronic check,67.67,4679.56,No
+CG10714,Female,0,No,No,11,Yes,No,Yes,Yes,Yes,No,No internet service,No internet service,Month-to-month,No,Mailed check,34.2,316.88,No
+CG10715,Female,0,No,Yes,15,Yes,DSL,Yes,Yes,No internet service,Yes,No,No,Month-to-month,No,Bank transfer (automatic),68.51,1050.1,No
+CG10716,Female,0,Yes,Yes,13,Yes,No,No internet service,No,Yes,Yes,No internet service,No,Month-to-month,No,Electronic check,32.63,436.54,No
+CG10717,Male,0,No,Yes,60,Yes,Fiber optic,Yes,No internet service,No,No internet service,Yes,Yes,Month-to-month,No,Mailed check,82.71,4963.65,No
+CG10718,Female,0,Yes,Yes,70,Yes,Fiber optic,Yes,No internet service,No,No,No internet service,Yes,Month-to-month,No,Electronic check,86.98,6134.82,No
+CG10719,Female,0,No,No,45,Yes,DSL,No internet service,Yes,Yes,No internet service,No,No internet service,Month-to-month,Yes,Electronic check,59.97,2644.3,No
+CG10720,Female,0,Yes,No,31,Yes,No,No,Yes,No,Yes,Yes,No,One year,Yes,Bank transfer (automatic),37.36,1231.73,No
+CG10721,Female,1,No,No,14,Yes,DSL,Yes,No internet service,Yes,No,No,Yes,One year,No,Credit card (automatic),55.88,822.9,No
+CG10722,Male,0,No,Yes,43,Yes,DSL,Yes,No,Yes,Yes,Yes,No internet service,One year,Yes,Credit card (automatic),64.21,2757.85,No
+CG10723,Female,0,Yes,Yes,16,Yes,Fiber optic,Yes,Yes,Yes,Yes,No,No,Month-to-month,Yes,Electronic check,86.16,1371.87,Yes
+CG10724,Male,1,Yes,Yes,40,Yes,DSL,Yes,Yes,No internet service,Yes,Yes,Yes,Two year,Yes,Mailed check,79.87,3216.43,No
+CG10725,Male,0,Yes,Yes,53,Yes,DSL,No internet service,No,Yes,Yes,Yes,Yes,Two year,No,Bank transfer (automatic),65.26,3527.22,No
+CG10726,Male,0,Yes,No,43,No,No,Yes,No,No,Yes,No,Yes,Month-to-month,Yes,Electronic check,28.66,1236.95,No
+CG10727,Male,0,Yes,Yes,4,No,No,No,Yes,No internet service,Yes,No,Yes,Month-to-month,No,Bank transfer (automatic),40.25,167.48,Yes
+CG10728,Male,0,No,No,26,Yes,Fiber optic,No internet service,Yes,Yes,Yes,Yes,No,Month-to-month,No,Bank transfer (automatic),84.55,2199.12,Yes
+CG10729,Male,1,Yes,Yes,42,Yes,No,Yes,No internet service,Yes,No,Yes,Yes,Month-to-month,Yes,Credit card (automatic),71.26,3073.11,No
+CG10730,Female,0,Yes,Yes,30,Yes,Fiber optic,Yes,No,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Electronic check,86.29,2572.1,No
+CG10731,Male,1,No,No,16,Yes,DSL,Yes,Yes,Yes,Yes,No,No internet service,One year,Yes,Electronic check,80.51,1286.83,No
+CG10732,Male,0,Yes,No,53,Yes,Fiber optic,No internet service,Yes,Yes,Yes,No internet service,Yes,Month-to-month,Yes,Credit card (automatic),76.64,4127.77,No
+CG10733,Male,0,No,Yes,61,Yes,Fiber optic,No internet service,No,No,Yes,No internet service,Yes,Month-to-month,Yes,Bank transfer (automatic),63.41,3874.63,No
+CG10734,Female,0,No,Yes,31,Yes,No,Yes,Yes,No internet service,No,Yes,No internet service,Month-to-month,Yes,Credit card (automatic),37.04,1199.41,No
+CG10735,Female,0,No,No,39,Yes,DSL,No,Yes,No internet service,Yes,No,No,Two year,No,Electronic check,65.51,2513.88,No
+CG10736,Male,0,No,Yes,12,Yes,Fiber optic,No,Yes,No internet service,No,Yes,No,Month-to-month,Yes,Bank transfer (automatic),90.05,1071.36,No
+CG10737,Female,1,No,Yes,34,Yes,DSL,No internet service,Yes,No internet service,Yes,No,Yes,One year,No,Bank transfer (automatic),57.74,2029.96,No
+CG10738,Male,0,Yes,No,4,No,DSL,Yes,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,65.32,230.84,Yes
+CG10739,Male,1,Yes,No,72,Yes,DSL,Yes,Yes,No,No internet service,Yes,No,Month-to-month,No,Mailed check,54.65,3927.99,No
+CG10740,Female,0,Yes,No,28,Yes,No,No internet service,No,No internet service,No,No,No internet service,One year,Yes,Bank transfer (automatic),18.0,515.55,No
+CG10741,Male,1,No,No,69,No,No,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,No,Electronic check,61.75,4216.24,No
+CG10742,Female,0,Yes,No,24,Yes,Fiber optic,Yes,Yes,No internet service,No internet service,No,No internet service,Month-to-month,No,Electronic check,74.78,1776.1,Yes
+CG10743,Female,0,No,No,21,Yes,Fiber optic,Yes,Yes,Yes,Yes,No internet service,Yes,Month-to-month,No,Bank transfer (automatic),91.08,1917.75,No
+CG10744,Male,1,No,No,65,Yes,DSL,Yes,No internet service,No,No internet service,Yes,No internet service,One year,Yes,Mailed check,47.8,3109.1,No
+CG10745,Male,0,No,No,44,Yes,DSL,Yes,No internet service,No,No,Yes,No,One year,No,Credit card (automatic),72.12,3230.9,No
+CG10746,Female,0,No,Yes,68,Yes,DSL,No internet service,Yes,No internet service,No,No internet service,Yes,Month-to-month,Yes,Mailed check,54.97,3807.33,No
+CG10747,Male,0,Yes,No,71,Yes,Fiber optic,Yes,No,Yes,No internet service,No,No,One year,Yes,Electronic check,77.27,5447.65,No
+CG10748,Male,0,No,No,0,Yes,Fiber optic,Yes,No,No,Yes,Yes,Yes,Month-to-month,Yes,Credit card (automatic),77.36,5.01,No
+CG10749,Male,1,No,No,43,Yes,Fiber optic,No,No internet service,Yes,No,Yes,Yes,One year,Yes,Credit card (automatic),82.48,3576.98,No
+CG10750,Female,0,Yes,No,38,Yes,DSL,Yes,Yes,Yes,Yes,No,Yes,Month-to-month,Yes,Electronic check,76.33,2968.78,No
+CG10751,Female,0,Yes,No,53,No,DSL,Yes,No,No,Yes,No,Yes,One year,No,Bank transfer (automatic),58.62,3139.19,No
+CG10752,Male,0,No,Yes,28,Yes,DSL,No,Yes,No,Yes,Yes,Yes,Two year,Yes,Electronic check,73.24,2063.81,No
+CG10753,Female,0,No,No,53,Yes,Fiber optic,No internet service,Yes,No,Yes,Yes,No,Two year,Yes,Electronic check,84.96,4532.87,No
+CG10754,Female,0,No,Yes,15,Yes,No,No,No internet service,Yes,No,No internet service,No,Month-to-month,Yes,Electronic check,23.96,389.72,No
+CG10755,Female,0,No,No,19,Yes,Fiber optic,No,Yes,Yes,No,No,Yes,Two year,No,Electronic check,82.58,1527.27,No
+CG10756,Female,0,No,Yes,45,No,No,Yes,Yes,No,No,No internet service,No internet service,Month-to-month,Yes,Credit card (automatic),30.91,1399.63,No
+CG10757,Female,0,No,No,66,Yes,Fiber optic,No internet service,Yes,Yes,Yes,No,No,Two year,Yes,Bank transfer (automatic),79.85,5335.76,No
+CG10758,Male,0,Yes,Yes,64,Yes,Fiber optic,Yes,No,Yes,Yes,No internet service,No internet service,Month-to-month,No,Credit card (automatic),78.58,5019.79,No
+CG10759,Male,0,Yes,No,57,Yes,DSL,No,No,No internet service,No internet service,Yes,No,Month-to-month,Yes,Bank transfer (automatic),43.81,2503.0,No
+CG10760,Male,0,Yes,No,52,Yes,No,Yes,Yes,Yes,Yes,No,Yes,Month-to-month,Yes,Mailed check,45.46,2353.01,No
+CG10761,Female,0,No,Yes,0,Yes,Fiber optic,No internet service,No internet service,No,No,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),61.29,0.0,No
+CG10762,Female,0,No,No,65,Yes,DSL,No,Yes,Yes,No,No,No,One year,No,Credit card (automatic),62.54,4066.03,No
+CG10763,Male,0,No,No,28,Yes,Fiber optic,No,Yes,Yes,No,Yes,Yes,Two year,No,Bank transfer (automatic),95.62,2690.94,No
+CG10764,Female,0,Yes,Yes,69,Yes,Fiber optic,Yes,No internet service,Yes,Yes,Yes,Yes,One year,Yes,Bank transfer (automatic),100.75,6928.69,No
+CG10765,Male,0,No,No,7,Yes,Fiber optic,Yes,Yes,Yes,No internet service,No internet service,Yes,One year,Yes,Credit card (automatic),88.45,567.19,No
+CG10766,Male,0,No,Yes,28,Yes,No,No,Yes,Yes,Yes,No internet service,Yes,One year,Yes,Electronic check,33.94,910.69,No
+CG10767,Male,0,No,No,50,Yes,Fiber optic,No,Yes,Yes,No internet service,Yes,Yes,Month-to-month,No,Bank transfer (automatic),80.79,4073.89,No
+CG10768,Female,0,No,No,32,Yes,Fiber optic,Yes,No internet service,Yes,Yes,No,Yes,Month-to-month,No,Credit card (automatic),87.36,2884.28,No
+CG10769,Female,0,Yes,No,2,No,DSL,No internet service,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Credit card (automatic),70.08,202.37,No
+CG10770,Male,0,No,No,59,Yes,DSL,No internet service,No internet service,Yes,Yes,Yes,No,Month-to-month,Yes,Electronic check,62.22,3610.48,No
+CG10771,Male,0,Yes,Yes,34,Yes,DSL,Yes,No,Yes,No,No internet service,No,Month-to-month,No,Mailed check,58.95,2042.76,No
+CG10772,Male,1,Yes,Yes,68,Yes,DSL,No internet service,Yes,Yes,Yes,Yes,Yes,Month-to-month,No,Bank transfer (automatic),77.09,5212.28,No
+CG10773,Male,0,No,No,19,Yes,Fiber optic,Yes,No,No internet service,Yes,No internet service,Yes,Month-to-month,No,Electronic check,81.97,1531.23,No
+CG10774,Female,0,No,No,72,Yes,Fiber optic,Yes,Yes,No,Yes,Yes,Yes,Month-to-month,No,Bank transfer (automatic),88.89,6379.29,No
+CG10775,Female,0,No,No,38,Yes,DSL,Yes,Yes,No,No internet service,No,Yes,Two year,No,Electronic check,71.86,2762.45,No
+CG10776,Male,0,No,No,3,Yes,No,No,No,Yes,No internet service,No,Yes,Month-to-month,Yes,Electronic check,37.55,155.82,No
+CG10777,Male,0,No,No,18,Yes,DSL,No,No internet service,No internet service,No,Yes,Yes,Month-to-month,Yes,Mailed check,51.35,919.89,No
+CG10778,Female,1,No,No,44,Yes,DSL,Yes,Yes,No,No,Yes,No,One year,Yes,Mailed check,57.83,2540.87,No
+CG10779,Female,0,No,No,42,Yes,DSL,No,Yes,No,Yes,No internet service,Yes,Month-to-month,No,Mailed check,61.21,2591.71,No
+CG10780,Male,0,Yes,No,12,Yes,Fiber optic,No,Yes,Yes,Yes,No,Yes,Month-to-month,Yes,Mailed check,93.95,1152.96,No
+CG10781,Male,0,Yes,No,12,Yes,DSL,No,Yes,No internet service,No internet service,Yes,Yes,Month-to-month,Yes,Electronic check,66.66,852.85,No
+CG10782,Male,0,Yes,Yes,59,No,Fiber optic,Yes,Yes,No internet service,Yes,Yes,No,Month-to-month,Yes,Electronic check,76.51,4456.29,No
+CG10783,Female,0,Yes,No,56,Yes,Fiber optic,No internet service,Yes,No internet service,Yes,Yes,No internet service,Month-to-month,Yes,Electronic check,71.01,3977.46,No
+CG10784,Female,0,Yes,No,51,Yes,No,Yes,No,Yes,Yes,Yes,No,Month-to-month,No,Electronic check,57.28,2873.22,No
+CG10785,Female,0,Yes,No,52,Yes,DSL,Yes,Yes,Yes,Yes,Yes,No,One year,Yes,Bank transfer (automatic),68.78,3574.27,No
+CG10786,Male,0,Yes,Yes,42,Yes,DSL,Yes,Yes,Yes,Yes,Yes,Yes,One year,Yes,Credit card (automatic),81.2,3400.22,No
+CG10787,Male,0,No,No,71,Yes,DSL,Yes,No internet service,Yes,Yes,No internet service,Yes,Month-to-month,No,Electronic check,80.84,5737.54,No
+CG10788,Female,0,Yes,No,71,Yes,Fiber optic,No internet service,No internet service,No internet service,Yes,No,No internet service,Month-to-month,Yes,Electronic check,72.07,5080.98,No
+CG10789,Female,0,No,No,41,Yes,DSL,Yes,Yes,Yes,Yes,No internet service,Yes,Month-to-month,No,Bank transfer (automatic),60.97,2432.84,No
+CG10790,Male,0,Yes,Yes,25,Yes,No,No,Yes,Yes,Yes,No,No internet service,Two year,No,Electronic check,28.84,626.75,No
+CG10791,Female,0,No,Yes,22,Yes,Fiber optic,Yes,No,Yes,Yes,No internet service,No,Month-to-month,No,Credit card (automatic),77.49,1698.88,Yes
+CG10792,Female,0,Yes,No,42,Yes,Fiber optic,Yes,Yes,Yes,Yes,No,No,One year,No,Bank transfer (automatic),73.3,3059.2,No
+CG10793,Male,0,Yes,No,27,Yes,Fiber optic,No internet service,Yes,Yes,No,No,Yes,One year,Yes,Electronic check,86.19,2296.71,No
+CG10794,Female,0,No,No,8,Yes,DSL,No,No,No,Yes,No internet service,No,Month-to-month,Yes,Electronic check,51.34,470.23,No
+CG10795,Male,0,Yes,No,19,Yes,DSL,Yes,Yes,No,No,No,Yes,Month-to-month,Yes,Mailed check,65.32,1202.41,Yes
+CG10796,Male,0,Yes,Yes,55,No,DSL,Yes,Yes,Yes,No,Yes,Yes,Month-to-month,Yes,Electronic check,63.35,3548.01,No
+CG10797,Male,0,Yes,No,38,Yes,Fiber optic,Yes,Yes,Yes,No,No,Yes,Month-to-month,Yes,Electronic check,99.93,3870.41,No
+CG10798,Male,0,Yes,Yes,50,Yes,DSL,Yes,Yes,Yes,Yes,No internet service,No internet service,Month-to-month,Yes,Electronic check,88.74,4349.21,No
+CG10799,Male,0,Yes,No,11,Yes,DSL,No,Yes,Yes,Yes,No,Yes,Month-to-month,No,Bank transfer (automatic),66.77,738.63,No
+CG10800,Male,0,Yes,No,54,No,No,No,No internet service,No,Yes,No,Yes,Month-to-month,Yes,Mailed check,35.82,1916.29,No
+CG10801,Male,0,No,No,10,Yes,DSL,Yes,Yes,No,No,No,Yes,Month-to-month,Yes,Electronic check,64.78,516.77,Yes
+CG10802,Female,1,No,No,25,No,No,No internet service,Yes,No,Yes,No internet service,No,Two year,Yes,Bank transfer (automatic),27.92,632.99,No
+CG10803,Male,0,No,No,41,Yes,Fiber optic,No,Yes,No,No internet service,Yes,No,Month-to-month,Yes,Mailed check,69.34,2877.81,No
+CG10804,Male,0,Yes,No,26,Yes,DSL,Yes,No internet service,Yes,No internet service,No,No,Two year,No,Mailed check,47.32,1321.18,No
+CG10805,Female,0,No,Yes,10,No,DSL,Yes,Yes,No internet service,Yes,Yes,Yes,Two year,Yes,Electronic check,59.92,639.82,No
+CG10806,Female,1,Yes,No,37,Yes,DSL,No,Yes,No internet service,Yes,No,Yes,Two year,No,Mailed check,67.24,2502.44,No
+CG10807,Female,0,Yes,No,42,Yes,Fiber optic,No,No internet service,No internet service,No,No,No,Two year,Yes,Credit card (automatic),58.84,2470.32,No
+CG10808,Male,0,No,Yes,18,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,78.37,1486.38,No
+CG10809,Female,0,Yes,No,63,Yes,Fiber optic,Yes,Yes,No internet service,Yes,Yes,No internet service,Month-to-month,Yes,Electronic check,89.56,5738.95,No
+CG10810,Male,0,Yes,No,5,No,No,Yes,Yes,No internet service,No internet service,No,No,One year,No,Electronic check,29.69,122.04,No
+CG10811,Male,0,No,No,45,Yes,Fiber optic,No internet service,Yes,No internet service,Yes,Yes,Yes,One year,Yes,Electronic check,99.77,4399.65,No
+CG10812,Male,1,No,No,41,Yes,DSL,Yes,Yes,Yes,No internet service,Yes,Yes,Two year,Yes,Mailed check,79.98,3184.76,No
+CG10813,Male,0,No,No,64,Yes,DSL,Yes,No,No,No,No internet service,No internet service,Two year,Yes,Credit card (automatic),39.17,2566.36,No
+CG10814,Female,0,No,Yes,71,Yes,No,No,Yes,No internet service,No,Yes,Yes,Month-to-month,No,Credit card (automatic),31.16,2210.24,No
+CG10815,Female,0,No,Yes,58,Yes,DSL,No internet service,No,No,Yes,Yes,Yes,Month-to-month,No,Electronic check,61.24,3560.17,No
+CG10816,Male,0,Yes,No,51,Yes,DSL,No internet service,Yes,No,Yes,No internet service,No,Month-to-month,Yes,Mailed check,51.0,2520.42,No
+CG10817,Male,0,Yes,No,46,Yes,Fiber optic,Yes,Yes,No internet service,Yes,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),101.55,4637.41,No
+CG10818,Male,0,Yes,Yes,6,No,Fiber optic,Yes,Yes,Yes,Yes,Yes,No,Month-to-month,No,Mailed check,82.93,484.28,Yes
+CG10819,Female,0,Yes,No,10,Yes,No,Yes,No internet service,No,Yes,No,Yes,One year,No,Mailed check,55.07,560.05,No
+CG10820,Male,0,Yes,No,60,Yes,Fiber optic,Yes,Yes,Yes,Yes,No,No,Two year,No,Electronic check,72.4,4326.06,No
+CG10821,Male,0,No,No,67,No,DSL,No internet service,No,No internet service,Yes,No internet service,Yes,Month-to-month,No,Mailed check,58.72,3887.56,No
+CG10822,Female,0,No,Yes,24,Yes,No,Yes,Yes,Yes,Yes,No internet service,Yes,Two year,No,Mailed check,61.77,1447.17,No
+CG10823,Female,1,No,No,11,Yes,DSL,Yes,Yes,Yes,No,No,No internet service,One year,Yes,Credit card (automatic),44.85,547.72,No
+CG10824,Male,0,Yes,No,25,Yes,DSL,Yes,Yes,No,Yes,Yes,No,Two year,No,Bank transfer (automatic),79.58,2000.52,No
+CG10825,Female,1,No,No,11,Yes,Fiber optic,Yes,Yes,No,Yes,Yes,Yes,Month-to-month,No,Electronic check,94.75,1069.8,Yes
+CG10826,Female,0,No,No,42,Yes,DSL,No,Yes,No,No,Yes,Yes,Two year,Yes,Electronic check,70.14,2905.43,No
+CG10827,Male,0,No,No,50,No,Fiber optic,Yes,Yes,No internet service,No internet service,Yes,No,One year,Yes,Credit card (automatic),66.08,3171.08,No
+CG10828,Female,0,Yes,No,36,Yes,DSL,Yes,No,No internet service,Yes,No,Yes,Month-to-month,No,Mailed check,74.2,2647.66,No
+CG10829,Male,0,No,Yes,45,Yes,Fiber optic,Yes,Yes,Yes,Yes,No,No internet service,Month-to-month,Yes,Credit card (automatic),73.51,3268.95,No
+CG10830,Female,0,Yes,No,52,Yes,Fiber optic,Yes,No,Yes,No,Yes,No internet service,Two year,No,Electronic check,87.66,4574.03,No
+CG10831,Male,0,Yes,No,12,Yes,Fiber optic,Yes,Yes,Yes,No internet service,No internet service,No,Month-to-month,Yes,Mailed check,84.56,1162.58,Yes
+CG10832,Male,0,Yes,No,53,Yes,No,No,Yes,Yes,No,Yes,Yes,Month-to-month,Yes,Mailed check,46.21,2480.41,No
+CG10833,Male,0,No,Yes,56,Yes,DSL,No,No,Yes,No,Yes,Yes,Month-to-month,Yes,Credit card (automatic),82.87,4763.84,No
+CG10834,Female,1,No,Yes,3,Yes,Fiber optic,No,Yes,No internet service,Yes,No,No,One year,Yes,Electronic check,74.85,250.14,No
+CG10835,Male,1,Yes,No,48,Yes,Fiber optic,No internet service,Yes,No internet service,Yes,Yes,Yes,Two year,Yes,Electronic check,94.23,4494.7,Yes
+CG10836,Female,0,Yes,No,6,Yes,DSL,No internet service,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Mailed check,59.78,374.34,No
+CG10837,Male,0,Yes,No,10,Yes,Fiber optic,No internet service,No internet service,Yes,No,Yes,Yes,Month-to-month,No,Credit card (automatic),100.94,1089.53,Yes
+CG10838,Male,0,Yes,No,53,Yes,Fiber optic,Yes,Yes,No,No,Yes,Yes,Two year,No,Credit card (automatic),79.2,4279.93,No
+CG10839,Female,0,Yes,No,44,Yes,DSL,Yes,Yes,Yes,No internet service,No,Yes,One year,Yes,Credit card (automatic),77.2,3370.91,No
+CG10840,Male,0,Yes,No,22,Yes,Fiber optic,Yes,No internet service,Yes,Yes,No internet service,Yes,Two year,Yes,Credit card (automatic),78.04,1728.27,No
+CG10841,Male,0,No,No,27,Yes,DSL,No internet service,Yes,No internet service,Yes,Yes,No,Month-to-month,Yes,Electronic check,59.05,1530.03,No
+CG10842,Female,0,Yes,No,56,Yes,Fiber optic,No internet service,No,No internet service,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,90.31,5094.47,No
+CG10843,Male,1,Yes,No,25,Yes,DSL,No internet service,Yes,Yes,No,No,Yes,Month-to-month,Yes,Electronic check,72.22,1875.4,No
+CG10844,Male,0,Yes,Yes,24,Yes,No,Yes,Yes,No internet service,No,No internet service,Yes,One year,Yes,Mailed check,35.83,861.71,No
+CG10845,Male,0,No,No,53,Yes,Fiber optic,No internet service,No,Yes,Yes,Yes,No,Month-to-month,Yes,Credit card (automatic),89.72,4725.13,Yes
+CG10846,Male,0,No,No,28,Yes,Fiber optic,Yes,Yes,No,Yes,Yes,Yes,Month-to-month,Yes,Credit card (automatic),102.36,2882.29,No
+CG10847,Female,0,No,Yes,35,Yes,Fiber optic,Yes,Yes,Yes,Yes,No,No,Month-to-month,Yes,Electronic check,75.5,2661.29,No
+CG10848,Female,0,Yes,Yes,13,Yes,No,Yes,Yes,Yes,Yes,No,No internet service,Month-to-month,No,Bank transfer (automatic),60.79,793.92,Yes
+CG10849,Male,1,No,No,34,Yes,Fiber optic,Yes,No,No internet service,No internet service,Yes,Yes,Two year,Yes,Credit card (automatic),72.35,2467.94,No
+CG10850,Female,0,Yes,Yes,29,Yes,DSL,Yes,No,Yes,Yes,No,Yes,Month-to-month,No,Mailed check,64.0,1848.18,No
+CG10851,Male,1,No,Yes,16,Yes,Fiber optic,Yes,Yes,No,No,Yes,Yes,One year,No,Electronic check,92.83,1530.1,No
+CG10852,Female,0,No,No,66,Yes,No,Yes,Yes,Yes,No,Yes,No internet service,Two year,No,Mailed check,44.17,2948.35,No
+CG10853,Male,0,No,No,29,Yes,Fiber optic,No,No,Yes,No,Yes,No,Month-to-month,No,Mailed check,78.11,2220.95,No
+CG10854,Male,0,No,No,44,Yes,Fiber optic,No internet service,No,Yes,Yes,No internet service,No internet service,One year,Yes,Bank transfer (automatic),74.93,3251.44,No
+CG10855,Male,0,No,Yes,50,Yes,No,No,No,Yes,No internet service,Yes,Yes,Two year,Yes,Mailed check,47.5,2363.55,No
+CG10856,Male,1,Yes,Yes,46,Yes,No,Yes,Yes,No,Yes,Yes,No internet service,Two year,Yes,Electronic check,57.66,2685.52,No
+CG10857,Male,1,No,No,52,No,No,No internet service,No,Yes,Yes,Yes,Yes,Month-to-month,No,Credit card (automatic),44.17,2303.5,Yes
+CG10858,Male,0,Yes,No,63,Yes,DSL,No internet service,No,No,Yes,No internet service,Yes,Month-to-month,No,Mailed check,60.85,3804.61,No
+CG10859,Female,0,No,No,37,Yes,Fiber optic,Yes,Yes,No,Yes,Yes,No internet service,Month-to-month,No,Mailed check,95.17,3533.06,No
+CG10860,Male,0,Yes,No,63,No,Fiber optic,Yes,Yes,No,Yes,Yes,No internet service,One year,Yes,Credit card (automatic),84.33,5297.9,No
+CG10861,Female,1,Yes,No,6,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,One year,No,Electronic check,105.29,671.36,No
+CG10862,Male,0,Yes,Yes,21,Yes,Fiber optic,Yes,No,No internet service,No internet service,No,Yes,One year,Yes,Electronic check,66.81,1418.0,No
+CG10863,Female,0,Yes,No,40,Yes,DSL,No,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Credit card (automatic),81.2,3233.81,No
+CG10864,Female,0,No,Yes,9,Yes,Fiber optic,No internet service,No,Yes,No,Yes,Yes,Month-to-month,No,Electronic check,76.97,703.15,No
+CG10865,Female,0,No,No,56,Yes,Fiber optic,Yes,No internet service,Yes,No internet service,Yes,Yes,One year,Yes,Credit card (automatic),78.75,4469.18,No
+CG10866,Male,0,Yes,No,6,Yes,DSL,No internet service,No,Yes,Yes,No internet service,No internet service,Month-to-month,No,Electronic check,55.43,306.95,No
+CG10867,Male,0,Yes,No,49,Yes,Fiber optic,No internet service,No internet service,Yes,No,No,No,One year,Yes,Electronic check,60.77,2995.85,No
+CG10868,Female,1,No,Yes,51,No,DSL,No internet service,No internet service,No,Yes,No,No,Month-to-month,No,Mailed check,49.32,2512.15,No
+CG10869,Male,0,Yes,Yes,32,Yes,DSL,Yes,Yes,Yes,Yes,No internet service,No,Month-to-month,Yes,Electronic check,72.52,2339.85,No
+CG10870,Female,0,No,No,0,Yes,DSL,No internet service,No,Yes,Yes,No internet service,Yes,Month-to-month,No,Bank transfer (automatic),48.78,0.0,No
+CG10871,Male,1,No,Yes,52,Yes,Fiber optic,Yes,Yes,No,No internet service,Yes,No,Month-to-month,No,Bank transfer (automatic),74.37,3872.21,No
+CG10872,Female,0,No,No,59,Yes,Fiber optic,No,No internet service,Yes,Yes,No internet service,No,Month-to-month,No,Credit card (automatic),61.32,3667.73,No
+CG10873,Female,1,No,Yes,33,Yes,Fiber optic,Yes,Yes,Yes,No,Yes,Yes,Month-to-month,Yes,Credit card (automatic),90.3,2937.73,No
+CG10874,Male,0,Yes,No,3,Yes,Fiber optic,Yes,No internet service,Yes,Yes,Yes,No,Month-to-month,No,Electronic check,89.64,209.1,No
+CG10875,Female,0,No,No,16,Yes,No,No,No,No,No internet service,No internet service,Yes,Month-to-month,Yes,Credit card (automatic),34.06,486.84,Yes
+CG10876,Male,1,Yes,No,3,Yes,DSL,Yes,No,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Bank transfer (automatic),64.28,140.16,No
+CG10877,Female,0,Yes,No,42,Yes,DSL,Yes,Yes,Yes,No,Yes,No internet service,One year,Yes,Bank transfer (automatic),79.4,3361.59,Yes
+CG10878,Female,0,No,Yes,3,Yes,No,Yes,Yes,Yes,No,Yes,Yes,Month-to-month,No,Credit card (automatic),40.56,58.42,No
+CG10879,Male,0,Yes,Yes,0,Yes,DSL,No,No,No,No,No,No,One year,Yes,Bank transfer (automatic),55.89,0.0,No
+CG10880,Male,0,No,No,70,Yes,No,Yes,Yes,No,No internet service,Yes,Yes,One year,No,Mailed check,49.65,3503.32,No
+CG10881,Male,0,No,No,49,No,No,No internet service,No internet service,No internet service,No internet service,No,No,One year,No,Bank transfer (automatic),19.38,968.37,No
+CG10882,Female,0,No,No,72,Yes,Fiber optic,Yes,Yes,Yes,Yes,No internet service,Yes,Two year,Yes,Electronic check,86.78,6230.81,No
+CG10883,Male,1,No,Yes,60,Yes,No,Yes,No,Yes,Yes,No,Yes,Month-to-month,No,Electronic check,63.34,3808.99,No
+CG10884,Female,0,Yes,Yes,34,Yes,DSL,Yes,Yes,Yes,Yes,Yes,Yes,One year,Yes,Bank transfer (automatic),72.15,2457.92,No
+CG10885,Female,0,Yes,Yes,7,Yes,DSL,Yes,No,Yes,Yes,No internet service,No,Two year,No,Electronic check,61.09,417.54,No
+CG10886,Male,0,No,No,23,Yes,Fiber optic,Yes,No,Yes,Yes,Yes,Yes,Two year,Yes,Electronic check,98.22,2249.57,No
+CG10887,Male,0,Yes,Yes,35,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,No internet service,Month-to-month,Yes,Electronic check,78.11,2834.44,No
+CG10888,Female,0,No,No,49,Yes,No,No internet service,Yes,Yes,Yes,Yes,Yes,Month-to-month,Yes,Bank transfer (automatic),51.64,2566.78,No
+CG10889,Female,1,No,Yes,42,Yes,DSL,No,Yes,No,No internet service,No,No internet service,Month-to-month,Yes,Mailed check,49.81,2203.65,No
+CG10890,Male,0,No,No,26,Yes,Fiber optic,Yes,No,Yes,Yes,Yes,No,One year,Yes,Bank transfer (automatic),78.91,2029.3,No
+CG10891,Male,0,Yes,No,31,Yes,Fiber optic,Yes,Yes,No,No internet service,Yes,Yes,One year,Yes,Mailed check,82.48,2553.06,Yes
+CG10892,Male,0,Yes,No,17,Yes,Fiber optic,No internet service,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Mailed check,86.2,1405.45,Yes
+CG10893,Male,0,Yes,No,27,Yes,DSL,Yes,Yes,Yes,No,Yes,No,Month-to-month,Yes,Mailed check,74.2,1966.97,No
+CG10894,Male,0,Yes,No,28,Yes,Fiber optic,Yes,Yes,Yes,No internet service,No,No,One year,Yes,Bank transfer (automatic),75.26,2192.87,No
+CG10895,Female,0,No,No,15,No,No,No,Yes,Yes,Yes,No internet service,No,Month-to-month,No,Mailed check,43.63,630.96,No
+CG10896,Female,0,Yes,No,46,Yes,DSL,No,Yes,Yes,Yes,No,Yes,Two year,Yes,Credit card (automatic),61.02,2893.29,No
+CG10897,Female,0,Yes,No,58,No,No,No,Yes,Yes,Yes,Yes,Yes,One year,No,Credit card (automatic),40.98,2320.89,No
+CG10898,Female,0,Yes,No,30,Yes,Fiber optic,Yes,No internet service,No internet service,Yes,Yes,No internet service,Month-to-month,No,Credit card (automatic),96.41,2844.89,No
+CG10899,Male,0,No,Yes,3,Yes,Fiber optic,Yes,No internet service,No,No internet service,No internet service,Yes,One year,No,Credit card (automatic),70.74,196.86,No
+CG10900,Male,0,No,No,36,Yes,Fiber optic,No,Yes,Yes,No internet service,Yes,Yes,Month-to-month,No,Mailed check,78.51,2823.49,No
+CG10901,Male,0,Yes,Yes,16,Yes,DSL,Yes,No,No internet service,Yes,No internet service,Yes,One year,Yes,Mailed check,50.06,842.5,No
+CG10902,Female,0,Yes,Yes,38,Yes,Fiber optic,Yes,No internet service,No,Yes,Yes,No,Two year,No,Bank transfer (automatic),89.6,3425.08,No
+CG10903,Female,0,Yes,No,47,No,No,Yes,Yes,No,Yes,No internet service,No,Two year,Yes,Bank transfer (automatic),32.27,1497.96,No
+CG10904,Male,0,Yes,No,45,Yes,Fiber optic,Yes,Yes,No internet service,Yes,Yes,Yes,Month-to-month,No,Credit card (automatic),91.97,4132.65,No
+CG10905,Male,0,No,No,47,Yes,No,No internet service,Yes,Yes,No,Yes,Yes,Month-to-month,No,Bank transfer (automatic),52.73,2463.95,No
+CG10906,Female,0,No,No,38,Yes,Fiber optic,No internet service,Yes,Yes,Yes,No,Yes,Month-to-month,Yes,Credit card (automatic),94.1,3534.64,No
+CG10907,Female,1,Yes,No,3,Yes,DSL,No,No internet service,Yes,Yes,No,Yes,Month-to-month,No,Mailed check,62.56,147.72,Yes
+CG10908,Male,0,Yes,No,29,Yes,Fiber optic,Yes,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Credit card (automatic),112.75,3316.0,No
+CG10909,Male,0,No,Yes,29,Yes,No,Yes,Yes,Yes,Yes,No,No internet service,Month-to-month,Yes,Bank transfer (automatic),49.07,1340.76,No
+CG10910,Female,1,Yes,Yes,21,Yes,DSL,Yes,Yes,No,No,No,Yes,Month-to-month,Yes,Bank transfer (automatic),72.49,1595.07,No
+CG10911,Male,0,No,No,65,Yes,No,Yes,No,No internet service,Yes,Yes,Yes,Month-to-month,No,Electronic check,60.44,3913.17,No
+CG10912,Male,0,Yes,Yes,11,Yes,No,No internet service,No internet service,No internet service,No internet service,Yes,No internet service,Month-to-month,No,Credit card (automatic),35.71,358.05,No
+CG10913,Male,0,No,Yes,35,Yes,Fiber optic,Yes,No,No internet service,No internet service,Yes,Yes,Two year,No,Credit card (automatic),79.3,2808.79,No
+CG10914,Female,0,Yes,No,17,Yes,DSL,Yes,No,No internet service,Yes,Yes,No,One year,Yes,Electronic check,66.66,1200.05,No
+CG10915,Female,0,No,No,52,Yes,Fiber optic,Yes,Yes,No internet service,Yes,No,Yes,Month-to-month,Yes,Bank transfer (automatic),90.08,4734.45,No
+CG10916,Female,1,No,No,70,Yes,DSL,No,No internet service,Yes,No internet service,Yes,Yes,Month-to-month,No,Mailed check,62.42,4391.98,No
+CG10917,Female,0,Yes,No,0,Yes,Fiber optic,Yes,No,Yes,No internet service,Yes,No internet service,Month-to-month,Yes,Credit card (automatic),82.33,48.91,Yes
+CG10918,Female,0,Yes,No,57,Yes,Fiber optic,Yes,Yes,Yes,No internet service,Yes,No,Month-to-month,No,Mailed check,95.89,5388.49,No
+CG10919,Female,0,Yes,Yes,5,Yes,Fiber optic,Yes,No,No internet service,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,105.56,504.32,No
+CG10920,Female,1,Yes,Yes,69,Yes,Fiber optic,No internet service,Yes,Yes,No internet service,Yes,No,Two year,Yes,Mailed check,87.83,6019.27,No
+CG10921,Male,0,Yes,No,43,Yes,Fiber optic,Yes,Yes,No,Yes,Yes,No internet service,One year,Yes,Bank transfer (automatic),100.9,4393.81,No
+CG10922,Male,0,Yes,No,71,Yes,Fiber optic,No internet service,Yes,Yes,No,Yes,Yes,One year,No,Electronic check,83.97,5944.61,No
+CG10923,Male,0,No,No,23,Yes,Fiber optic,No internet service,Yes,Yes,No internet service,No internet service,Yes,Month-to-month,Yes,Bank transfer (automatic),86.62,2030.3,No
+CG10924,Male,0,Yes,Yes,18,Yes,Fiber optic,Yes,Yes,No,Yes,Yes,No internet service,Two year,Yes,Credit card (automatic),96.71,1764.89,No
+CG10925,Male,1,Yes,No,17,Yes,Fiber optic,No,Yes,Yes,No internet service,No,Yes,Two year,Yes,Credit card (automatic),73.83,1216.31,Yes
+CG10926,Male,1,No,No,29,Yes,No,Yes,Yes,Yes,Yes,Yes,No,Month-to-month,Yes,Electronic check,52.12,1485.07,No
+CG10927,Male,0,Yes,No,41,Yes,Fiber optic,No internet service,Yes,Yes,No internet service,Yes,No,Month-to-month,Yes,Credit card (automatic),94.9,3949.12,No
+CG10928,Female,1,No,No,32,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,No,Month-to-month,Yes,Bank transfer (automatic),83.2,2627.5,No
+CG10929,Female,0,Yes,No,11,No,Fiber optic,Yes,Yes,No,No internet service,Yes,Yes,Month-to-month,No,Electronic check,70.27,778.59,No
+CG10930,Male,1,No,No,26,No,DSL,Yes,No,Yes,Yes,No internet service,Yes,One year,Yes,Electronic check,73.22,1868.51,No
+CG10931,Male,0,No,No,38,Yes,DSL,Yes,Yes,No,No,No internet service,No,Month-to-month,No,Electronic check,65.57,2477.53,No
+CG10932,Female,0,No,No,8,Yes,No,No internet service,Yes,Yes,Yes,No,Yes,Month-to-month,No,Credit card (automatic),54.46,433.6,No
+CG10933,Male,0,No,No,20,Yes,Fiber optic,Yes,No internet service,No internet service,Yes,No,Yes,Month-to-month,Yes,Electronic check,80.63,1577.37,Yes
+CG10934,Male,0,Yes,No,28,No,Fiber optic,No,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,77.49,2126.5,No
+CG10935,Female,0,No,No,32,Yes,Fiber optic,Yes,No internet service,No,No,Yes,Yes,Two year,No,Bank transfer (automatic),86.26,2773.2,No
+CG10936,Male,0,Yes,No,61,Yes,DSL,No internet service,Yes,No,Yes,No internet service,No internet service,One year,Yes,Bank transfer (automatic),68.64,4149.03,No
+CG10937,Female,0,Yes,Yes,14,Yes,Fiber optic,Yes,Yes,Yes,No,No,Yes,One year,Yes,Credit card (automatic),87.91,1194.26,No
+CG10938,Male,0,Yes,No,1,Yes,Fiber optic,Yes,No,No internet service,Yes,No,No internet service,Month-to-month,Yes,Bank transfer (automatic),90.34,48.08,Yes
+CG10939,Female,0,No,No,51,Yes,Fiber optic,Yes,Yes,No,No internet service,Yes,Yes,One year,No,Electronic check,81.82,4169.31,No
+CG10940,Female,0,Yes,No,43,No,Fiber optic,No,Yes,Yes,Yes,Yes,No,Month-to-month,Yes,Credit card (automatic),77.84,3389.59,No
+CG10941,Female,1,No,No,53,Yes,DSL,Yes,Yes,Yes,Yes,No internet service,Yes,One year,No,Electronic check,71.02,3831.85,No
+CG10942,Male,0,No,No,17,Yes,DSL,Yes,No internet service,No internet service,Yes,Yes,No,Month-to-month,No,Mailed check,55.32,907.77,No
+CG10943,Female,0,No,Yes,2,Yes,No,Yes,Yes,No,Yes,Yes,No,Month-to-month,Yes,Bank transfer (automatic),49.78,196.32,Yes
+CG10944,Male,0,No,No,6,Yes,Fiber optic,No,No internet service,Yes,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,92.34,508.83,Yes
+CG10945,Male,1,Yes,No,42,Yes,Fiber optic,Yes,No internet service,Yes,Yes,No internet service,No internet service,Month-to-month,Yes,Credit card (automatic),82.19,3500.74,No
+CG10946,Male,0,Yes,No,37,Yes,DSL,No,Yes,No internet service,No internet service,Yes,Yes,Two year,Yes,Mailed check,84.36,3088.84,No
+CG10947,Male,0,Yes,No,36,Yes,DSL,Yes,No,No,No,No internet service,No,Month-to-month,Yes,Electronic check,54.72,1930.73,No
+CG10948,Female,0,Yes,No,57,Yes,Fiber optic,No internet service,No,No,No,Yes,No internet service,Month-to-month,Yes,Credit card (automatic),80.2,4537.89,No
+CG10949,Female,1,Yes,No,32,Yes,Fiber optic,No internet service,No internet service,Yes,Yes,No internet service,No internet service,Month-to-month,Yes,Bank transfer (automatic),73.53,2350.6,Yes
+CG10950,Male,0,Yes,Yes,58,Yes,Fiber optic,Yes,Yes,No,No,No,No internet service,Two year,Yes,Bank transfer (automatic),86.42,5038.46,No
+CG10951,Male,0,Yes,No,10,No,DSL,Yes,No,Yes,Yes,Yes,Yes,Month-to-month,Yes,Mailed check,88.19,912.04,No
+CG10952,Female,0,No,No,67,No,Fiber optic,Yes,Yes,Yes,No,No,Yes,One year,No,Credit card (automatic),82.25,5468.27,No
+CG10953,Male,1,No,No,67,Yes,DSL,Yes,No internet service,No,Yes,Yes,Yes,Two year,Yes,Electronic check,64.06,4247.49,No
+CG10954,Female,0,Yes,No,21,Yes,DSL,Yes,Yes,No internet service,Yes,Yes,Yes,Month-to-month,No,Electronic check,72.61,1483.56,No
+CG10955,Male,0,No,No,65,No,Fiber optic,No,Yes,Yes,Yes,No internet service,No,Month-to-month,Yes,Mailed check,72.26,4691.89,No
+CG10956,Male,1,Yes,Yes,43,Yes,DSL,Yes,No,Yes,No internet service,Yes,Yes,Month-to-month,Yes,Electronic check,75.65,3243.49,No
+CG10957,Female,0,Yes,No,5,Yes,DSL,No internet service,No internet service,No,Yes,Yes,No,Two year,Yes,Bank transfer (automatic),64.59,280.19,No
+CG10958,Male,0,No,No,41,No,Fiber optic,Yes,No,Yes,No,Yes,Yes,Month-to-month,Yes,Mailed check,84.68,3484.01,No
+CG10959,Female,0,No,No,24,Yes,Fiber optic,No,Yes,No internet service,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,89.06,2239.26,No
+CG10960,Male,0,Yes,No,56,Yes,No,Yes,Yes,No,No,No internet service,No,One year,No,Electronic check,32.91,1820.25,No
+CG10961,Male,0,No,Yes,54,No,Fiber optic,Yes,No internet service,Yes,No internet service,Yes,Yes,One year,No,Bank transfer (automatic),84.21,4527.83,No
+CG10962,Male,0,No,Yes,15,Yes,DSL,Yes,No,No internet service,Yes,No internet service,No internet service,Month-to-month,Yes,Credit card (automatic),70.84,1087.78,No
+CG10963,Female,0,No,No,13,Yes,DSL,Yes,No internet service,No,Yes,No internet service,Yes,Month-to-month,Yes,Mailed check,72.16,912.93,Yes
+CG10964,Male,0,No,No,38,Yes,No,Yes,Yes,No internet service,No internet service,Yes,No,Month-to-month,Yes,Bank transfer (automatic),50.28,1940.74,No
+CG10965,Male,1,No,Yes,27,Yes,Fiber optic,No,Yes,No,Yes,Yes,Yes,Month-to-month,Yes,Electronic check,97.24,2593.15,No
+CG10966,Male,0,Yes,No,50,Yes,Fiber optic,No internet service,No,No internet service,Yes,No internet service,Yes,Month-to-month,Yes,Bank transfer (automatic),73.03,3733.95,No
+CG10967,Male,1,Yes,No,48,Yes,DSL,Yes,No internet service,Yes,No,Yes,No,Two year,Yes,Electronic check,59.93,2892.15,No
+CG10968,Female,0,Yes,No,8,No,Fiber optic,Yes,Yes,Yes,No,Yes,No internet service,Month-to-month,Yes,Mailed check,72.02,548.26,No
+CG10969,Female,1,Yes,No,57,Yes,DSL,Yes,No internet service,No internet service,Yes,Yes,Yes,Two year,Yes,Bank transfer (automatic),71.0,4020.51,No
+CG10970,Male,0,No,Yes,44,Yes,Fiber optic,Yes,Yes,Yes,No internet service,No,Yes,One year,Yes,Credit card (automatic),82.62,3612.16,No
+CG10971,Female,0,Yes,Yes,21,Yes,No,Yes,Yes,Yes,Yes,No,Yes,Month-to-month,Yes,Mailed check,65.67,1440.84,No
+CG10972,Male,0,No,No,31,Yes,No,No,Yes,No,Yes,Yes,Yes,One year,Yes,Bank transfer (automatic),50.2,1499.11,No
+CG10973,Male,1,No,No,68,Yes,Fiber optic,No internet service,Yes,No internet service,No,Yes,No internet service,Month-to-month,No,Bank transfer (automatic),69.58,4701.38,No
+CG10974,Male,0,No,No,68,No,Fiber optic,No internet service,Yes,Yes,Yes,No internet service,No,Two year,Yes,Credit card (automatic),85.54,5791.45,No
+CG10975,Female,0,No,No,41,Yes,No,Yes,Yes,No internet service,Yes,No,Yes,Two year,No,Mailed check,47.39,1942.28,No
+CG10976,Female,0,No,No,52,Yes,Fiber optic,No internet service,Yes,No,No,No,Yes,Month-to-month,No,Electronic check,77.23,4003.76,No
+CG10977,Female,0,Yes,No,58,Yes,DSL,No,No internet service,Yes,No internet service,No,No,Month-to-month,No,Credit card (automatic),54.61,3100.27,No
+CG10978,Female,0,No,No,38,Yes,Fiber optic,Yes,Yes,No internet service,No internet service,Yes,Yes,Month-to-month,No,Electronic check,79.91,3018.59,No
+CG10979,Female,0,Yes,No,14,Yes,DSL,Yes,Yes,Yes,No internet service,No,No,Month-to-month,No,Electronic check,70.88,987.84,No
+CG10980,Female,0,No,No,70,Yes,Fiber optic,No internet service,Yes,Yes,No internet service,Yes,Yes,Month-to-month,No,Electronic check,94.1,6558.74,No
+CG10981,Female,0,Yes,Yes,28,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,No,Month-to-month,Yes,Credit card (automatic),103.47,2928.06,No
+CG10982,Female,0,No,No,2,No,Fiber optic,Yes,No,Yes,Yes,No,Yes,One year,Yes,Electronic check,72.57,186.51,Yes
+CG10983,Female,0,No,Yes,9,Yes,Fiber optic,Yes,Yes,Yes,No internet service,Yes,No internet service,Month-to-month,No,Credit card (automatic),86.79,777.58,Yes
+CG10984,Male,0,Yes,No,28,Yes,DSL,No,No,No internet service,Yes,No internet service,Yes,Two year,No,Mailed check,59.31,1671.05,No
+CG10985,Female,0,Yes,No,34,Yes,Fiber optic,Yes,No,No,No,Yes,Yes,Two year,No,Electronic check,86.11,2830.49,No
+CG10986,Female,0,No,No,5,Yes,No,No internet service,Yes,No,No,No internet service,No internet service,Month-to-month,No,Mailed check,21.36,87.85,No
+CG10987,Female,0,No,No,11,Yes,Fiber optic,No,Yes,No,Yes,No internet service,Yes,Two year,No,Electronic check,81.89,946.01,Yes
+CG10988,Female,0,No,Yes,37,Yes,DSL,No,Yes,Yes,No internet service,Yes,Yes,Month-to-month,No,Bank transfer (automatic),60.59,2222.78,No
+CG10989,Female,0,No,Yes,18,Yes,No,Yes,Yes,Yes,Yes,No,Yes,Month-to-month,No,Bank transfer (automatic),58.87,1026.48,No
+CG10990,Female,0,Yes,No,66,Yes,No,No,No,No internet service,Yes,Yes,Yes,One year,Yes,Mailed check,31.97,2212.52,No
+CG10991,Female,0,Yes,Yes,7,Yes,DSL,Yes,No,Yes,No internet service,No internet service,No internet service,Month-to-month,No,Electronic check,41.19,370.19,No
+CG10992,Female,0,Yes,No,7,Yes,DSL,Yes,Yes,Yes,Yes,Yes,No,One year,No,Bank transfer (automatic),80.55,584.89,No
+CG10993,Female,0,No,No,46,Yes,Fiber optic,Yes,Yes,No,Yes,No,Yes,Two year,No,Credit card (automatic),81.63,3806.23,No
+CG10994,Female,0,Yes,No,3,Yes,No,Yes,Yes,Yes,Yes,Yes,No,Two year,No,Bank transfer (automatic),48.1,44.13,No
+CG10995,Female,0,No,No,50,Yes,No,No,No,No internet service,No internet service,Yes,Yes,One year,Yes,Credit card (automatic),54.17,2673.06,No
+CG10996,Male,0,No,Yes,66,Yes,No,Yes,Yes,Yes,No,Yes,No internet service,One year,Yes,Electronic check,53.62,3517.77,No
+CG10997,Male,0,No,No,44,Yes,Fiber optic,Yes,Yes,Yes,No,Yes,Yes,Month-to-month,No,Credit card (automatic),100.98,4432.5,No
+CG10998,Female,0,No,No,7,Yes,Fiber optic,Yes,Yes,Yes,No,No,No,Month-to-month,Yes,Electronic check,76.67,514.64,No
+CG10999,Female,0,No,Yes,15,Yes,DSL,No internet service,No,No,Yes,No,Yes,One year,Yes,Electronic check,80.44,1091.85,Yes
+CG11000,Male,1,Yes,No,66,Yes,DSL,No,No internet service,Yes,No internet service,No,Yes,Month-to-month,Yes,Credit card (automatic),54.16,3591.93,No

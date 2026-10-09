@@ -226,7 +226,7 @@ export default function Upload() {
             or click to browse files from your computer
           </p>
 
-          <p style={{ fontSize: '11px', color: 'var(--slate-400)', marginBottom: '18px' }}>
+          <p style={{ fontSize: '11px', color: 'var(--slate-500)', marginBottom: '18px' }}>
             Accepts Telco formatted <strong>.csv</strong> files. Existing customer IDs are automatically deduplicated.
           </p>
 
@@ -409,7 +409,7 @@ export default function Upload() {
           </div>
 
           {!preview ? (
-            <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--slate-400)', fontSize: '13px' }}>
+            <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--slate-500)', fontSize: '13px' }}>
               <Database size={32} style={{ marginBottom: '8px', opacity: 0.3 }} />
               <p style={{ margin: 0 }}>Upload a CSV to view schema attribute mapping</p>
             </div>
@@ -447,7 +447,7 @@ export default function Upload() {
           </div>
 
           {history.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--slate-400)', fontSize: '13px' }}>
+            <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--slate-500)', fontSize: '13px' }}>
               No previous dataset uploads found
             </div>
           ) : (

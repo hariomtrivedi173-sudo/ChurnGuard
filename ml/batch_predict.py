@@ -1,5 +1,6 @@
 import sys
 import os
+import math
 import time
 import pandas as pd
 
@@ -10,6 +11,16 @@ from ml.predict import model, encode_customer, FEATURE_COLUMNS
 CHURN_THRESHOLD = 0.35
 
 
+def _safe_float(val, default=0.0) -> float:
+    if val is None or val == "":
+        return default
+    try:
+        f = float(val)
+        return default if math.isnan(f) else f
+    except (ValueError, TypeError):
+        return default
+
+
 def encode_customer_dict(customer: dict) -> dict:
     """Fast in-memory dictionary encoder avoiding per-row DataFrame allocations."""
     return {
@@ -17,11 +28,11 @@ def encode_customer_dict(customer: dict) -> dict:
         "SeniorCitizen": 1 if customer.get("SeniorCitizen") in ("Yes", 1, "1", 1.0) else 0,
         "Partner": 1 if customer.get("Partner") == "Yes" else 0,
         "Dependents": 1 if customer.get("Dependents") == "Yes" else 0,
-        "tenure": float(customer.get("tenure") or 0),
+        "tenure": _safe_float(customer.get("tenure")),
         "PhoneService": 1 if customer.get("PhoneService") == "Yes" else 0,
         "PaperlessBilling": 1 if customer.get("PaperlessBilling") == "Yes" else 0,
-        "MonthlyCharges": float(customer.get("MonthlyCharges") or 0),
-        "TotalCharges": float(customer.get("TotalCharges") or 0),
+        "MonthlyCharges": _safe_float(customer.get("MonthlyCharges")),
+        "TotalCharges": _safe_float(customer.get("TotalCharges")),
         "MultipleLines": 1 if customer.get("MultipleLines") == "Yes" else 0,
         "OnlineSecurity": 1 if customer.get("OnlineSecurity") == "Yes" else 0,
         "OnlineBackup": 1 if customer.get("OnlineBackup") == "Yes" else 0,
