@@ -67,13 +67,13 @@ export default function Landing() {
 
   return (
     <div className="landing-page-wrap min-h-dvh bg-mauve-50 dark:bg-mauve-950 text-mauve-950 dark:text-mauve-50 antialiased selection:bg-mauve-200 dark:selection:bg-mauve-800 font-sans overflow-x-clip transition-colors">
-      
+
       {/* ─────────────────────────────────────────────────────────────
           1. NAVIGATION (Sticky, Thin Border, Backdrop Blur)
          ───────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 w-full bg-mauve-50/85 dark:bg-mauve-950/85 backdrop-blur-md border-b border-mauve-200 dark:border-mauve-800 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          
+
           {/* Logo & Primary Links */}
           <div className="flex items-center gap-8">
             <ChurnGuardLogo
@@ -109,7 +109,7 @@ export default function Landing() {
 
           {/* Right Action Group */}
           <div className="flex items-center gap-3 sm:gap-4">
-            
+
             {/* Theme Toggle Button */}
             <button
               id="landing-theme-toggle"
@@ -256,7 +256,7 @@ export default function Landing() {
          ───────────────────────────────────────────────────────────── */}
       <section className="relative pt-20 sm:pt-28 pb-12 sm:pb-16 text-center">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           {/* Subtle 3-Step Predict -> Explain -> Act Indicator */}
           <div className="inline-flex items-center gap-1 sm:gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 shadow-xs mb-8 text-xs font-mono">
             {[
@@ -268,11 +268,10 @@ export default function Landing() {
                 <button
                   type="button"
                   onClick={() => setActiveStoryStep(item.step)}
-                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
-                    activeStoryStep === item.step
+                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${activeStoryStep === item.step
                       ? 'bg-mauve-950 text-mauve-50 dark:bg-mauve-50 dark:text-mauve-950'
                       : 'text-mauve-700/70 dark:text-mauve-200/70 hover:text-mauve-950 dark:hover:text-mauve-50'
-                  }`}
+                    }`}
                 >
                   {item.label}
                 </button>
@@ -343,9 +342,9 @@ export default function Landing() {
          ───────────────────────────────────────────────────────────── */}
       <section id="how-it-works" className="py-20 sm:py-28 border-t border-mauve-200 dark:border-mauve-800 bg-white/40 dark:bg-mauve-900/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
+
             <div className="lg:col-span-5 space-y-4">
               <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider text-mauve-700 dark:text-mauve-200 bg-mauve-100 dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800">
                 <Radio size={12} className="text-mauve-700 dark:text-mauve-200" />
@@ -474,9 +473,9 @@ export default function Landing() {
          ───────────────────────────────────────────────────────────── */}
       <section id="solutions" className="py-20 sm:py-28 border-t border-mauve-200 dark:border-mauve-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
+
             {/* Visual SHAP Tree Mockup */}
             <div className="lg:col-span-7 order-2 lg:order-1">
               <div className="p-6 rounded-lg bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 shadow-sm space-y-4">
@@ -572,9 +571,9 @@ export default function Landing() {
          ───────────────────────────────────────────────────────────── */}
       <section className="py-20 sm:py-28 border-t border-mauve-200 dark:border-mauve-800 bg-white/40 dark:bg-mauve-900/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
+
             <div className="lg:col-span-5 space-y-4">
               <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider text-mauve-700 dark:text-mauve-200 bg-mauve-100 dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800">
                 <Zap size={12} className="text-mauve-700 dark:text-mauve-200" />
@@ -679,7 +678,7 @@ export default function Landing() {
          ───────────────────────────────────────────────────────────── */}
       <section id="explainable-ai" className="py-20 sm:py-28 lg:py-32 border-b border-mauve-200 dark:border-mauve-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="max-w-2xl mb-12 sm:mb-16">
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider text-mauve-700 dark:text-mauve-200 bg-mauve-100 dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 mb-4">
               <Sparkles size={12} className="text-mauve-700 dark:text-mauve-200" />
@@ -695,7 +694,7 @@ export default function Landing() {
 
           {/* Deep Dive Breakdown Card */}
           <div className="rounded-lg border border-mauve-200 dark:border-mauve-800 bg-white dark:bg-mauve-900/60 p-6 sm:p-8 shadow-sm">
-            
+
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-mauve-200 dark:border-mauve-800 gap-4">
               <div>
                 <div className="text-xs font-mono uppercase text-mauve-700/70 dark:text-mauve-200/70">
@@ -720,7 +719,7 @@ export default function Landing() {
 
             {/* Waterfall-Style Visual Drivers */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6">
-              
+
               {/* Positive Risk Drivers (Pushing Churn Up) */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-xs font-semibold text-red-500 font-mono uppercase tracking-wider">
@@ -812,7 +811,7 @@ export default function Landing() {
          ───────────────────────────────────────────────────────────── */}
       <section id="playbooks" className="py-20 sm:py-28 lg:py-32 border-b border-mauve-200 dark:border-mauve-800 bg-white/40 dark:bg-mauve-900/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="max-w-2xl mb-12 sm:mb-16">
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider text-mauve-700 dark:text-mauve-200 bg-mauve-100 dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 mb-4">
               <Zap size={12} className="text-mauve-700 dark:text-mauve-200" />
@@ -828,7 +827,7 @@ export default function Landing() {
 
           {/* 4 Playbook Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            
+
             {/* Playbook 1 */}
             <div className="p-6 rounded-lg bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 shadow-sm flex flex-col justify-between">
               <div>
@@ -935,7 +934,7 @@ export default function Landing() {
          ───────────────────────────────────────────────────────────── */}
       <section id="changelog" className="py-20 sm:py-28 lg:py-32 border-b border-mauve-200 dark:border-mauve-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="mb-12 sm:mb-16">
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider text-mauve-700 dark:text-mauve-200 bg-mauve-100 dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 mb-4">
               <span>Changelog</span>
@@ -950,7 +949,7 @@ export default function Landing() {
 
           {/* Timeline List */}
           <div className="space-y-8 border-l border-mauve-200 dark:border-mauve-800 pl-6 sm:pl-8 ml-2">
-            
+
             {/* Version 3.4 */}
             <div className="relative">
               <span className="absolute -left-[31px] sm:-left-[39px] top-1.5 w-3 h-3 rounded-full bg-mauve-950 dark:bg-mauve-50 border-2 border-mauve-50 dark:border-mauve-950" />
@@ -1040,7 +1039,7 @@ export default function Landing() {
          ───────────────────────────────────────────────────────────── */}
       <section className="py-24 sm:py-32 text-center bg-white/60 dark:bg-mauve-900/40">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-mauve-950 dark:text-mauve-50 leading-tight">
             Ready to stop customer churn before it happens?
           </h2>
@@ -1078,9 +1077,9 @@ export default function Landing() {
          ───────────────────────────────────────────────────────────── */}
       <footer className="border-t border-mauve-200 dark:border-mauve-800 bg-mauve-50 dark:bg-mauve-950 py-12 sm:py-16 text-xs transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
-            
+
             {/* Brand Column */}
             <div className="col-span-2 lg:col-span-2 space-y-4">
               <ChurnGuardLogo
