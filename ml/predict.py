@@ -21,30 +21,39 @@ FEATURE_COLUMNS = [
 def encode_customer(customer: dict) -> pd.DataFrame:
     row = {}
 
-    row["gender"] = 1 if customer["gender"] == "Male" else 0
-    row["SeniorCitizen"] = 1 if customer["SeniorCitizen"] == "Yes" else 0
-    row["Partner"] = 1 if customer["Partner"] == "Yes" else 0
-    row["Dependents"] = 1 if customer["Dependents"] == "Yes" else 0
-    row["tenure"] = customer["tenure"]
-    row["PhoneService"] = 1 if customer["PhoneService"] == "Yes" else 0
-    row["PaperlessBilling"] = 1 if customer["PaperlessBilling"] == "Yes" else 0
-    row["MonthlyCharges"] = customer["MonthlyCharges"]
-    row["TotalCharges"] = customer["TotalCharges"]
+    row["gender"] = 1 if customer.get("gender") in ("Male", 1, "1") else 0
+    row["SeniorCitizen"] = 1 if customer.get("SeniorCitizen") in ("Yes", 1, "1", 1.0) else 0
+    row["Partner"] = 1 if customer.get("Partner") in ("Yes", 1, "1") else 0
+    row["Dependents"] = 1 if customer.get("Dependents") in ("Yes", 1, "1") else 0
+    try:
+        row["tenure"] = float(customer.get("tenure", 0))
+    except (ValueError, TypeError):
+        row["tenure"] = 0.0
+    row["PhoneService"] = 1 if customer.get("PhoneService") in ("Yes", 1, "1") else 0
+    row["PaperlessBilling"] = 1 if customer.get("PaperlessBilling") in ("Yes", 1, "1") else 0
+    try:
+        row["MonthlyCharges"] = float(customer.get("MonthlyCharges", 0.0))
+    except (ValueError, TypeError):
+        row["MonthlyCharges"] = 0.0
+    try:
+        row["TotalCharges"] = float(customer.get("TotalCharges", 0.0))
+    except (ValueError, TypeError):
+        row["TotalCharges"] = 0.0
 
     three_way = ["MultipleLines", "OnlineSecurity", "OnlineBackup",
                  "DeviceProtection", "TechSupport", "StreamingTV", "StreamingMovies"]
     for col in three_way:
-        row[col] = 1 if customer[col] == "Yes" else 0
+        row[col] = 1 if customer.get(col) in ("Yes", 1, "1") else 0
 
-    row["InternetService_Fiber optic"] = 1 if customer["InternetService"] == "Fiber optic" else 0
-    row["InternetService_No"] = 1 if customer["InternetService"] == "No" else 0
+    row["InternetService_Fiber optic"] = 1 if customer.get("InternetService") == "Fiber optic" else 0
+    row["InternetService_No"] = 1 if customer.get("InternetService") == "No" else 0
 
-    row["Contract_One year"] = 1 if customer["Contract"] == "One year" else 0
-    row["Contract_Two year"] = 1 if customer["Contract"] == "Two year" else 0
+    row["Contract_One year"] = 1 if customer.get("Contract") == "One year" else 0
+    row["Contract_Two year"] = 1 if customer.get("Contract") == "Two year" else 0
 
-    row["PaymentMethod_Credit card (automatic)"] = 1 if customer["PaymentMethod"] == "Credit card (automatic)" else 0
-    row["PaymentMethod_Electronic check"] = 1 if customer["PaymentMethod"] == "Electronic check" else 0
-    row["PaymentMethod_Mailed check"] = 1 if customer["PaymentMethod"] == "Mailed check" else 0
+    row["PaymentMethod_Credit card (automatic)"] = 1 if customer.get("PaymentMethod") == "Credit card (automatic)" else 0
+    row["PaymentMethod_Electronic check"] = 1 if customer.get("PaymentMethod") == "Electronic check" else 0
+    row["PaymentMethod_Mailed check"] = 1 if customer.get("PaymentMethod") == "Mailed check" else 0
 
     df_row = pd.DataFrame([row])
     df_row = df_row[FEATURE_COLUMNS]

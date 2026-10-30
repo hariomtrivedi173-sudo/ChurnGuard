@@ -402,7 +402,7 @@ function Reports() {
             </div>
 
             {/* Slate System Table Container */}
-            <div className="analytics-table-wrap" style={{ marginBottom: '20px', maxHeight: '360px', overflowY: 'auto' }}>
+            <div className="analytics-table-wrap responsive-table-scroll" style={{ marginBottom: '20px', maxHeight: '360px', overflowY: 'auto', overflowX: 'auto' }}>
               <table className="analytics-table">
                 {previewModal.isCustomerTable ? (
                   <>

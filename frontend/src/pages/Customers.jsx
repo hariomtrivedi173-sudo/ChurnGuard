@@ -716,7 +716,7 @@ export default function Customers() {
               </div>
 
               <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="modal-form-grid-2">
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--slate-600)', marginBottom: '4px' }}>Customer ID (Optional)</label>
                     <input
@@ -743,7 +743,7 @@ export default function Customers() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <div className="modal-form-grid-3">
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--slate-600)', marginBottom: '4px' }}>Internet Service</label>
                     <select
@@ -783,7 +783,7 @@ export default function Customers() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="modal-form-grid-2">
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--slate-600)', marginBottom: '4px' }}>Monthly Charges (₹)</label>
                     <input
@@ -814,7 +814,7 @@ export default function Customers() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <div className="modal-form-grid-3">
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--slate-600)', marginBottom: '4px' }}>Tech Support</label>
                     <select
@@ -908,7 +908,7 @@ export default function Customers() {
               </div>
 
               <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="modal-form-grid-2">
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--slate-600)', marginBottom: '4px' }}>Contract Type</label>
                     <select
@@ -937,7 +937,7 @@ export default function Customers() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <div className="modal-form-grid-3">
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--slate-600)', marginBottom: '4px' }}>Tenure (Months)</label>
                     <input

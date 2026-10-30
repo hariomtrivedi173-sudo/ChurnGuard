@@ -173,7 +173,7 @@ function VerifyOTP() {
               Email Verified!
             </h2>
             <p className="auth-header-subtitle">
-              Your organization account is active. Redirecting to sign in…
+              Your organization account is active. Redirecting to Log In…
             </p>
           </div>
         ) : (

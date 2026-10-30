@@ -9,6 +9,24 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 5rem;
+      }
+      body {
+        margin: 0;
+        background-color: hsl(330, 8%, 98%);
+      }
+      html.dark body {
+        background-color: hsl(330, 9%, 7%);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
     <script>
       (function() {
         try {
@@ -19,8 +37,10 @@
           document.documentElement.setAttribute('data-theme', t);
           if (t === 'dark') {
             document.documentElement.classList.add('dark');
+            document.documentElement.style.backgroundColor = 'hsl(330, 9%, 7%)';
           } else {
             document.documentElement.classList.remove('dark');
+            document.documentElement.style.backgroundColor = 'hsl(330, 8%, 98%)';
           }
         } catch (e) {}
       })();

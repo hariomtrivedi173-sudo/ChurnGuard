@@ -43,3 +43,26 @@ export async function resendRegistrationOtp({ email }) {
     body: JSON.stringify({ email }),
   })
 }
+
+/** Request password reset recovery link */
+export async function forgotPassword(email) {
+  return apiRequest('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+/** Verify validity and expiration of password reset token */
+export async function verifyResetToken(token) {
+  return apiRequest(`/auth/verify-reset-token?token=${encodeURIComponent(token)}`, {
+    method: 'GET',
+  })
+}
+
+/** Reset password using single-use reset token */
+export async function resetPassword({ token, new_password, confirm_password }) {
+  return apiRequest('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, new_password, confirm_password }),
+  })
+}

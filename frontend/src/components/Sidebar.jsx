@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   LayoutDashboard, Users, Zap, UploadCloud, BarChart2, FileText,
-  Settings as SettingsIcon, LogOut, X,
+  Settings as SettingsIcon, LogOut, X, Database,
   ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { useSidebar } from './useSidebar'
@@ -16,6 +16,7 @@ const navMenu = [
   { path: '/customers', key: 'customers', label: 'Customers', icon: Users },
   { path: '/predict', key: 'predict', label: 'Predict Churn', icon: Zap },
   { path: '/upload', key: 'upload', label: 'Upload Dataset', icon: UploadCloud },
+  { path: '/datasets', key: 'datasets', label: 'Dataset Management', icon: Database },
   { path: '/analytics', key: 'analytics', label: 'Analytics', icon: BarChart2 },
   { path: '/reports', key: 'reports', label: 'Reports', icon: FileText },
 ]
@@ -377,7 +378,7 @@ function Sidebar() {
               </h3>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '24px' }}>
-              You will need to sign in again to access your ChurnGuard dashboard and workspace.
+              You will need to log in again to access your ChurnGuard dashboard and workspace.
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button

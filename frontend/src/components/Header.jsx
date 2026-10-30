@@ -16,7 +16,7 @@ import { useSidebar } from './useSidebar'
 import { useTheme } from './useTheme'
 import { clearAuth } from '../utils/auth'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
 function formatRelativeTime(isoString) {
   if (!isoString) return ''
@@ -759,7 +759,7 @@ function Header({
               </h3>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '24px' }}>
-              You will need to sign in again to access your ChurnGuard dashboard and workspace.
+              You will need to log in again to access your ChurnGuard dashboard and workspace.
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button

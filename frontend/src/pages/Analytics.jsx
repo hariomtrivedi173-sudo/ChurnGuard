@@ -253,7 +253,7 @@ export default function Analytics() {
         {activeTab === 'Evaluation' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '20px' }}>
+            <div className="analytics-2col-grid">
 
               {/* 1. Model Metrics */}
               <div className="dashboard-card">
@@ -263,7 +263,7 @@ export default function Analytics() {
                       Supervised Classifier Metrics
                     </h3>
                     <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginTop: '2px' }}>
-                      Validation evaluation on 7,043 customer records
+                      Validation evaluation on {total > 0 ? total.toLocaleString() : 'uploaded'} customer records
                     </p>
                   </div>
                   <span className="badge badge-green" style={{ fontSize: '10px' }}>
@@ -367,7 +367,7 @@ export default function Analytics() {
 
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '20px' }}>
+            <div className="analytics-2col-grid">
 
               {/* 3. ROC Curve */}
               <div className="dashboard-card">
@@ -459,7 +459,7 @@ export default function Analytics() {
 
         {/* ── Tab 2: Churn & Segments ── */}
         {activeTab === 'Cohorts' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '20px' }}>
+          <div className="analytics-2col-grid">
 
             {/* 5. Churn Distribution */}
             <div className="dashboard-card">

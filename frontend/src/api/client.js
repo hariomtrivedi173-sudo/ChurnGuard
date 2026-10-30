@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
 // ── Standard JSON request (GET / POST / PUT / DELETE) ──────────────────────
 export async function apiRequest(endpoint, options = {}) {
@@ -28,7 +28,7 @@ export async function apiRequest(endpoint, options = {}) {
     if (window.location.pathname !== '/login') {
       window.location.href = '/login'
     }
-    throw new Error('Session expired. Please sign in again.')
+    throw new Error('Session expired. Please log in again.')
   }
 
   if (!response.ok) {
@@ -70,7 +70,7 @@ export async function apiFormData(endpoint, formData, options = {}) {
     if (window.location.pathname !== '/login') {
       window.location.href = '/login'
     }
-    throw new Error('Session expired. Please sign in again.')
+    throw new Error('Session expired. Please log in again.')
   }
 
   if (!response.ok) {
@@ -102,7 +102,7 @@ export async function apiBlob(endpoint) {
     if (window.location.pathname !== '/login') {
       window.location.href = '/login'
     }
-    throw new Error('Session expired. Please sign in again.')
+    throw new Error('Session expired. Please log in again.')
   }
 
   if (!response.ok) {

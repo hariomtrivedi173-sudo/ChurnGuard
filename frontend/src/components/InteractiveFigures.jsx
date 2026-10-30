@@ -80,9 +80,54 @@ function FigureOne() {
     let rafId = null
     let idleTick = 0
 
+    const render = () => {
+      if (!isVisible) {
+        rafId = null
+        return
+      }
+
+      if (!isHovered) {
+        idleTick += 0.02
+        targetX = Math.sin(idleTick) * 0.25
+        targetY = Math.cos(idleTick * 0.7) * 0.2
+      }
+
+      currentX += (targetX - currentX) * 0.08
+      currentY += (targetY - currentY) * 0.08
+
+      const rotX = 18 - currentY * 12
+      const rotY = -14 + currentX * 14
+      const liftTop = -28 - currentY * 24
+      const liftMid1 = -16 - currentY * 14
+      const liftMid2 = -8 - currentY * 8
+
+      rig.style.setProperty('--rx', `${rotX.toFixed(2)}deg`)
+      rig.style.setProperty('--ry', `${rotY.toFixed(2)}deg`)
+      rig.style.setProperty('--lift-top', `${liftTop.toFixed(2)}px`)
+      rig.style.setProperty('--lift-mid1', `${liftMid1.toFixed(2)}px`)
+      rig.style.setProperty('--lift-mid2', `${liftMid2.toFixed(2)}px`)
+
+      rafId = requestAnimationFrame(render)
+    }
+
+    const startLoop = () => {
+      if (!rafId) {
+        rafId = requestAnimationFrame(render)
+      }
+    }
+
+    const stopLoop = () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId)
+        rafId = null
+      }
+    }
+
     const observer = new IntersectionObserver(([entry]) => {
       isVisible = entry.isIntersecting
-    }, { threshold: 0.1 })
+      if (isVisible) startLoop()
+      else stopLoop()
+    }, { threshold: 0.05 })
     observer.observe(el)
 
     const onMouseMove = (e) => {
@@ -90,6 +135,7 @@ function FigureOne() {
       targetX = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1))
       targetY = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1))
       isHovered = true
+      startLoop()
     }
 
     const onMouseLeave = () => {
@@ -98,36 +144,8 @@ function FigureOne() {
       targetY = 0
     }
 
-    el.addEventListener('mousemove', onMouseMove)
-    el.addEventListener('mouseleave', onMouseLeave)
-
-    const render = () => {
-      if (isVisible) {
-        if (!isHovered) {
-          idleTick += 0.02
-          targetX = Math.sin(idleTick) * 0.25
-          targetY = Math.cos(idleTick * 0.7) * 0.2
-        }
-
-        currentX += (targetX - currentX) * 0.08
-        currentY += (targetY - currentY) * 0.08
-
-        const rotX = 18 - currentY * 12
-        const rotY = -14 + currentX * 14
-        const liftTop = -28 - currentY * 24
-        const liftMid1 = -16 - currentY * 14
-        const liftMid2 = -8 - currentY * 8
-
-        rig.style.setProperty('--rx', `${rotX.toFixed(2)}deg`)
-        rig.style.setProperty('--ry', `${rotY.toFixed(2)}deg`)
-        rig.style.setProperty('--lift-top', `${liftTop.toFixed(2)}px`)
-        rig.style.setProperty('--lift-mid1', `${liftMid1.toFixed(2)}px`)
-        rig.style.setProperty('--lift-mid2', `${liftMid2.toFixed(2)}px`)
-      }
-      rafId = requestAnimationFrame(render)
-    }
-
-    rafId = requestAnimationFrame(render)
+    el.addEventListener('mousemove', onMouseMove, { passive: true })
+    el.addEventListener('mouseleave', onMouseLeave, { passive: true })
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId)
@@ -248,9 +266,56 @@ function FigureTwo() {
     let rafId = null
     let idleTick = 1.2
 
+    const render = () => {
+      if (!isVisible) {
+        rafId = null
+        return
+      }
+
+      if (!isHovered) {
+        idleTick += 0.02
+        targetX = Math.cos(idleTick * 0.9) * 0.22
+        targetY = Math.sin(idleTick * 0.8) * 0.2
+      }
+
+      currentX += (targetX - currentX) * 0.08
+      currentY += (targetY - currentY) * 0.08
+
+      const rotX = 16 - currentY * 10
+      const rotY = -14 + currentX * 12
+      const c1y = currentY * -16
+      const c2y = currentY * 14
+      const c3y = currentY * -8
+      const c4y = currentY * 18
+
+      rig.style.setProperty('--rx', `${rotX.toFixed(2)}deg`)
+      rig.style.setProperty('--ry', `${rotY.toFixed(2)}deg`)
+      rig.style.setProperty('--c1-y', `${c1y.toFixed(2)}px`)
+      rig.style.setProperty('--c2-y', `${c2y.toFixed(2)}px`)
+      rig.style.setProperty('--c3-y', `${c3y.toFixed(2)}px`)
+      rig.style.setProperty('--c4-y', `${c4y.toFixed(2)}px`)
+
+      rafId = requestAnimationFrame(render)
+    }
+
+    const startLoop = () => {
+      if (!rafId) {
+        rafId = requestAnimationFrame(render)
+      }
+    }
+
+    const stopLoop = () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId)
+        rafId = null
+      }
+    }
+
     const observer = new IntersectionObserver(([entry]) => {
       isVisible = entry.isIntersecting
-    }, { threshold: 0.1 })
+      if (isVisible) startLoop()
+      else stopLoop()
+    }, { threshold: 0.05 })
     observer.observe(el)
 
     const onMouseMove = (e) => {
@@ -258,6 +323,7 @@ function FigureTwo() {
       targetX = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1))
       targetY = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1))
       isHovered = true
+      startLoop()
     }
 
     const onMouseLeave = () => {
@@ -266,38 +332,8 @@ function FigureTwo() {
       targetY = 0
     }
 
-    el.addEventListener('mousemove', onMouseMove)
-    el.addEventListener('mouseleave', onMouseLeave)
-
-    const render = () => {
-      if (isVisible) {
-        if (!isHovered) {
-          idleTick += 0.02
-          targetX = Math.cos(idleTick * 0.9) * 0.22
-          targetY = Math.sin(idleTick * 0.8) * 0.2
-        }
-
-        currentX += (targetX - currentX) * 0.08
-        currentY += (targetY - currentY) * 0.08
-
-        const rotX = 16 - currentY * 10
-        const rotY = -14 + currentX * 12
-        const c1y = currentY * -16
-        const c2y = currentY * 14
-        const c3y = currentY * -8
-        const c4y = currentY * 18
-
-        rig.style.setProperty('--rx', `${rotX.toFixed(2)}deg`)
-        rig.style.setProperty('--ry', `${rotY.toFixed(2)}deg`)
-        rig.style.setProperty('--c1-y', `${c1y.toFixed(2)}px`)
-        rig.style.setProperty('--c2-y', `${c2y.toFixed(2)}px`)
-        rig.style.setProperty('--c3-y', `${c3y.toFixed(2)}px`)
-        rig.style.setProperty('--c4-y', `${c4y.toFixed(2)}px`)
-      }
-      rafId = requestAnimationFrame(render)
-    }
-
-    rafId = requestAnimationFrame(render)
+    el.addEventListener('mousemove', onMouseMove, { passive: true })
+    el.addEventListener('mouseleave', onMouseLeave, { passive: true })
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId)
@@ -433,9 +469,50 @@ function FigureThree() {
     let rafId = null
     let idleTick = 2.4
 
+    const render = () => {
+      if (!isVisible) {
+        rafId = null
+        return
+      }
+
+      if (!isHovered) {
+        idleTick += 0.02
+        targetX = Math.sin(idleTick * 0.7) * 0.2
+        targetY = Math.cos(idleTick * 0.8) * 0.22
+      }
+
+      currentX += (targetX - currentX) * 0.08
+      currentY += (targetY - currentY) * 0.08
+
+      const rotX = 18 - currentY * 9
+      const rotY = -12 + currentX * 11
+      const wave = currentY * 14
+
+      rig.style.setProperty('--rx', `${rotX.toFixed(2)}deg`)
+      rig.style.setProperty('--ry', `${rotY.toFixed(2)}deg`)
+      rig.style.setProperty('--wave-y', `${wave.toFixed(2)}px`)
+
+      rafId = requestAnimationFrame(render)
+    }
+
+    const startLoop = () => {
+      if (!rafId) {
+        rafId = requestAnimationFrame(render)
+      }
+    }
+
+    const stopLoop = () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId)
+        rafId = null
+      }
+    }
+
     const observer = new IntersectionObserver(([entry]) => {
       isVisible = entry.isIntersecting
-    }, { threshold: 0.1 })
+      if (isVisible) startLoop()
+      else stopLoop()
+    }, { threshold: 0.05 })
     observer.observe(el)
 
     const onMouseMove = (e) => {
@@ -443,6 +520,7 @@ function FigureThree() {
       targetX = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1))
       targetY = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1))
       isHovered = true
+      startLoop()
     }
 
     const onMouseLeave = () => {
@@ -451,32 +529,8 @@ function FigureThree() {
       targetY = 0
     }
 
-    el.addEventListener('mousemove', onMouseMove)
-    el.addEventListener('mouseleave', onMouseLeave)
-
-    const render = () => {
-      if (isVisible) {
-        if (!isHovered) {
-          idleTick += 0.02
-          targetX = Math.sin(idleTick * 0.7) * 0.2
-          targetY = Math.cos(idleTick * 0.8) * 0.22
-        }
-
-        currentX += (targetX - currentX) * 0.08
-        currentY += (targetY - currentY) * 0.08
-
-        const rotX = 18 - currentY * 9
-        const rotY = -12 + currentX * 11
-        const wave = currentY * 14
-
-        rig.style.setProperty('--rx', `${rotX.toFixed(2)}deg`)
-        rig.style.setProperty('--ry', `${rotY.toFixed(2)}deg`)
-        rig.style.setProperty('--wave-y', `${wave.toFixed(2)}px`)
-      }
-      rafId = requestAnimationFrame(render)
-    }
-
-    rafId = requestAnimationFrame(render)
+    el.addEventListener('mousemove', onMouseMove, { passive: true })
+    el.addEventListener('mouseleave', onMouseLeave, { passive: true })
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId)

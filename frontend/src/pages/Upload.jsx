@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
 import toast from 'react-hot-toast'
-import { uploadDataset, getDatasetInfo, getUploadHistory } from '../api/dataset'
+import { uploadDataset, getDatasetInfo, getUploadHistory, deleteDatasetUpload } from '../api/dataset'
 import {
   UploadCloud, FileText, CheckCircle2, AlertCircle, X, Clock,
-  Database, TrendingUp, Copy, Users
+  Database, TrendingUp, Copy, Users, Trash2
 } from 'lucide-react'
 
 function timeAgo(isoString) {
@@ -26,15 +26,17 @@ const UPLOAD_STAGES = [
 ]
 
 export default function Upload() {
-  const [file,          setFile]          = useState(null)
-  const [uploading,     setUploading]     = useState(false)
-  const [uploadStage,   setUploadStage]   = useState(0)
-  const [uploadResult,  setResult]        = useState(null)
-  const [error,         setError]         = useState('')
-  const [info,          setInfo]          = useState(null)
-  const [history,       setHistory]       = useState([])
-  const [dragging,      setDragging]      = useState(false)
-  const [preview,       setPreview]       = useState(null)
+  const [file,            setFile]            = useState(null)
+  const [uploading,       setUploading]       = useState(false)
+  const [uploadStage,     setUploadStage]     = useState(0)
+  const [uploadResult,    setResult]          = useState(null)
+  const [error,           setError]           = useState('')
+  const [info,            setInfo]            = useState(null)
+  const [history,         setHistory]         = useState([])
+  const [dragging,        setDragging]        = useState(false)
+  const [preview,         setPreview]         = useState(null)
+  const [datasetToDelete, setDatasetToDelete] = useState(null)
+  const [deleting,        setDeleting]        = useState(false)
   const abortControllerRef = useRef(null)
   const isMountedRef       = useRef(true)
   const timerRefs          = useRef([])
@@ -166,6 +168,25 @@ export default function Upload() {
     } finally {
       if (isMountedRef.current && !abortController.signal.aborted) {
         setUploading(false)
+      }
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!datasetToDelete || deleting) return
+    setDeleting(true)
+    try {
+      const uploadId = datasetToDelete.upload_id || datasetToDelete._id
+      const res = await deleteDatasetUpload(uploadId)
+      toast.success(res.message || `Dataset "${datasetToDelete.filename}" deleted successfully.`)
+      setDatasetToDelete(null)
+      await loadInfo()
+      await loadHistory()
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete dataset')
+    } finally {
+      if (isMountedRef.current) {
+        setDeleting(false)
       }
     }
   }
@@ -458,11 +479,11 @@ export default function Upload() {
                     key={h._id || i}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1.2fr 100px 90px 90px 90px 120px',
+                      gridTemplateColumns: '1.2fr 90px 80px 80px 90px 110px 36px',
                       alignItems: 'center',
                       padding: '12px 6px',
                       borderBottom: i < history.length - 1 ? '1px solid var(--border)' : 'none',
-                      gap: '14px',
+                      gap: '12px',
                       fontSize: '12px',
                     }}
                   >
@@ -492,6 +513,37 @@ export default function Upload() {
                       </span>
                       <p style={{ fontSize: '10px', color: 'var(--slate-400)', marginTop: '3px', margin: '3px 0 0 0' }}>{timeAgo(h.uploaded_at)}</p>
                     </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <button
+                        type="button"
+                        aria-label={`Delete dataset ${h.filename}`}
+                        title={`Delete dataset ${h.filename}`}
+                        onClick={() => setDatasetToDelete(h)}
+                        disabled={deleting}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '6px',
+                          borderRadius: '6px',
+                          color: 'var(--slate-400)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'color 0.15s ease, background 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = 'var(--danger)'
+                          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = 'var(--slate-400)'
+                          e.currentTarget.style.background = 'none'
+                        }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -499,6 +551,96 @@ export default function Upload() {
           )}
 
         </div>
+
+        {/* ── Delete Dataset Confirmation Modal ── */}
+        {datasetToDelete && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-dataset-modal-title"
+            className="modal-backdrop"
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !deleting) setDatasetToDelete(null)
+            }}
+          >
+            <div className="card modal-card" style={{ maxWidth: '440px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                <div className="modal-icon-badge danger">
+                  <Trash2 size={20} />
+                </div>
+                <div>
+                  <h3 id="delete-dataset-modal-title" style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                    Delete Uploaded Dataset?
+                  </h3>
+                  <p style={{ fontSize: '11px', color: 'var(--slate-500)', margin: '2px 0 0 0' }}>
+                    Permanently removes records belonging to this file
+                  </p>
+                </div>
+              </div>
+
+              <div style={{
+                background: 'var(--surface-muted)',
+                border: '1px solid var(--border)',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <FileText size={16} color="var(--brand)" />
+                  <strong style={{ fontSize: '13px', color: 'var(--text-primary)', wordBreak: 'break-all' }}>
+                    {datasetToDelete.filename}
+                  </strong>
+                </div>
+                <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: 'var(--slate-500)' }}>
+                  <span>Uploaded {timeAgo(datasetToDelete.uploaded_at)}</span>
+                  <span>{(datasetToDelete.new_records ?? datasetToDelete.inserted_rows ?? 0).toLocaleString()} records added</span>
+                </div>
+              </div>
+
+              <p style={{ fontSize: '12px', color: 'var(--slate-600)', lineHeight: 1.5, marginBottom: '22px' }}>
+                Are you sure you want to delete <strong>{datasetToDelete.filename}</strong>? All customer records that belong exclusively to this file will be permanently deleted. Records belonging to other uploaded files will remain intact.
+              </p>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  id="delete-dataset-cancel-btn"
+                  onClick={() => setDatasetToDelete(null)}
+                  disabled={deleting}
+                  className="btn-secondary"
+                  style={{ fontSize: '13px', padding: '8px 16px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  id="delete-dataset-confirm-btn"
+                  onClick={handleConfirmDelete}
+                  disabled={deleting}
+                  className="btn-danger"
+                  style={{
+                    fontSize: '13px',
+                    padding: '8px 18px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: deleting ? 0.7 : 1,
+                    cursor: deleting ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {deleting ? (
+                    <>
+                      <span className="btn-spinner" style={{ width: '13px', height: '13px' }} />
+                      Deleting…
+                    </>
+                  ) : (
+                    'Delete Dataset'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

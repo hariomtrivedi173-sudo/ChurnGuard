@@ -8,6 +8,7 @@ import {
   requestPasswordOtp, verifyPasswordOtp,
   uploadProfilePhoto, deleteProfilePhoto
 } from '../api/profile'
+import { forgotPassword } from '../api/auth'
 import {
   User, Shield, Bell, Palette, Globe, Save, UploadCloud, Lock,
   Eye, EyeOff, Check, AlertCircle, CheckCircle2, Building2, Phone,
@@ -15,7 +16,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency, t, CURRENCIES } from '../utils/formatters'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
 const COMPANY_TYPES = [
   'Private Limited',
@@ -153,6 +154,29 @@ function Settings() {
   const [pwTouched,       setPwTouched]       = useState({})
   const [pwError,         setPwError]         = useState('')
   const [passwordSuccessMsg, setPasswordSuccessMsg] = useState('')
+  const [sendingForgotLink,  setSendingForgotLink]  = useState(false)
+
+  async function handleForgotCurrentPassword(e) {
+    if (e) e.preventDefault()
+    if (sendingForgotLink) return
+    setSendingForgotLink(true)
+    setPwError('')
+    try {
+      const emailToUse = profile?.email || ''
+      if (!emailToUse) {
+        window.location.href = '/login?forgot=1'
+        return
+      }
+      await forgotPassword(emailToUse)
+      toast.success('Password reset link sent to your email!')
+      setPasswordSuccessMsg(`A password reset link has been dispatched to ${maskEmailHelper(emailToUse)}. Please check your inbox and spam folder.`)
+    } catch (err) {
+      toast.error(err.message || 'Could not send reset link right now.')
+      setPwError(err.message || 'Could not send reset link right now.')
+    } finally {
+      setSendingForgotLink(false)
+    }
+  }
 
   // OTP Verification Modal State
   const [showOtpModal,    setShowOtpModal]    = useState(false)
@@ -1269,11 +1293,33 @@ function Settings() {
                     {showCurrentPw ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                {passwordErrors.currentPassword && (
-                  <p style={{ fontSize: '11px', color: '#e11d48', marginTop: '4px', fontWeight: 500 }}>
-                    {passwordErrors.currentPassword}
-                  </p>
-                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                  {passwordErrors.currentPassword ? (
+                    <p style={{ fontSize: '11px', color: '#e11d48', margin: 0, fontWeight: 500 }}>
+                      {passwordErrors.currentPassword}
+                    </p>
+                  ) : <span />}
+                  <button
+                    type="button"
+                    onClick={handleForgotCurrentPassword}
+                    disabled={sendingForgotLink}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      fontSize: '12px',
+                      color: 'var(--brand)',
+                      textDecoration: 'none',
+                      fontWeight: 500,
+                      cursor: sendingForgotLink ? 'not-allowed' : 'pointer',
+                      opacity: sendingForgotLink ? 0.6 : 1
+                    }}
+                    onMouseEnter={e => e.target.style.textDecoration = 'underline'}
+                    onMouseLeave={e => e.target.style.textDecoration = 'none'}
+                  >
+                    {sendingForgotLink ? 'Sending reset link…' : 'Forgot current password?'}
+                  </button>
+                </div>
               </div>
 
               {/* New Password */}
@@ -1480,7 +1526,7 @@ function Settings() {
               Customize application theme and contrast mode
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="settings-grid-2col">
               <div
                 onClick={() => handleThemeChange('light')}
                 style={{
@@ -1530,7 +1576,7 @@ function Settings() {
             </p>
 
             {/* 2 Focused, Logical Options */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '20px' }}>
+            <div className="settings-grid-2col" style={{ marginBottom: '20px' }}>
               {/* Interface Language */}
               <div>
                 <label htmlFor="settings-language-select" style={{
@@ -1599,7 +1645,7 @@ function Settings() {
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="settings-grid-2col" style={{ gap: '12px' }}>
                 <div style={{ background: 'var(--surface)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
                   <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>
                     {t('monthlyRevenue', profile.language || 'en')}

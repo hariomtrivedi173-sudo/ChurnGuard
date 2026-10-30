@@ -514,7 +514,7 @@ export default function Dashboard() {
             </div>
 
             {/* Waterfall mini-cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: 'auto' }}>
+            <div className="dashboard-waterfall-grid">
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderLeft: '3px solid var(--danger)', borderRadius: '10px', padding: '10px 12px' }}>
                 <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--danger)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0 }}>High Risk MRR</p>
                 <p style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', margin: '3px 0 0 0' }}>{formatCurrency(highRiskMRR)}</p>
@@ -847,7 +847,7 @@ export default function Dashboard() {
             </div>
 
             {/* 4-Metric Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+            <div className="dashboard-model-metrics-grid">
               {[
                 { label: 'Accuracy', val: accuracyPct },
                 { label: 'Precision', val: precisionPct },

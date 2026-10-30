@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import ChurnGuardLogo from '../components/ChurnGuardLogo'
 import HeroCockpit from '../components/HeroCockpit'
@@ -22,21 +22,97 @@ import { useTheme } from '../components/useTheme'
 import { getValidToken } from '../utils/auth'
 
 /**
- * ChurnGuard Landing Page
- *
- * Full visual redesign built with Linear-caliber craft:
- * - Pure dusty Mauve aesthetic (50, 100, 200, 700, 800, 900, 950).
- * - Exact structure: Hero → Product Cockpit → Predict → Explain → Act →
- *   Interactive FIGs → Explainable AI → Retention Playbooks → Changelog → Final CTA → Footer.
- * - Zero inline styling.
- * - Semantic risk colors: Red (High), Amber (Medium), Green (Low).
- * - Strictly pure monochromatic Mauve system.
+ * Isolated Story Step Indicator to eliminate full Landing page re-renders on timer interval
  */
+function StoryStepIndicator() {
+  const [activeStoryStep, setActiveStoryStep] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveStoryStep((prev) => (prev + 1) % 3)
+    }, 4000)
+    return () => clearInterval(timer)
+  }, [])
+
+  return (
+    <div className="inline-flex items-center gap-1 sm:gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 shadow-xs mb-8 text-xs font-mono transition-colors">
+      {[
+        { label: '01 PREDICT', step: 0 },
+        { label: '02 EXPLAIN', step: 1 },
+        { label: '03 ACT', step: 2 },
+      ].map((item, idx) => (
+        <div key={item.label} className="flex items-center gap-1 sm:gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveStoryStep(item.step)}
+            className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all duration-200 cursor-pointer ${
+              activeStoryStep === item.step
+                ? 'bg-mauve-950 text-mauve-50 dark:bg-mauve-50 dark:text-mauve-950'
+                : 'text-mauve-700/70 dark:text-mauve-200/70 hover:text-mauve-950 dark:hover:text-mauve-50'
+            }`}
+          >
+            {item.label}
+          </button>
+          {idx < 2 && (
+            <span className="text-mauve-200 dark:text-mauve-800 font-sans">→</span>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Lightweight, hardware-accelerated intersection observer wrapper for smooth section reveal
+ */
+function RevealSection({ id, className = '', children }) {
+  const sectionRef = useRef(null)
+  const [revealed, setRevealed] = useState(false)
+
+  useEffect(() => {
+    const node = sectionRef.current
+    if (!node) return
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setRevealed(true)
+      return
+    }
+
+    // Check if section is already in or near the viewport on mount to eliminate initial flash & shift
+    const rect = node.getBoundingClientRect()
+    if (rect.top < window.innerHeight + 80) {
+      setRevealed(true)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setRevealed(true)
+          observer.unobserve(node)
+        }
+      },
+      { threshold: 0.02, rootMargin: '120px 0px 80px 0px' }
+    )
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <section
+      id={id}
+      ref={sectionRef}
+      className={`${className} cg-section-reveal ${revealed ? 'cg-revealed' : ''}`}
+    >
+      {children}
+    </section>
+  )
+}
 
 export default function Landing() {
   const { theme, toggleTheme } = useTheme()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [activeStoryStep, setActiveStoryStep] = useState(0)
 
   // Auth state: resolved synchronously from storage on initial mount to eliminate flash
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getValidToken()))
@@ -54,14 +130,6 @@ export default function Landing() {
       window.removeEventListener('storage', syncAuthState)
       window.removeEventListener('churnguard_auth_changed', syncAuthState)
     }
-  }, [])
-
-  // Subtle cycle for Predict -> Explain -> Act indicator
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveStoryStep((prev) => (prev + 1) % 3)
-    }, 4000)
-    return () => clearInterval(timer)
   }, [])
 
 
@@ -137,7 +205,7 @@ export default function Landing() {
                   to="/login"
                   className="text-xs font-medium text-mauve-700 dark:text-mauve-200 hover:text-mauve-950 dark:hover:text-mauve-50 transition-colors px-2 py-1"
                 >
-                  Log in
+                  Log In
                 </Link>
 
                 {/* Primary CTA (Get Started -> /register) */}
@@ -235,7 +303,7 @@ export default function Landing() {
                     onClick={() => setMobileMenuOpen(false)}
                     className="text-sm font-medium text-mauve-700 dark:text-mauve-200"
                   >
-                    Log in
+                    Log In
                   </Link>
                   <Link
                     to="/register"
@@ -258,45 +326,25 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Subtle 3-Step Predict -> Explain -> Act Indicator */}
-          <div className="inline-flex items-center gap-1 sm:gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 shadow-xs mb-8 text-xs font-mono">
-            {[
-              { label: '01 PREDICT', step: 0 },
-              { label: '02 EXPLAIN', step: 1 },
-              { label: '03 ACT', step: 2 },
-            ].map((item, idx) => (
-              <div key={item.label} className="flex items-center gap-1 sm:gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveStoryStep(item.step)}
-                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${activeStoryStep === item.step
-                      ? 'bg-mauve-950 text-mauve-50 dark:bg-mauve-50 dark:text-mauve-950'
-                      : 'text-mauve-700/70 dark:text-mauve-200/70 hover:text-mauve-950 dark:hover:text-mauve-50'
-                    }`}
-                >
-                  {item.label}
-                </button>
-                {idx < 2 && (
-                  <span className="text-mauve-200 dark:text-mauve-800 font-sans">→</span>
-                )}
-              </div>
-            ))}
+          <div className="cg-hero-entrance cg-delay-1">
+            <StoryStepIndicator />
           </div>
 
           {/* Exact Required Headline */}
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-mauve-950 dark:text-mauve-50 leading-[1.08]">
+          <h1 className="cg-hero-entrance cg-delay-2 text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-mauve-950 dark:text-mauve-50 leading-[1.08]">
             The customer retention system for teams and AI agents.
           </h1>
 
           {/* Sub-headline: Predict -> Explain -> Act story */}
-          <p className="mt-6 text-base sm:text-lg text-mauve-700/90 dark:text-mauve-200/90 max-w-2xl mx-auto leading-relaxed">
+          <p className="cg-hero-entrance cg-delay-3 mt-6 text-base sm:text-lg text-mauve-700/90 dark:text-mauve-200/90 max-w-2xl mx-auto leading-relaxed">
             Stop customer churn before renewal day. ChurnGuard predicts attrition probability with calibrated ML, explains root causes through transparent SHAP drivers, and automates retention playbooks.
           </p>
 
           {/* CTA Buttons */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+          <div className="cg-hero-entrance cg-delay-4 mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Link
               to="/register"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold bg-mauve-950 text-mauve-50 hover:bg-mauve-900 dark:bg-mauve-50 dark:text-mauve-950 dark:hover:bg-mauve-100 transition-all duration-150 active:scale-95 shadow-sm"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold bg-mauve-950 text-mauve-50 hover:bg-mauve-900 dark:bg-mauve-50 dark:text-mauve-950 dark:hover:bg-mauve-100 transition-all duration-200 active:scale-95 shadow-sm"
             >
               <span>Get Started</span>
               <ArrowRight size={15} />
@@ -304,7 +352,7 @@ export default function Landing() {
 
             <a
               href="#how-it-works"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-medium bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 text-mauve-950 dark:text-mauve-50 hover:bg-mauve-100 dark:hover:bg-mauve-800 transition-colors shadow-xs"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-medium bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 text-mauve-950 dark:text-mauve-50 hover:bg-mauve-100 dark:hover:bg-mauve-800 transition-all duration-200 shadow-xs"
             >
               <span>See how it works</span>
               <ChevronRight size={14} className="text-mauve-700 dark:text-mauve-200" />
@@ -312,7 +360,7 @@ export default function Landing() {
           </div>
 
           {/* Proof Badges */}
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-xs font-mono text-mauve-700/80 dark:text-mauve-200/80">
+          <div className="cg-hero-entrance cg-delay-5 mt-12 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-xs font-mono text-mauve-700/80 dark:text-mauve-200/80">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               <span>Sub-50ms Inference</span>
@@ -333,14 +381,14 @@ export default function Landing() {
       {/* ─────────────────────────────────────────────────────────────
           3. PRODUCT COCKPIT (Dominant Desktop Experience)
          ───────────────────────────────────────────────────────────── */}
-      <section id="product" className="pb-24 sm:pb-32">
+      <RevealSection id="product" className="pb-24 sm:pb-32">
         <HeroCockpit />
-      </section>
+      </RevealSection>
 
       {/* ─────────────────────────────────────────────────────────────
           4. PREDICT SECTION
          ───────────────────────────────────────────────────────────── */}
-      <section id="how-it-works" className="py-20 sm:py-28 border-t border-mauve-200 dark:border-mauve-800 bg-white/40 dark:bg-mauve-900/20">
+      <RevealSection id="how-it-works" className="py-20 sm:py-28 border-t border-mauve-200 dark:border-mauve-800 bg-white/40 dark:bg-mauve-900/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -466,12 +514,12 @@ export default function Landing() {
           </div>
 
         </div>
-      </section>
+      </RevealSection>
 
       {/* ─────────────────────────────────────────────────────────────
           5. EXPLAIN SECTION
          ───────────────────────────────────────────────────────────── */}
-      <section id="solutions" className="py-20 sm:py-28 border-t border-mauve-200 dark:border-mauve-800">
+      <RevealSection id="solutions" className="py-20 sm:py-28 border-t border-mauve-200 dark:border-mauve-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -564,12 +612,12 @@ export default function Landing() {
           </div>
 
         </div>
-      </section>
+      </RevealSection>
 
       {/* ─────────────────────────────────────────────────────────────
           6. ACT SECTION
          ───────────────────────────────────────────────────────────── */}
-      <section className="py-20 sm:py-28 border-t border-mauve-200 dark:border-mauve-800 bg-white/40 dark:bg-mauve-900/20">
+      <RevealSection className="py-20 sm:py-28 border-t border-mauve-200 dark:border-mauve-800 bg-white/40 dark:bg-mauve-900/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -666,7 +714,7 @@ export default function Landing() {
           </div>
 
         </div>
-      </section>
+      </RevealSection>
 
       {/* ─────────────────────────────────────────────────────────────
           7. INTERACTIVE FIGURES (3-Column FIG Section)
@@ -676,7 +724,7 @@ export default function Landing() {
       {/* ─────────────────────────────────────────────────────────────
           8. EXPLAINABLE AI DEEP DIVE
          ───────────────────────────────────────────────────────────── */}
-      <section id="explainable-ai" className="py-20 sm:py-28 lg:py-32 border-b border-mauve-200 dark:border-mauve-800">
+      <RevealSection id="explainable-ai" className="py-20 sm:py-28 lg:py-32 border-b border-mauve-200 dark:border-mauve-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           <div className="max-w-2xl mb-12 sm:mb-16">
@@ -804,12 +852,12 @@ export default function Landing() {
           </div>
 
         </div>
-      </section>
+      </RevealSection>
 
       {/* ─────────────────────────────────────────────────────────────
           9. RETENTION PLAYBOOKS SECTION
          ───────────────────────────────────────────────────────────── */}
-      <section id="playbooks" className="py-20 sm:py-28 lg:py-32 border-b border-mauve-200 dark:border-mauve-800 bg-white/40 dark:bg-mauve-900/20">
+      <RevealSection id="playbooks" className="py-20 sm:py-28 lg:py-32 border-b border-mauve-200 dark:border-mauve-800 bg-white/40 dark:bg-mauve-900/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           <div className="max-w-2xl mb-12 sm:mb-16">
@@ -927,12 +975,12 @@ export default function Landing() {
           </div>
 
         </div>
-      </section>
+      </RevealSection>
 
       {/* ─────────────────────────────────────────────────────────────
           10. CHANGELOG SECTION
          ───────────────────────────────────────────────────────────── */}
-      <section id="changelog" className="py-20 sm:py-28 lg:py-32 border-b border-mauve-200 dark:border-mauve-800">
+      <RevealSection id="changelog" className="py-20 sm:py-28 lg:py-32 border-b border-mauve-200 dark:border-mauve-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
           <div className="mb-12 sm:mb-16">
@@ -1032,12 +1080,12 @@ export default function Landing() {
           </div>
 
         </div>
-      </section>
+      </RevealSection>
 
       {/* ─────────────────────────────────────────────────────────────
           11. FINAL CTA SECTION
          ───────────────────────────────────────────────────────────── */}
-      <section className="py-24 sm:py-32 text-center bg-white/60 dark:bg-mauve-900/40">
+      <RevealSection className="py-24 sm:py-32 text-center bg-white/60 dark:bg-mauve-900/40">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-mauve-950 dark:text-mauve-50 leading-tight">
@@ -1061,7 +1109,7 @@ export default function Landing() {
               to="/login"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-sm font-medium bg-white dark:bg-mauve-900 border border-mauve-200 dark:border-mauve-800 text-mauve-950 dark:text-mauve-50 hover:bg-mauve-100 dark:hover:bg-mauve-800 transition-colors shadow-xs"
             >
-              <span>Log in to your workspace</span>
+              <span>Log In to your workspace</span>
             </Link>
           </div>
 
@@ -1070,7 +1118,7 @@ export default function Landing() {
           </div>
 
         </div>
-      </section>
+      </RevealSection>
 
       {/* ─────────────────────────────────────────────────────────────
           12. FOOTER

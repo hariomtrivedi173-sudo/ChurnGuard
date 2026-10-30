@@ -499,7 +499,7 @@ function Register() {
               Email Verified!
             </h2>
             <p className="auth-header-subtitle">
-              Your organization account is active. Redirecting to sign in…
+              Your organization account is active. Redirecting to Log In…
             </p>
           </div>
 
@@ -700,7 +700,7 @@ function Register() {
                 }}>
                   <UserPlus size={16} />
                 </div>
-                <h1 className="auth-header-title">Create your account</h1>
+                <h1 className="auth-header-title">Create Your Account</h1>
               </div>
               <p className="auth-header-subtitle">
                 Step 1 of 3 · Set up your credentials and security settings.
@@ -1142,9 +1142,9 @@ function Register() {
 
         {/* Footer Link */}
         <div className="auth-footer-divider">
-          Already have an organisation account?{' '}
+          Already have an account?{' '}
           <Link to="/login" className="auth-footer-link">
-            Sign in
+            Log In
           </Link>
         </div>
       </main>

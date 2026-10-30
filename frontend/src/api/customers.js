@@ -7,9 +7,12 @@ export async function getCustomers(page = 1, limit = 50, search = '', signal = n
   return apiRequest(`/customers?${params}`, { signal })
 }
 
-export async function getTelcoCustomers(page = 1, limit = 50, search = '', signal = null) {
-  const params = new URLSearchParams({ page, limit, search })
-  return apiRequest(`/telco/customers?${params}`, { signal })
+export async function getTelcoCustomers(page = 1, limit = 50, search = '', risk_level = '', upload_id = '', signal = null) {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+  if (search) params.append('search', search)
+  if (risk_level && risk_level !== 'all') params.append('risk_level', risk_level)
+  if (upload_id && upload_id !== 'all') params.append('upload_id', upload_id)
+  return apiRequest(`/telco/customers?${params.toString()}`, { signal })
 }
 
 export async function getCustomer(id) {

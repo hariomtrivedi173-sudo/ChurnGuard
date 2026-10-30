@@ -6,3 +6,11 @@ export async function predictChurn(customerData) {
     body: JSON.stringify(customerData),
   })
 }
+
+export async function predictSelectedCustomers(payload, signal = null) {
+  return apiRequest('/predict/selected', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    signal,
+  })
+}

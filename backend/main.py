@@ -4,13 +4,15 @@ import math
 import time
 import re
 import secrets
+import hashlib
 import logging
 from collections import Counter
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Query
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Query, Request
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from dotenv import load_dotenv
+from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure
 
 # Load .env from backend directory or fallback to current directory
 _backend_dir = os.path.dirname(os.path.abspath(__file__))
@@ -27,15 +29,25 @@ import pandas as pd
 import io
 from datetime import datetime, timezone, timedelta
 
-from database import customer_collection, user_collection, telco_collection, notification_collection, otp_collection, database
+from database import (
+    customer_collection,
+    user_collection,
+    telco_collection,
+    notification_collection,
+    otp_collection,
+    upload_collection,
+    password_reset_collection,
+    database,
+    check_db_connection,
+)
 from auth import hash_password, verify_password, create_access_token, get_current_user, get_current_user_doc, get_company_id_for_name
-from mailer import send_otp_email, send_registration_otp_email_with_code, mask_email, is_dev_mode
+from mailer import send_otp_email, send_registration_otp_email_with_code, send_password_reset_link_email, mask_email, is_dev_mode
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ml.predict import predict_churn
 from ml.explain import explain_prediction
 from ml.recommend import generate_recommendations
-from typing import Literal, Optional
+from typing import Literal, Optional, List, Dict, Any, Union
 from fastapi.middleware.cors import CORSMiddleware
 from ml.batch_predict import predict_batch, build_aggregates
 from ml.metrics import compute_metrics, invalidate_metrics_cache
@@ -50,16 +62,43 @@ app = FastAPI(
 # CORS configuration: allow local development origins and configurable production origins
 _raw_origins = os.getenv("ALLOWED_ORIGINS", "")
 _configured_origins = [orig.strip() for orig in _raw_origins.split(",") if orig.strip()] if _raw_origins else []
-DEFAULT_ORIGINS = ["http://localhost:5173", "http://localhost:5174"]
+DEFAULT_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000",
+    "http://localhost:4173",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:4173",
+    "https://churnguard-frontend.onrender.com",
+]
 allowed_origins = list(dict.fromkeys(DEFAULT_ORIGINS + _configured_origins))
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(ServerSelectionTimeoutError)
+async def mongo_timeout_handler(request: Request, exc: ServerSelectionTimeoutError):
+    logger.error(f"MongoDB Atlas timeout on {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Database connection timed out. MongoDB Atlas is currently unreachable. Please check network connectivity."}
+    )
+
+@app.exception_handler(ConnectionFailure)
+async def mongo_connection_failure_handler(request: Request, exc: ConnectionFailure):
+    logger.error(f"MongoDB connection failure on {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Database connection failure. Unable to communicate with MongoDB Atlas."}
+    )
 
 # Static file mount directories for user profile avatars
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
@@ -103,6 +142,14 @@ async def startup_event():
             [("company_id", 1), ("uploaded_at", -1)],
             name="uploads_company_time"
         ),
+        telco_collection.create_index(
+            [("company_id", 1), ("upload_ids", 1)],
+            name="telco_company_upload_ids"
+        ),
+        telco_collection.create_index(
+            [("company_id", 1), ("upload_id", 1)],
+            name="telco_company_upload_id"
+        ),
         # Dashboard cache — unique per company
         database["dashboard_cache"].create_index(
             [("company_id", 1)],
@@ -142,6 +189,21 @@ async def startup_event():
             [("expires_at", 1)],
             expireAfterSeconds=0,
             name="otp_expires_ttl"
+        ),
+        # Password reset tokens — lookup and TTL index
+        password_reset_collection.create_index(
+            [("token_hash", 1)],
+            unique=True,
+            name="pwd_reset_token_hash"
+        ),
+        password_reset_collection.create_index(
+            [("email", 1), ("created_at", -1)],
+            name="pwd_reset_email_created"
+        ),
+        password_reset_collection.create_index(
+            [("expires_at", 1)],
+            expireAfterSeconds=0,
+            name="pwd_reset_expires_ttl"
         ),
     ]
 
@@ -277,28 +339,52 @@ class RegisterUser(BaseModel):
     country: str = "India"
 
 class CustomerPredictionInput(BaseModel):
-    gender: Literal["Male", "Female"]
-    SeniorCitizen: Literal["Yes", "No"]
-    Partner: Literal["Yes", "No"]
-    Dependents: Literal["Yes", "No"]
+    gender: Optional[str] = "Male"
+    SeniorCitizen: Optional[Any] = "No"
+    Partner: Optional[str] = "No"
+    Dependents: Optional[str] = "No"
     tenure: int
-    PhoneService: Literal["Yes", "No"]
-    MultipleLines: Literal["Yes", "No", "No phone service"]
-    InternetService: Literal["DSL", "Fiber optic", "No"]
-    OnlineSecurity: Literal["Yes", "No", "No internet service"]
-    OnlineBackup: Literal["Yes", "No", "No internet service"]
-    DeviceProtection: Literal["Yes", "No", "No internet service"]
-    TechSupport: Literal["Yes", "No", "No internet service"]
-    StreamingTV: Literal["Yes", "No", "No internet service"]
-    StreamingMovies: Literal["Yes", "No", "No internet service"]
-    Contract: Literal["Month-to-month", "One year", "Two year"]
-    PaperlessBilling: Literal["Yes", "No"]
-    PaymentMethod: Literal[
-        "Electronic check", "Mailed check",
-        "Bank transfer (automatic)", "Credit card (automatic)"
-    ]
+    PhoneService: Optional[str] = "Yes"
+    MultipleLines: Optional[str] = "No"
+    InternetService: Optional[str] = "Fiber optic"
+    OnlineSecurity: Optional[str] = "No"
+    OnlineBackup: Optional[str] = "No"
+    DeviceProtection: Optional[str] = "No"
+    TechSupport: Optional[str] = "No"
+    StreamingTV: Optional[str] = "No"
+    StreamingMovies: Optional[str] = "No"
+    Contract: Optional[str] = "Month-to-month"
+    PaperlessBilling: Optional[str] = "Yes"
+    PaymentMethod: Optional[str] = "Electronic check"
     MonthlyCharges: float
     TotalCharges: float
+
+    @field_validator("SeniorCitizen", mode="before")
+    @classmethod
+    def normalize_senior_citizen(cls, v):
+        if v in (1, "1", "Yes", "yes", True):
+            return "Yes"
+        return "No"
+
+    @field_validator("MultipleLines", mode="before")
+    @classmethod
+    def normalize_multiple_lines(cls, v):
+        if not v or v in ("", "null", None):
+            return "No"
+        return v
+
+
+class PredictSelectedRequest(BaseModel):
+    customer_ids: Optional[List[str]] = None
+    select_all_matching: Optional[bool] = False
+    deselected_ids: Optional[List[str]] = None
+    search: Optional[str] = ""
+    upload_id: Optional[str] = None
+    risk_level: Optional[str] = "all"
+
+
+class ClearAllDatasetRequest(BaseModel):
+    confirm_phrase: Optional[str] = ""
 
 
 class TelcoCustomerCreate(BaseModel):
@@ -397,12 +483,38 @@ def about():
 
 
 @app.get("/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "service": "ChurnGuard Backend",
-        "message": "API is up and running"
-    }
+async def health_check():
+    try:
+        db_status = await check_db_connection()
+        return {
+            "status": "healthy",
+            "service": "ChurnGuard Backend",
+            "message": "API is up and running",
+            "database": {
+                "status": "connected",
+                "target": "MongoDB Atlas",
+                "database_name": db_status["database"],
+                "collections_count": len(db_status["collections"]),
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as exc:
+        logger.error(f"Health check failed to connect to MongoDB Atlas: {exc}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "degraded",
+                "service": "ChurnGuard Backend",
+                "message": "API is online but database is unavailable",
+                "database": {
+                    "status": "disconnected",
+                    "target": "MongoDB Atlas",
+                    "error": type(exc).__name__,
+                    "detail": str(exc),
+                },
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
 
 @app.get("/version")
@@ -815,14 +927,11 @@ async def register_user(user: RegisterUser):
         )
 
     print(f"[Register] Verification email sent to {mask_email(norm_email)}")
-    response_data = {
+    return {
         "message": "Verification code sent to your email. Please check your inbox and spam folder.",
         "masked_email": mask_email(norm_email),
         "step": "verify_otp"
     }
-    if is_dev_mode():
-        response_data["dev_otp"] = otp_code
-    return response_data
 
 
 class RegistrationOtpVerify(BaseModel):
@@ -991,19 +1100,21 @@ async def resend_registration_otp(req: RegistrationResendOtp):
         )
 
     print(f"[Resend] Verification email resent to {mask_email(norm_email)}")
-    response_data = {
+    return {
         "message": "A new verification code has been sent to your email.",
         "masked_email": mask_email(norm_email)
     }
-    if is_dev_mode():
-        response_data["dev_otp"] = otp_code
-    return response_data
 
 
 @app.post("/login")
 async def login_user(user: User):
     norm_email = user.email.strip().lower()
-    existing = await user_collection.find_one({"email": norm_email})
+    existing = await user_collection.find_one({
+        "$or": [
+            {"email": norm_email},
+            {"email": {"$regex": f"^\\s*{re.escape(norm_email)}\\s*$", "$options": "i"}}
+        ]
+    })
     if not existing:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
@@ -1022,8 +1133,330 @@ async def login_user(user: User):
         company_id = get_company_id_for_name(existing.get("company", ""), existing.get("email", ""))
         await user_collection.update_one({"_id": existing["_id"]}, {"$set": {"company_id": company_id}})
 
-    token = create_access_token({"sub": norm_email, "company_id": company_id})
+    token = create_access_token({"sub": existing.get("email", norm_email), "company_id": company_id})
     return {"access_token": token, "token_type": "bearer", "company_id": company_id}
+
+
+# ── Password Recovery (Forgot Password & Reset Link) ──────────────────────────
+
+# Rate limiting stores for /auth/forgot-password
+# In-process rolling window: max 5 requests per hour per IP and per email,
+# plus a 60-second resend cooldown per email.
+import threading as _threading
+_fp_ip_store: dict = {}
+_fp_email_store: dict = {}
+_fp_store_lock = _threading.Lock()
+_FP_MAX_REQUESTS_PER_HOUR = 5
+_FP_WINDOW_SECONDS = 3600  # 1 hour
+_FP_RESEND_COOLDOWN_SECONDS = 60  # 60 seconds
+
+def _enforce_forgot_password_rate_limits(ip: str, email: str, now: datetime) -> None:
+    """
+    Enforce per-IP and per-email rate limiting and resend cooldown on forgot-password.
+    Raises HTTP 429 with Retry-After header on violation.
+    """
+    now_ts = now.timestamp()
+    cutoff_hour = now_ts - _FP_WINDOW_SECONDS
+    cutoff_cooldown = now_ts - _FP_RESEND_COOLDOWN_SECONDS
+
+    with _fp_store_lock:
+        # 1. IP rate limit check (max 5 per hour)
+        ip_times = [t for t in _fp_ip_store.get(ip, []) if t > cutoff_hour]
+        if len(ip_times) >= _FP_MAX_REQUESTS_PER_HOUR:
+            retry_after = max(1, int(math.ceil(ip_times[0] + _FP_WINDOW_SECONDS - now_ts)))
+            raise HTTPException(
+                status_code=429,
+                detail=f"Too many password reset requests from this network ({_FP_MAX_REQUESTS_PER_HOUR} per hour). Please try again later.",
+                headers={"Retry-After": str(retry_after)}
+            )
+
+        # 2. Email rate limit & cooldown check
+        email_times = [t for t in _fp_email_store.get(email, []) if t > cutoff_hour]
+        if email_times:
+            # 60-second resend cooldown
+            last_req = email_times[-1]
+            if last_req > cutoff_cooldown:
+                remaining = max(1, int(math.ceil(last_req + _FP_RESEND_COOLDOWN_SECONDS - now_ts)))
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Please wait {remaining} seconds before requesting another password reset link.",
+                    headers={"Retry-After": str(remaining)}
+                )
+            # Max 5 per hour per email
+            if len(email_times) >= _FP_MAX_REQUESTS_PER_HOUR:
+                retry_after = max(1, int(math.ceil(email_times[0] + _FP_WINDOW_SECONDS - now_ts)))
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Too many password reset requests for this email ({_FP_MAX_REQUESTS_PER_HOUR} per hour). Please try again later.",
+                    headers={"Retry-After": str(retry_after)}
+                )
+
+        # Record this request
+        ip_times.append(now_ts)
+        _fp_ip_store[ip] = ip_times
+
+        email_times.append(now_ts)
+        _fp_email_store[email] = email_times
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+    confirm_password: Optional[str] = None
+
+
+EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+@app.post("/auth/forgot-password")
+@app.post("/api/auth/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest, request: Request):
+    """
+    Initiate password recovery by emailing a cryptographically secure, single-use reset link.
+
+    Rate limits (enforced server-side):
+      • Per email address : 60-second cooldown + max 5 requests per hour.
+      • Per IP address    : max 5 requests per hour.
+    """
+    raw_email = req.email.strip()
+    if not raw_email or not EMAIL_REGEX.match(raw_email):
+        raise HTTPException(status_code=422, detail="Please enter a valid email address.")
+
+    norm_email = raw_email.lower()
+    now = datetime.now(timezone.utc)
+
+    # Resolve client IP
+    client_ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "unknown")
+        or "unknown"
+    )
+
+    # 1. Enforce in-memory rate limiting (IP and email)
+    _enforce_forgot_password_rate_limits(client_ip, norm_email, now)
+
+    # DB-backed check: enforce 60s cooldown if previous reset exists in DB
+    latest = await password_reset_collection.find_one(
+        {"email": norm_email},
+        sort=[("created_at", -1)]
+    )
+    if latest and latest.get("created_at"):
+        created_at = latest["created_at"]
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        elapsed = (now - created_at).total_seconds()
+        if elapsed < 60:
+            remaining = max(1, int(math.ceil(60 - elapsed)))
+            raise HTTPException(
+                status_code=429,
+                detail=f"Please wait {remaining} seconds before requesting another password reset link.",
+                headers={"Retry-After": str(remaining)}
+            )
+
+    generic_success_response = {
+        "success": True,
+        "message": "If an account exists for this email, we have sent a password reset link. Please check your inbox and spam folder.",
+        "masked_email": mask_email(norm_email)
+    }
+
+    # 2. Check if user exists in MongoDB (case-insensitive & trimmed)
+    user_doc = await user_collection.find_one({
+        "$or": [
+            {"email": norm_email},
+            {"email": {"$regex": f"^\\s*{re.escape(norm_email)}\\s*$", "$options": "i"}}
+        ]
+    })
+    if not user_doc:
+        logger.warning(
+            "[ForgotPassword] Email '%s' not found in database. Returning anti-enumeration response without sending email.",
+            mask_email(norm_email)
+        )
+        # Prevent user enumeration: return identical generic response even if email doesn't exist
+        return generic_success_response
+
+    # 3. Cryptographically secure random token — expires in 30 minutes
+    raw_token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    expires_at = now + timedelta(minutes=30)
+
+    # Invalidate previous unused reset tokens for this user
+    await password_reset_collection.update_many(
+        {"email": norm_email, "used": False},
+        {"$set": {"used": True, "invalidated_at": now}}
+    )
+
+    # 4. Insert new reset token record
+    await password_reset_collection.insert_one({
+        "user_id":    user_doc["_id"],
+        "email":      norm_email,
+        "token_hash": token_hash,
+        "expires_at": expires_at,
+        "created_at": now,
+        "used":       False
+    })
+
+    # 5. Resolve frontend base URL
+    origin = request.headers.get("origin") or request.headers.get("referer") or ""
+    frontend_base = ""
+    if origin:
+        from urllib.parse import urlparse
+        parsed = urlparse(origin)
+        if parsed.scheme and parsed.netloc:
+            frontend_base = f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+
+    if not frontend_base:
+        env_frontend = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+        if env_frontend and not (is_dev_mode() and "onrender.com" in env_frontend):
+            frontend_base = env_frontend
+        else:
+            frontend_base = "http://127.0.0.1:5173"
+
+    reset_url = f"{frontend_base}/reset-password?token={raw_token}"
+
+    # 6. Dispatch email
+    try:
+        send_password_reset_link_email(
+            to_email=norm_email,
+            reset_url=reset_url,
+            first_name=user_doc.get("first_name")
+        )
+    except Exception as exc:
+        # Email transmission failed — clean up unused token and report safe 503
+        await password_reset_collection.delete_many({"token_hash": token_hash})
+        logger.exception("Password reset email sending failed: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="We could not send the email right now. Please try again in a few minutes."
+        )
+
+    return generic_success_response
+
+
+@app.get("/auth/verify-reset-token")
+@app.get("/api/auth/verify-reset-token")
+async def verify_reset_token(token: str = Query(...)):
+    """
+    Validate password reset token authenticity, expiration, and single-use status.
+    """
+    clean_token = token.strip()
+    if not clean_token:
+        raise HTTPException(status_code=400, detail="Missing password reset token.")
+
+    token_hash = hashlib.sha256(clean_token.encode("utf-8")).hexdigest()
+    doc = await password_reset_collection.find_one({"token_hash": token_hash})
+    if not doc:
+        raise HTTPException(status_code=400, detail="Invalid or unrecognized password reset token.")
+
+    if doc.get("used", False):
+        raise HTTPException(
+            status_code=400,
+            detail="This password reset link has already been used. Please request a new link."
+        )
+
+    now = datetime.now(timezone.utc)
+    expires_at = doc.get("expires_at")
+    if expires_at:
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if now > expires_at:
+            raise HTTPException(
+                status_code=400,
+                detail="This password reset link has expired (30-minute limit). Please request a new link."
+            )
+
+    return {
+        "valid": True,
+        "masked_email": mask_email(doc.get("email", ""))
+    }
+
+
+@app.post("/auth/reset-password")
+@app.post("/api/auth/reset-password")
+async def reset_password(req: ResetPasswordRequest):
+    """
+    Complete password reset with a valid single-use reset token.
+    Updates password hash and marks token as used.
+    """
+    clean_token = req.token.strip()
+    new_pw = req.new_password
+    confirm_pw = req.confirm_password
+
+    if not clean_token:
+        raise HTTPException(status_code=400, detail="Missing reset token.")
+
+    if confirm_pw is not None and new_pw != confirm_pw:
+        raise HTTPException(status_code=400, detail="New passwords do not match.")
+
+    if len(new_pw) < 8 or len(new_pw) > 72:
+        raise HTTPException(status_code=400, detail="Password must be between 8 and 72 characters.")
+    if not re.search(r"[A-Z]", new_pw):
+        raise HTTPException(status_code=400, detail="Password must contain at least one uppercase letter.")
+    if not re.search(r"[a-z]", new_pw):
+        raise HTTPException(status_code=400, detail="Password must contain at least one lowercase letter.")
+    if not re.search(r"[0-9]", new_pw):
+        raise HTTPException(status_code=400, detail="Password must contain at least one digit.")
+
+    token_hash = hashlib.sha256(clean_token.encode("utf-8")).hexdigest()
+    doc = await password_reset_collection.find_one({"token_hash": token_hash})
+    if not doc:
+        raise HTTPException(status_code=400, detail="Invalid or unrecognized password reset token.")
+
+    if doc.get("used", False):
+        raise HTTPException(
+            status_code=400,
+            detail="This password reset link has already been used. Please request a new link."
+        )
+
+    now = datetime.now(timezone.utc)
+    expires_at = doc.get("expires_at")
+    if expires_at:
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if now > expires_at:
+            raise HTTPException(
+                status_code=400,
+                detail="This password reset link has expired. Please request a new link."
+            )
+
+    # Hash new password
+    hashed_new_pw = hash_password(new_pw)
+
+    # Update user password in MongoDB
+    res = await user_collection.update_one(
+        {"_id": doc["user_id"]},
+        {"$set": {"password": hashed_new_pw, "updated_at": now.isoformat()}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User account not found.")
+
+    # Mark token used immediately to prevent reuse
+    await password_reset_collection.update_one(
+        {"_id": doc["_id"]},
+        {"$set": {"used": True, "used_at": now}}
+    )
+
+    logger.info("Password reset successfully for %s", mask_email(doc.get("email", "")))
+
+    # Dispatch security alert email (optional notice)
+    try:
+        from mailer import send_password_changed_notification_email
+        user_record = await user_collection.find_one({"_id": doc["user_id"]})
+        if user_record and user_record.get("email"):
+            send_password_changed_notification_email(
+                to_email=user_record["email"],
+                first_name=user_record.get("first_name")
+            )
+    except Exception as email_err:
+        logger.warning("Could not send password changed notification: %s", email_err)
+
+    return {
+        "success": True,
+        "message": "Password updated successfully. You can now log in with your new password."
+    }
 
 
 @app.get("/profile/me")
@@ -1230,6 +1663,40 @@ async def delete_profile_photo(user_doc: dict = Depends(get_current_user_doc)):
 
 # ---------- Password & Security OTP Flow (Multi-Tenant & JWT Scoped) ----------
 
+_pw_otp_user_store: dict = {}
+_pw_otp_store_lock = _threading.Lock()
+_PW_OTP_MAX_PER_HOUR = 5
+_PW_OTP_WINDOW_SECONDS = 3600
+_PW_OTP_COOLDOWN_SECONDS = 60
+
+def _enforce_password_otp_rate_limits(user_id_str: str, now: datetime) -> None:
+    """Enforce per-user 60s cooldown and max 5 requests per hour for password OTP."""
+    now_ts = now.timestamp()
+    cutoff_hour = now_ts - _PW_OTP_WINDOW_SECONDS
+    cutoff_cooldown = now_ts - _PW_OTP_COOLDOWN_SECONDS
+
+    with _pw_otp_store_lock:
+        user_times = [t for t in _pw_otp_user_store.get(user_id_str, []) if t > cutoff_hour]
+        if user_times:
+            last_req = user_times[-1]
+            if last_req > cutoff_cooldown:
+                remaining = max(1, int(math.ceil(last_req + _PW_OTP_COOLDOWN_SECONDS - now_ts)))
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Please wait {remaining} seconds before requesting a new verification code.",
+                    headers={"Retry-After": str(remaining)}
+                )
+            if len(user_times) >= _PW_OTP_MAX_PER_HOUR:
+                retry_after = max(1, int(math.ceil(user_times[0] + _PW_OTP_WINDOW_SECONDS - now_ts)))
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Too many verification requests ({_PW_OTP_MAX_PER_HOUR} per hour). Please try again later.",
+                    headers={"Retry-After": str(retry_after)}
+                )
+        user_times.append(now_ts)
+        _pw_otp_user_store[user_id_str] = user_times
+
+
 async def _handle_request_password_otp(req: PasswordOtpRequest, user_doc: dict):
     curr_pw = req.get_current_password()
     new_pw = req.get_new_password()
@@ -1238,7 +1705,7 @@ async def _handle_request_password_otp(req: PasswordOtpRequest, user_doc: dict):
     if not curr_pw:
         raise HTTPException(status_code=400, detail="Current password is required.")
 
-    # 1. Verify current password matches user record
+    # 1. Verify current password matches user record first (send NO email if wrong)
     current_user = await user_collection.find_one({
         "_id": user_doc["_id"],
         "company_id": user_doc["company_id"]
@@ -1246,9 +1713,12 @@ async def _handle_request_password_otp(req: PasswordOtpRequest, user_doc: dict):
     if not current_user or not verify_password(curr_pw, current_user.get("password", "")):
         raise HTTPException(status_code=400, detail="Current password is incorrect.")
 
-    # 2. Check new password complexity
+    # 2. Check new password complexity & distinctness from current password
     if not new_pw:
         raise HTTPException(status_code=400, detail="New password is required.")
+
+    if new_pw == curr_pw:
+        raise HTTPException(status_code=400, detail="New password must be different from current password.")
 
     if len(new_pw) < 8 or len(new_pw) > 72 or not re.search(r"[A-Z]", new_pw) or not re.search(r"[a-z]", new_pw) or not re.search(r"[0-9]", new_pw):
         raise HTTPException(status_code=400, detail="New password does not meet complexity requirements.")
@@ -1256,25 +1726,11 @@ async def _handle_request_password_otp(req: PasswordOtpRequest, user_doc: dict):
     if conf_pw and conf_pw != new_pw:
         raise HTTPException(status_code=400, detail="New passwords do not match.")
 
-    # 3. Rate limiting: 1 request per 60 seconds per user
+    # 3. Rate limiting: 60-second cooldown + max 5 sends per hour per user
     now = datetime.now(timezone.utc)
-    latest_otp = await otp_collection.find_one(
-        {"user_id": user_doc["_id"], "purpose": "password_change"},
-        sort=[("created_at", -1)]
-    )
-    if latest_otp and latest_otp.get("created_at"):
-        created_at = latest_otp["created_at"]
-        if created_at.tzinfo is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
-        elapsed = (now - created_at).total_seconds()
-        if elapsed < 60:
-            remaining = max(1, int(math.ceil(60 - elapsed)))
-            raise HTTPException(
-                status_code=429,
-                detail=f"Please wait {remaining} seconds before requesting a new verification code."
-            )
+    _enforce_password_otp_rate_limits(str(user_doc["_id"]), now)
 
-    # 4. Generate 6-digit secure numeric OTP & compute bcrypt hash
+    # 4. Generate 6-digit secure numeric OTP with secrets module & compute bcrypt hash
     otp_code = f"{secrets.randbelow(900000) + 100000}"
     hashed_otp = hash_password(otp_code)
     expires_at = now + timedelta(minutes=10)
@@ -1285,7 +1741,7 @@ async def _handle_request_password_otp(req: PasswordOtpRequest, user_doc: dict):
         "purpose": "password_change"
     })
 
-    # Store OTP in MongoDB
+    # Store hashed OTP in MongoDB (never plaintext)
     await otp_collection.insert_one({
         "user_id": user_doc["_id"],
         "company_id": user_doc["company_id"],
@@ -1300,26 +1756,32 @@ async def _handle_request_password_otp(req: PasswordOtpRequest, user_doc: dict):
 
     # 5. Dispatch OTP email
     try:
-        send_otp_email(
+        from mailer import send_password_otp_email
+        send_password_otp_email(
             to_email=user_doc["email"],
             otp_code=otp_code,
             first_name=user_doc.get("first_name")
         )
     except Exception as exc:
+        # On email dispatch failure: clean up / delete pending OTP immediately
+        await otp_collection.delete_many({
+            "user_id": user_doc["_id"],
+            "purpose": "password_change"
+        })
         logger.exception("Password reset OTP email sending failed: %s", exc)
         raise HTTPException(
             status_code=503,
-            detail=f"Could not send verification email ({type(exc).__name__}: {exc}). Please check SMTP configuration."
+            detail="We could not send the verification code right now. Please try again shortly."
         )
 
-    response_data = {
+    # Response strictly follows security specification (NO OTP, NO dev_otp, NO debug fields)
+    return {
         "success": True,
-        "message": "Verification code sent to your email.",
-        "masked_email": mask_email(user_doc["email"])
+        "message": "Verification code sent",
+        "masked_email": mask_email(user_doc["email"]),
+        "expires_in": 600,
+        "resend_after": 60
     }
-    if is_dev_mode():
-        response_data["dev_otp"] = otp_code
-    return response_data
 
 
 async def _handle_verify_password_otp(req: PasswordOtpVerify, user_doc: dict):
@@ -1399,6 +1861,16 @@ async def _handle_verify_password_otp(req: PasswordOtpVerify, user_doc: dict):
 
     # 5. Purge the used OTP code
     await otp_collection.delete_one({"_id": otp_doc["_id"]})
+
+    # 6. Dispatch security notification email
+    try:
+        from mailer import send_password_changed_notification_email
+        send_password_changed_notification_email(
+            to_email=user_doc["email"],
+            first_name=user_doc.get("first_name")
+        )
+    except Exception as email_err:
+        logger.warning("Could not send password changed notification email: %s", email_err)
 
     return {
         "success": True,
@@ -1762,6 +2234,7 @@ async def store_dataset(file: UploadFile = File(...), user_doc: dict = Depends(g
     print(f"[store_dataset] existing ID index scan: {(time.perf_counter()-t_ids)*1000:.1f}ms ({len(existing_ids)} matched out of {len(incoming_ids)} incoming)")
 
     # ── Separate new vs duplicate records ──
+    upload_id       = str(ObjectId())
     inserted_count  = 0
     duplicate_count = 0
     new_records     = []
@@ -1787,9 +2260,23 @@ async def store_dataset(file: UploadFile = File(...), user_doc: dict = Depends(g
             seen_in_batch.add(cid)
             rec["customerID"]   = cid
             rec["company_id"]   = company_id
+            rec["upload_id"]    = upload_id
+            rec["upload_ids"]   = [upload_id]
             rec["created_at"]   = now_iso
             rec["uploaded_by"]  = current_user
             new_records.append(rec)
+
+    # ── Tag existing duplicates with this upload_id (for shared file references) ──
+    duplicate_cids = [cid for cid in incoming_ids if cid in existing_ids]
+    if duplicate_cids:
+        await telco_collection.update_many(
+            {"company_id": company_id, "customerID": {"$in": duplicate_cids}, "upload_ids": {"$exists": False}},
+            {"$set": {"upload_ids": ["legacy_prior_upload"]}}
+        )
+        await telco_collection.update_many(
+            {"company_id": company_id, "customerID": {"$in": duplicate_cids}},
+            {"$addToSet": {"upload_ids": upload_id}}
+        )
 
     # ── Bulk insert ──
     if new_records:
@@ -1822,6 +2309,8 @@ async def store_dataset(file: UploadFile = File(...), user_doc: dict = Depends(g
 
     # ── Record upload history ──
     await database["dataset_uploads"].insert_one({
+        "_id":               ObjectId(upload_id),
+        "upload_id":         upload_id,
         "company_id":        company_id,
         "user_id":           user_id,
         "filename":          file.filename,
@@ -1881,6 +2370,7 @@ async def store_dataset(file: UploadFile = File(...), user_doc: dict = Depends(g
     return {
         "success":              True,
         "filename":             file.filename,
+        "upload_id":            upload_id,
         "message":              "Dataset stored successfully in MongoDB Atlas",
         "total_rows":           total_rows,
         "new_records":          inserted_count,
@@ -1915,17 +2405,339 @@ async def dataset_info(user_doc: dict = Depends(get_current_user_doc)):
     }
 
 
-@app.delete("/dataset/clear")
-async def clear_dataset(user_doc: dict = Depends(get_current_user_doc)):
+# ---------- Dataset Management & Bulk Deletion Endpoints ----------
+
+@app.get("/dataset/management/overview")
+@app.get("/dataset/list")
+async def get_dataset_management_overview(user_doc: dict = Depends(get_current_user_doc)):
+    t0 = time.perf_counter()
     company_id = user_doc["company_id"]
-    result = await telco_collection.delete_many({"company_id": company_id})
-    await database["dashboard_cache"].delete_many({"company_id": company_id})
-    await database["dataset_uploads"].delete_many({"company_id": company_id})
-    invalidate_metrics_cache(company_id)
+    if not company_id:
+        return {
+            "total_datasets": 0,
+            "total_customers": 0,
+            "legacy_records": 0,
+            "tracked_records": 0,
+            "datasets": []
+        }
+
+    total_customers = await telco_collection.count_documents({"company_id": company_id})
+
+    legacy_records = await telco_collection.count_documents({
+        "company_id": company_id,
+        "$or": [
+            {"upload_id": {"$exists": False}},
+            {"upload_id": None},
+            {"upload_id": ""}
+        ]
+    })
+    tracked_records = max(0, total_customers - legacy_records)
+
+    # Fast aggregation of active customer records per upload_id
+    pipeline = [
+        {"$match": {"company_id": company_id, "upload_ids": {"$exists": True, "$ne": None}}},
+        {"$unwind": "$upload_ids"},
+        {"$group": {"_id": "$upload_ids", "count": {"$sum": 1}}}
+    ]
+    cursor = telco_collection.aggregate(pipeline)
+    active_map = {}
+    async for item in cursor:
+        active_map[str(item["_id"])] = item["count"]
+
+    pipeline_primary = [
+        {"$match": {"company_id": company_id, "upload_id": {"$exists": True, "$ne": None}}},
+        {"$group": {"_id": "$upload_id", "count": {"$sum": 1}}}
+    ]
+    cursor_prim = telco_collection.aggregate(pipeline_primary)
+    async for item in cursor_prim:
+        uid_str = str(item["_id"])
+        if uid_str not in active_map:
+            active_map[uid_str] = item["count"]
+
+    uploads_cursor = database["dataset_uploads"].find({"company_id": company_id}).sort("uploaded_at", -1)
+    datasets = []
+    async for doc in uploads_cursor:
+        doc_id = str(doc["_id"])
+        upload_id = str(doc.get("upload_id") or doc_id)
+
+        live_count = active_map.get(upload_id) or active_map.get(doc_id) or 0
+
+        uploaded_at = doc.get("uploaded_at") or doc.get("created_at") or ""
+        if hasattr(uploaded_at, "isoformat"):
+            uploaded_at = uploaded_at.isoformat()
+
+        new_recs = int(doc.get("new_records", doc.get("inserted_rows", 0)) or 0)
+        total_rows = int(doc.get("total_rows", 0) or 0)
+
+        is_legacy = (live_count == 0 and new_recs > 0)
+        if live_count > 0:
+            status = "Completed"
+        elif is_legacy:
+            status = "Legacy (Untracked)"
+        elif doc.get("status") == "success":
+            status = "Completed"
+        else:
+            status = doc.get("status") or "Completed"
+
+        datasets.append({
+            "_id": doc_id,
+            "upload_id": upload_id,
+            "filename": doc.get("filename") or "dataset.csv",
+            "total_rows": total_rows,
+            "new_records": new_recs,
+            "inserted_rows": new_recs,
+            "duplicate_rows": int(doc.get("duplicate_rows", doc.get("duplicates_skipped", 0)) or 0),
+            "active_records": live_count,
+            "uploaded_at": uploaded_at,
+            "uploaded_by": doc.get("uploaded_by") or user_doc.get("email", ""),
+            "status": status,
+            "is_legacy": is_legacy,
+            "can_delete_safely": (live_count > 0 or not is_legacy)
+        })
+
+    elapsed = (time.perf_counter() - t0) * 1000
+    print(f"[dataset/management/overview] {len(datasets)} datasets, {total_customers} custs in {elapsed:.1f}ms")
+
     return {
-        "message":          "Dataset cleared successfully",
-        "records_deleted":  result.deleted_count
+        "total_datasets": len(datasets),
+        "total_customers": total_customers,
+        "legacy_records": legacy_records,
+        "tracked_records": tracked_records,
+        "datasets": datasets
     }
+
+
+@app.get("/dataset/uploads/{upload_id}/records")
+@app.get("/dataset/{upload_id}/customers")
+async def get_dataset_upload_records(
+    upload_id: str,
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=50, ge=1, le=500),
+    search: str = Query(default=""),
+    user_doc: dict = Depends(get_current_user_doc)
+):
+    t0 = time.perf_counter()
+    company_id = user_doc["company_id"]
+
+    upload_filter = {"company_id": company_id}
+    if ObjectId.is_valid(upload_id):
+        upload_filter["$or"] = [{"_id": ObjectId(upload_id)}, {"upload_id": upload_id}]
+    else:
+        upload_filter["upload_id"] = upload_id
+
+    upload_doc = await database["dataset_uploads"].find_one(upload_filter)
+    actual_upload_id = str(upload_doc.get("upload_id") or upload_doc["_id"]) if upload_doc else upload_id
+    id_variants = list({actual_upload_id, upload_id})
+    if upload_doc:
+        id_variants.append(str(upload_doc["_id"]))
+
+    conditions = [
+        {"company_id": company_id},
+        {"$or": [
+            {"upload_id": {"$in": id_variants}},
+            {"upload_ids": {"$in": id_variants}}
+        ]}
+    ]
+
+    if search and search.strip():
+        clean_search = search.strip()
+        conditions.append({
+            "$or": [
+                {"customerID":      {"$regex": re.escape(clean_search), "$options": "i"}},
+                {"Contract":        {"$regex": re.escape(clean_search), "$options": "i"}},
+                {"InternetService": {"$regex": re.escape(clean_search), "$options": "i"}},
+            ]
+        })
+
+    query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
+
+    total = await telco_collection.count_documents(query)
+    total_pages = math.ceil(total / limit) if total > 0 else 1
+    skip = (page - 1) * limit
+    cursor = telco_collection.find(query).sort([("_id", 1)]).skip(skip).limit(limit)
+    records = await cursor.to_list(length=limit)
+
+    for r in records:
+        r["_id"] = str(r["_id"])
+
+    if records:
+        try:
+            clean_page = [{k: v for k, v in r.items() if k not in ("company_id", "_id")} for r in records]
+            preds = predict_batch(clean_page)
+            pred_map = {p["customerID"]: p for p in preds}
+            for r in records:
+                p = pred_map.get(r.get("customerID"))
+                if p:
+                    r["risk_level"] = p.get("risk_level", "Low")
+                    r["churn_probability"] = p.get("churn_probability", 0.0)
+                    r["churn_prediction"] = p.get("churn_prediction", "No")
+        except Exception as e:
+            logger.warning(f"Fast page inference exception: {e}")
+
+    meta = None
+    if upload_doc:
+        uploaded_at_val = upload_doc.get("uploaded_at") or upload_doc.get("created_at")
+        if hasattr(uploaded_at_val, "isoformat"):
+            uploaded_at_val = uploaded_at_val.isoformat()
+        meta = {
+            "upload_id": actual_upload_id,
+            "filename": upload_doc.get("filename") or "dataset.csv",
+            "uploaded_at": uploaded_at_val,
+            "uploaded_by": upload_doc.get("uploaded_by") or "",
+            "total_rows": upload_doc.get("total_rows", 0),
+            "inserted_rows": upload_doc.get("new_records", upload_doc.get("inserted_rows", 0)),
+            "status": upload_doc.get("status", "success")
+        }
+
+    return {
+        "upload_id": actual_upload_id,
+        "metadata": meta,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages,
+        "records": records
+    }
+
+
+@app.delete("/dataset/upload/{upload_id}")
+@app.delete("/dataset/uploads/{upload_id}")
+async def delete_dataset_upload(
+    upload_id: str,
+    force: bool = Query(default=False),
+    user_doc: dict = Depends(get_current_user_doc)
+):
+    t0 = time.perf_counter()
+    company_id = user_doc["company_id"]
+
+    upload_filter = {"company_id": company_id}
+    if ObjectId.is_valid(upload_id):
+        upload_filter["$or"] = [{"_id": ObjectId(upload_id)}, {"upload_id": upload_id}]
+    else:
+        upload_filter["upload_id"] = upload_id
+
+    upload_doc = await database["dataset_uploads"].find_one(upload_filter)
+    if not upload_doc:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Uploaded dataset '{upload_id}' not found or already deleted."
+        )
+
+    actual_upload_id  = str(upload_doc.get("upload_id") or upload_doc["_id"])
+    filename          = upload_doc.get("filename", "dataset.csv")
+    new_records_count = int(upload_doc.get("new_records", upload_doc.get("inserted_rows", 0)) or 0)
+
+    id_variants = list({actual_upload_id, str(upload_doc["_id"])})
+
+    tracked_count = await telco_collection.count_documents({
+        "company_id": company_id,
+        "$or": [
+            {"upload_ids": {"$in": id_variants}},
+            {"upload_id": {"$in": id_variants}}
+        ]
+    })
+
+    if new_records_count > 0 and tracked_count == 0 and not force:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete dataset '{filename}': This file was uploaded before dataset tracking was enabled, so its records cannot be isolated safely without risking other datasets."
+        )
+
+    deleted_count = 0
+    if tracked_count > 0:
+        exclusive_query = {
+            "company_id": company_id,
+            "$or": [
+                {"upload_ids": {"$size": 1, "$in": id_variants}},
+                {"upload_id": {"$in": id_variants}, "upload_ids": {"$exists": False}},
+                {"upload_id": {"$in": id_variants}, "upload_ids": []}
+            ]
+        }
+
+        del_res = await telco_collection.delete_many(exclusive_query)
+        deleted_count = del_res.deleted_count
+
+        await telco_collection.update_many(
+            {"company_id": company_id, "upload_ids": {"$in": id_variants}},
+            {"$pull": {"upload_ids": {"$in": id_variants}}}
+        )
+
+    await database["dataset_uploads"].delete_one({"_id": upload_doc["_id"]})
+
+    await database["dashboard_cache"].delete_many({"company_id": company_id})
+    invalidate_metrics_cache(company_id)
+
+    remaining_count = await telco_collection.count_documents({"company_id": company_id})
+
+    if remaining_count > 0:
+        try:
+            projection = {
+                "customerID": 1, "company_id": 1,
+                "gender": 1, "SeniorCitizen": 1, "Partner": 1, "Dependents": 1,
+                "tenure": 1, "PhoneService": 1, "MultipleLines": 1, "InternetService": 1,
+                "OnlineSecurity": 1, "OnlineBackup": 1, "DeviceProtection": 1,
+                "TechSupport": 1, "StreamingTV": 1, "StreamingMovies": 1,
+                "Contract": 1, "PaperlessBilling": 1, "PaymentMethod": 1,
+                "MonthlyCharges": 1, "TotalCharges": 1, "_id": 0
+            }
+            cursor = telco_collection.find({"company_id": company_id}, projection)
+            all_docs = await cursor.to_list(length=None)
+            clean_customers = [{k: v for k, v in c.items() if k != "company_id"} for c in all_docs]
+            batch_results   = predict_batch(clean_customers)
+            summary         = _build_dashboard_summary(company_id, batch_results, clean_customers)
+            await database["dashboard_cache"].replace_one(
+                {"company_id": company_id},
+                summary,
+                upsert=True
+            )
+        except Exception as e:
+            logger.warning(f"Error pre-warming dashboard cache after dataset deletion: {e}")
+
+    print(f"[delete_dataset_upload] Deleted {deleted_count} records for '{filename}' in {(time.perf_counter()-t0)*1000:.1f}ms | remaining={remaining_count}")
+
+    return {
+        "success": True,
+        "message": f"Dataset '{filename}' ({deleted_count:,} records) deleted successfully.",
+        "filename": filename,
+        "deleted_records": deleted_count,
+        "remaining_records": remaining_count,
+        "upload_id": actual_upload_id
+    }
+
+
+@app.post("/dataset/clear-all")
+@app.delete("/dataset/clear-all")
+@app.delete("/dataset/clear")
+async def clear_all_dataset_data(
+    request: Optional[ClearAllDatasetRequest] = None,
+    user_doc: dict = Depends(get_current_user_doc)
+):
+    t0 = time.perf_counter()
+    company_id = user_doc["company_id"]
+    company_name = user_doc.get("company", "Your Company")
+
+    del_res = await telco_collection.delete_many({"company_id": company_id})
+    records_deleted = del_res.deleted_count
+
+    up_del = await database["dataset_uploads"].delete_many({"company_id": company_id})
+    datasets_deleted = up_del.deleted_count
+
+    await database["dashboard_cache"].delete_many({"company_id": company_id})
+    invalidate_metrics_cache(company_id)
+
+    remaining_customers = await telco_collection.count_documents({"company_id": company_id})
+
+    elapsed = (time.perf_counter() - t0) * 1000
+    print(f"[clear_all_dataset_data] Cleared {records_deleted} records and {datasets_deleted} upload records for '{company_id}' ({company_name}) in {elapsed:.1f}ms")
+
+    return {
+        "success": True,
+        "message": f"Successfully cleared all customer data ({records_deleted:,} records, {datasets_deleted} datasets) for {company_name}.",
+        "records_deleted": records_deleted,
+        "datasets_deleted": datasets_deleted,
+        "remaining_records": remaining_customers
+    }
+
 
 @app.post("/predict/churn")
 async def predict_customer_churn(
@@ -1962,6 +2774,140 @@ async def predict_full_analysis(
     print(f"[predict/full] {(time.perf_counter()-t0)*1000:.1f}ms | risk={prediction_result['risk_level']}")
 
     return {**prediction_result, **explanation_result, **recommendation_result}
+
+
+@app.post("/predict/selected")
+async def predict_selected_customers(
+    payload: PredictSelectedRequest,
+    user_doc: dict = Depends(get_current_user_doc)
+):
+    t0 = time.perf_counter()
+    company_id = user_doc["company_id"]
+
+    conditions = [{"company_id": company_id}]
+
+    if payload.select_all_matching:
+        if payload.search and payload.search.strip():
+            clean_search = payload.search.strip()
+            conditions.append({
+                "$or": [
+                    {"customerID":      {"$regex": re.escape(clean_search), "$options": "i"}},
+                    {"Contract":        {"$regex": re.escape(clean_search), "$options": "i"}},
+                    {"InternetService": {"$regex": re.escape(clean_search), "$options": "i"}},
+                ]
+            })
+        if payload.upload_id and payload.upload_id.strip() and payload.upload_id.strip().lower() != "all":
+            uid = payload.upload_id.strip()
+            conditions.append({
+                "$or": [
+                    {"upload_id": uid},
+                    {"upload_ids": uid}
+                ]
+            })
+        if payload.risk_level and payload.risk_level.strip() and payload.risk_level.strip().lower() != "all":
+            r_low = payload.risk_level.strip().lower()
+            if r_low == "high":
+                conditions.append({
+                    "Contract": "Month-to-month",
+                    "$or": [
+                        {"tenure": {"$lt": 12}},
+                        {"$expr": {"$lt": [{"$toDouble": "$tenure"}, 12]}}
+                    ]
+                })
+            elif r_low == "medium":
+                conditions.append({
+                    "Contract": "Month-to-month",
+                    "$or": [
+                        {"tenure": {"$gte": 12, "$lt": 24}},
+                        {"$expr": {"$and": [{"$gte": [{"$toDouble": "$tenure"}, 12]}, {"$lt": [{"$toDouble": "$tenure"}, 24]}]}}
+                    ]
+                })
+            elif r_low == "low":
+                conditions.append({
+                    "$or": [
+                        {"Contract": {"$ne": "Month-to-month"}},
+                        {"tenure": {"$gte": 24}},
+                        {"$expr": {"$gte": [{"$toDouble": "$tenure"}, 24]}}
+                    ]
+                })
+        if payload.deselected_ids:
+            conditions.append({"customerID": {"$nin": payload.deselected_ids}})
+    else:
+        cids = payload.customer_ids or []
+        if not cids:
+            raise HTTPException(status_code=400, detail="No customers selected for analysis.")
+        conditions.append({"customerID": {"$in": cids}})
+
+    query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
+
+    projection = {
+        "customerID": 1, "company_id": 1,
+        "gender": 1, "SeniorCitizen": 1, "Partner": 1, "Dependents": 1,
+        "tenure": 1, "PhoneService": 1, "MultipleLines": 1, "InternetService": 1,
+        "OnlineSecurity": 1, "OnlineBackup": 1, "DeviceProtection": 1,
+        "TechSupport": 1, "StreamingTV": 1, "StreamingMovies": 1,
+        "Contract": 1, "PaperlessBilling": 1, "PaymentMethod": 1,
+        "MonthlyCharges": 1, "TotalCharges": 1, "_id": 1
+    }
+
+    cursor = telco_collection.find(query, projection)
+    matched_customers = await cursor.to_list(length=None)
+
+    if not matched_customers:
+        raise HTTPException(status_code=404, detail="No matching customer records found for the selection.")
+
+    for c in matched_customers:
+        c["_id"] = str(c["_id"])
+
+    clean_customers = [{k: v for k, v in c.items() if k not in ("company_id", "_id")} for c in matched_customers]
+
+    batch_results = predict_batch(clean_customers)
+
+    for orig, res in zip(matched_customers, batch_results):
+        res["MonthlyCharges"] = orig.get("MonthlyCharges")
+        res["TotalCharges"] = orig.get("TotalCharges")
+        res["InternetService"] = orig.get("InternetService")
+        res["PaymentMethod"] = orig.get("PaymentMethod")
+
+    high_count   = sum(1 for r in batch_results if r.get("risk_level") == "High")
+    medium_count = sum(1 for r in batch_results if r.get("risk_level") == "Medium")
+    low_count    = sum(1 for r in batch_results if r.get("risk_level") == "Low")
+    total_analyzed = len(batch_results)
+
+    sorted_by_risk = sorted(batch_results, key=lambda x: x.get("churn_probability", 0), reverse=True)
+    primary_res = sorted_by_risk[0] if sorted_by_risk else None
+
+    primary_explanation = None
+    primary_recommendation = None
+    primary_customer_id = None
+
+    if primary_res:
+        primary_customer_id = primary_res.get("customerID")
+        raw_primary = next((c for c in clean_customers if c.get("customerID") == primary_customer_id), clean_customers[0])
+        try:
+            primary_explanation = explain_prediction(raw_primary)
+            primary_recommendation = generate_recommendations(
+                raw_primary,
+                primary_explanation.get("top_factors", []),
+                primary_res.get("risk_level", "Medium")
+            )
+        except Exception as e:
+            logger.warning(f"Error computing SHAP for primary customer {primary_customer_id}: {e}")
+
+    elapsed = (time.perf_counter() - t0) * 1000
+    print(f"[predict/selected] {total_analyzed} analyzed in {elapsed:.1f}ms | high={high_count} med={medium_count} low={low_count}")
+
+    return {
+        "total_analyzed": total_analyzed,
+        "high_risk_count": high_count,
+        "medium_risk_count": medium_count,
+        "low_risk_count": low_count,
+        "results": batch_results,
+        "primary_customer_id": primary_customer_id,
+        "primary_explanation": primary_explanation,
+        "primary_recommendation": primary_recommendation
+    }
+
 
 @app.post("/predict/batch-all")
 async def predict_all_customers(user_doc: dict = Depends(get_current_user_doc)):
@@ -2104,6 +3050,7 @@ async def get_upload_history(limit: int = 10, user_doc: dict = Depends(get_curre
     history = []
     async for doc in cursor:
         doc["_id"] = str(doc["_id"])
+        doc["upload_id"] = str(doc.get("upload_id") or doc["_id"])
         if "uploaded_at" in doc and hasattr(doc["uploaded_at"], "isoformat"):
             doc["uploaded_at"] = doc["uploaded_at"].isoformat()
         history.append(doc)
@@ -2229,10 +3176,12 @@ async def export_reports_csv(
 @app.get("/telco/customers")
 @app.get("/customers")
 async def get_telco_customers(
-    page:   int = Query(default=1,  ge=1),
-    limit:  int = Query(default=50, ge=1, le=200),
-    search: str = Query(default=""),
-    user_doc: dict = Depends(get_current_user_doc)
+    page:        int = Query(default=1,  ge=1),
+    limit:       int = Query(default=50, ge=1, le=500),
+    search:      str = Query(default=""),
+    risk_level:  Optional[str] = Query(default=None),
+    upload_id:   Optional[str] = Query(default=None),
+    user_doc:    dict = Depends(get_current_user_doc)
 ):
     t0 = time.perf_counter()
     company_id = user_doc.get("company_id")
@@ -2244,14 +3193,56 @@ async def get_telco_customers(
             "total_pages": 1,
             "records":     []
         }
-    query = {"company_id": company_id}
-    if search:
+
+    conditions = [{"company_id": company_id}]
+
+    if search and search.strip():
         clean_search = search.strip()
-        query["$or"] = [
-            {"customerID":     {"$regex": re.escape(clean_search), "$options": "i"}},
-            {"Contract":       {"$regex": re.escape(clean_search), "$options": "i"}},
-            {"InternetService": {"$regex": re.escape(clean_search), "$options": "i"}},
-        ]
+        conditions.append({
+            "$or": [
+                {"customerID":      {"$regex": re.escape(clean_search), "$options": "i"}},
+                {"Contract":        {"$regex": re.escape(clean_search), "$options": "i"}},
+                {"InternetService": {"$regex": re.escape(clean_search), "$options": "i"}},
+            ]
+        })
+
+    if upload_id and upload_id.strip() and upload_id.strip().lower() != "all":
+        uid = upload_id.strip()
+        conditions.append({
+            "$or": [
+                {"upload_id": uid},
+                {"upload_ids": uid}
+            ]
+        })
+
+    if risk_level and risk_level.strip() and risk_level.strip().lower() != "all":
+        r_low = risk_level.strip().lower()
+        if r_low == "high":
+            conditions.append({
+                "Contract": "Month-to-month",
+                "$or": [
+                    {"tenure": {"$lt": 12}},
+                    {"$expr": {"$lt": [{"$toDouble": "$tenure"}, 12]}}
+                ]
+            })
+        elif r_low == "medium":
+            conditions.append({
+                "Contract": "Month-to-month",
+                "$or": [
+                    {"tenure": {"$gte": 12, "$lt": 24}},
+                    {"$expr": {"$and": [{"$gte": [{"$toDouble": "$tenure"}, 12]}, {"$lt": [{"$toDouble": "$tenure"}, 24]}]}}
+                ]
+            })
+        elif r_low == "low":
+            conditions.append({
+                "$or": [
+                    {"Contract": {"$ne": "Month-to-month"}},
+                    {"tenure": {"$gte": 24}},
+                    {"$expr": {"$gte": [{"$toDouble": "$tenure"}, 24]}}
+                ]
+            })
+
+    query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
 
     total       = await telco_collection.count_documents(query)
     total_pages = math.ceil(total / limit) if total > 0 else 1
@@ -2261,6 +3252,21 @@ async def get_telco_customers(
 
     for r in records:
         r["_id"] = str(r["_id"])
+
+    # Vectorized fast inference on page records for real calibrated risk levels
+    if records:
+        try:
+            clean_page = [{k: v for k, v in r.items() if k not in ("company_id", "_id")} for r in records]
+            preds = predict_batch(clean_page)
+            pred_map = {p["customerID"]: p for p in preds}
+            for r in records:
+                p = pred_map.get(r.get("customerID"))
+                if p:
+                    r["risk_level"] = p.get("risk_level", "Low")
+                    r["churn_probability"] = p.get("churn_probability", 0.0)
+                    r["churn_prediction"] = p.get("churn_prediction", "No")
+        except Exception as e:
+            logger.warning(f"Fast page inference exception: {e}")
 
     print(f"[telco/customers] page={page} limit={limit} search={search!r} total={total} fetched={len(records)} time={(time.perf_counter()-t0)*1000:.1f}ms")
 

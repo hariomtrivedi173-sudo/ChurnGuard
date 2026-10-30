@@ -4226,3 +4226,295 @@ textarea::placeholder {
   }
 }
 
+
+/* ─────────────────────────────────────────────────────────────
+   AUTH MODAL & RECOVERY DIALOG SYSTEM
+   ───────────────────────────────────────────────────────────── */
+.auth-modal-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 28px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border: 1px solid var(--slate-200);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  color: var(--slate-950);
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .auth-modal-card {
+  background-color: var(--slate-900);
+  border-color: var(--slate-800);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+  color: var(--slate-50);
+}
+
+.auth-modal-title {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--slate-950);
+}
+
+[data-theme="dark"] .auth-modal-title {
+  color: var(--slate-50);
+}
+
+.auth-modal-desc {
+  font-size: 13px;
+  color: var(--slate-600);
+  margin: 0;
+  line-height: 1.5;
+}
+
+[data-theme="dark"] .auth-modal-desc {
+  color: var(--slate-400);
+}
+
+.auth-modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--slate-500);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.auth-modal-close-btn:hover {
+  background-color: var(--slate-100);
+  color: var(--slate-800);
+}
+
+[data-theme="dark"] .auth-modal-close-btn:hover {
+  background-color: var(--slate-800);
+  color: var(--slate-200);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   CHURNGUARD LANDING PAGE SMOOTH ENTRANCE & MOTION SYSTEM
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+}
+
+@keyframes cgHeroFadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cgHeroFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.cg-hero-entrance {
+  animation: cgHeroFadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+.cg-hero-fade {
+  animation: cgHeroFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity;
+}
+
+.cg-delay-1 { animation-delay: 0.04s; }
+.cg-delay-2 { animation-delay: 0.08s; }
+.cg-delay-3 { animation-delay: 0.12s; }
+.cg-delay-4 { animation-delay: 0.16s; }
+.cg-delay-5 { animation-delay: 0.20s; }
+.cg-delay-6 { animation-delay: 0.24s; }
+
+/* Subtle reveal for scrolling sections */
+.cg-section-reveal {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.cg-section-reveal.cg-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Reduced motion accessibility support */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+  .cg-hero-entrance,
+  .cg-hero-fade {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .cg-section-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   GLOBAL RESPONSIVE UTILITIES & COMPLETE AUDIT FIXES
+   ───────────────────────────────────────────────────────────── */
+.predict-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .predict-main-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+.predict-batch-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 1440px) {
+  .predict-batch-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .predict-batch-metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.predict-details-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .predict-details-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 400px) {
+  .predict-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-waterfall-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: auto;
+}
+
+@media (max-width: 768px) {
+  .dashboard-waterfall-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-model-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .dashboard-model-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 400px) {
+  .dashboard-model-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.analytics-2col-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .analytics-2col-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.modal-form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .modal-form-grid-3 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.modal-form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 500px) {
+  .modal-form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.settings-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .settings-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.responsive-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  min-width: 0;
+}

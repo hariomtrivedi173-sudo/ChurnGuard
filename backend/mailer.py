@@ -2,6 +2,9 @@ import os
 import smtplib
 import ssl
 import logging
+import urllib.request
+import urllib.error
+import json as _json
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
@@ -158,28 +161,238 @@ def _safe_smtp_login(server: smtplib.SMTP, user: str, password: str) -> None:
         ) from disc_err
 
 
+def _send_with_connection(cfg: dict, to_email: str, msg_str: str) -> None:
+    """
+    Connect to SMTP server and transmit message.
+    Tries the configured port first. If connection or timeout fails and the host is
+    a standard mail provider (such as Gmail), attempts alternate port (587 <-> 465).
+    Authentication errors are NOT retried across ports.
+    """
+    primary_port = cfg["port"]
+    alternate_port = 465 if primary_port == 587 else 587
+    ports_to_try = [primary_port]
+    if cfg["host"] in ("smtp.gmail.com", "smtp-mail.outlook.com", "smtp.office365.com"):
+        ports_to_try.append(alternate_port)
+
+    last_conn_error = None
+    for attempt_port in ports_to_try:
+        try:
+            context = ssl.create_default_context()
+            if attempt_port == 465:
+                with smtplib.SMTP_SSL(cfg["host"], attempt_port, context=context, timeout=15) as server:
+                    _safe_smtp_login(server, cfg["user"], cfg["password"])
+                    server.sendmail(cfg["from_"], to_email, msg_str)
+                    return
+            else:
+                with smtplib.SMTP(cfg["host"], attempt_port, timeout=15) as server:
+                    server.ehlo()
+                    server.starttls(context=context)
+                    server.ehlo()
+                    _safe_smtp_login(server, cfg["user"], cfg["password"])
+                    server.sendmail(cfg["from_"], to_email, msg_str)
+                    return
+        except smtplib.SMTPAuthenticationError:
+            # Credentials rejected; port change will not resolve bad credentials
+            raise
+        except (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, TimeoutError, OSError) as conn_err:
+            last_conn_error = conn_err
+            if attempt_port != ports_to_try[-1]:
+                logger.warning(
+                    "[Mailer] Connection to %s:%s failed (%s). Retrying fallback port %s...",
+                    cfg["host"], attempt_port, conn_err, ports_to_try[-1]
+                )
+                print(
+                    f"[Mailer] Connection to {cfg['host']}:{attempt_port} failed ({conn_err}). Retrying port {ports_to_try[-1]}...",
+                    flush=True
+                )
+                continue
+            raise conn_err
+
+    if last_conn_error:
+        raise last_conn_error
+
+
+def _get_email_provider() -> str:
+    """
+    Return the active email provider: 'smtp' | 'resend' | 'brevo'.
+    Reads EMAIL_PROVIDER env var; defaults to 'smtp'.
+    """
+    return (os.getenv("EMAIL_PROVIDER") or "smtp").strip().lower()
+
+
+def _dispatch_via_resend(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
+    """
+    Send email through Resend HTTP API (https://resend.com).
+    Requires RESEND_API_KEY in environment.
+    Returns True on success, raises RuntimeError on failure.
+    Never prints the API key.
+    """
+    api_key = (os.getenv("RESEND_API_KEY") or "").strip()
+    from_addr = (os.getenv("SMTP_FROM_EMAIL") or os.getenv("EMAIL_FROM") or "").strip()
+
+    if not api_key:
+        raise RuntimeError(
+            "EMAIL_PROVIDER=resend but RESEND_API_KEY is not set in environment. "
+            "Add it to backend/.env and to the Render dashboard."
+        )
+    if not from_addr:
+        raise RuntimeError(
+            "EMAIL_PROVIDER=resend but SMTP_FROM_EMAIL (or EMAIL_FROM) is not set. "
+            "This must be a verified sender in your Resend account."
+        )
+
+    logger.info("[Mailer/Resend] Sending to %s via Resend API", mask_email(to_email))
+
+    payload = _json.dumps({
+        "from":    from_addr,
+        "to":      [to_email],
+        "subject": subject,
+        "html":    html_content,
+        "text":    text_content,
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type":  "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            body = resp.read().decode("utf-8")
+            logger.info(
+                "[Mailer/Resend] Message accepted for delivery to %s (id: %s)",
+                mask_email(to_email),
+                _json.loads(body).get("id", "unknown"),
+            )
+            print(
+                f"[Mailer/Resend] Message accepted for delivery to {mask_email(to_email)}",
+                flush=True,
+            )
+            return True
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        err_msg = f"Resend API HTTP error {exc.code}: {body}"
+        logger.error("[Mailer/Resend] %s", err_msg)
+        raise RuntimeError(err_msg) from exc
+    except Exception as exc:
+        err_msg = f"Resend API call failed: {type(exc).__name__}: {exc}"
+        logger.error("[Mailer/Resend] %s", err_msg)
+        raise RuntimeError(err_msg) from exc
+
+
+def _dispatch_via_brevo(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
+    """
+    Send email through Brevo (formerly Sendinblue) Transactional Email API.
+    Requires BREVO_API_KEY in environment.
+    Returns True on success, raises RuntimeError on failure.
+    Never prints the API key.
+    """
+    api_key  = (os.getenv("BREVO_API_KEY") or "").strip()
+    from_addr = (os.getenv("SMTP_FROM_EMAIL") or os.getenv("EMAIL_FROM") or "").strip()
+    from_name = (os.getenv("EMAIL_FROM_NAME") or "ChurnGuard").strip()
+
+    if not api_key:
+        raise RuntimeError(
+            "EMAIL_PROVIDER=brevo but BREVO_API_KEY is not set in environment. "
+            "Add it to backend/.env and to the Render dashboard."
+        )
+    if not from_addr:
+        raise RuntimeError(
+            "EMAIL_PROVIDER=brevo but SMTP_FROM_EMAIL (or EMAIL_FROM) is not set."
+        )
+
+    logger.info("[Mailer/Brevo] Sending to %s via Brevo API", mask_email(to_email))
+
+    payload = _json.dumps({
+        "sender":      {"name": from_name, "email": from_addr},
+        "to":          [{"email": to_email}],
+        "subject":     subject,
+        "htmlContent": html_content,
+        "textContent": text_content,
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email",
+        data=payload,
+        headers={
+            "api-key":      api_key,
+            "Content-Type": "application/json",
+            "Accept":       "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            body = resp.read().decode("utf-8")
+            logger.info(
+                "[Mailer/Brevo] Message accepted for delivery to %s (messageId: %s)",
+                mask_email(to_email),
+                _json.loads(body).get("messageId", "unknown"),
+            )
+            print(
+                f"[Mailer/Brevo] Message accepted for delivery to {mask_email(to_email)}",
+                flush=True,
+            )
+            return True
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        err_msg = f"Brevo API HTTP error {exc.code}: {body}"
+        logger.error("[Mailer/Brevo] %s", err_msg)
+        raise RuntimeError(err_msg) from exc
+    except Exception as exc:
+        err_msg = f"Brevo API call failed: {type(exc).__name__}: {exc}"
+        logger.error("[Mailer/Brevo] %s", err_msg)
+        raise RuntimeError(err_msg) from exc
+
+
 def _dispatch_email(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
     """
-    Low-level SMTP dispatch.
-    Reads credentials fresh at call time.
+    Dispatch email via the configured provider: 'smtp' (default), 'resend', or 'brevo'.
+
+    Provider selection:
+      EMAIL_PROVIDER=smtp    → uses existing SMTP path (SMTP_HOST/USERNAME/PASSWORD)
+      EMAIL_PROVIDER=resend  → uses Resend HTTP API   (RESEND_API_KEY)
+      EMAIL_PROVIDER=brevo   → uses Brevo HTTP API    (BREVO_API_KEY)
+
     Returns True on success.
-    Raises RuntimeError if SMTP is not configured or if send fails.
+    Raises RuntimeError with a safe message if transmission fails.
+    Never returns True on failure. Never logs credentials.
+
+    NOTE: Acceptance by the mail server/API does NOT guarantee inbox delivery.
+    If the email is accepted but not received: check the spam folder, and verify
+    SPF, DKIM, and DMARC DNS records for your sending domain.
     """
+    provider = _get_email_provider()
+
+    if provider == "resend":
+        logger.info("[Mailer] Using EMAIL_PROVIDER=resend")
+        return _dispatch_via_resend(to_email, subject, html_content, text_content)
+
+    if provider == "brevo":
+        logger.info("[Mailer] Using EMAIL_PROVIDER=brevo")
+        return _dispatch_via_brevo(to_email, subject, html_content, text_content)
+
+    # ── Default: SMTP ─────────────────────────────────────────────────────────
     cfg = _get_smtp_config()
 
-    is_dev = is_dev_mode()
-
     if not (cfg["host"] and cfg["user"] and cfg["password"]):
-        logger.error(
-            "[Mailer] SMTP not configured — host_set=%s user_set=%s password_set=%s",
-            bool(cfg["host"]),
-            bool(cfg["user"]),
-            bool(cfg["password"]),
+        missing = []
+        if not cfg["host"]:     missing.append("SMTP_HOST")
+        if not cfg["user"]:     missing.append("SMTP_USERNAME")
+        if not cfg["password"]: missing.append("SMTP_PASSWORD")
+        err_msg = (
+            f"SMTP credentials are not configured (missing: {', '.join(missing)}). "
+            "Set them in backend/.env or on the Render dashboard. "
+            "Alternatively set EMAIL_PROVIDER=resend (RESEND_API_KEY) or "
+            "EMAIL_PROVIDER=brevo (BREVO_API_KEY) to use an HTTP-based provider."
         )
-        if is_dev:
-            print(f"[Mailer DEV FALLBACK] SMTP not configured, simulating dispatch to {mask_email(to_email)}", flush=True)
-            return True
-        raise RuntimeError("SMTP credentials are not configured in .env (SMTP_HOST, SMTP_USERNAME, or SMTP_PASSWORD missing)")
+        logger.error("[Mailer] %s", err_msg)
+        print(f"[Mailer] Error: {err_msg}", flush=True)
+        raise RuntimeError(err_msg)
 
     logger.info(
         "[Mailer] Attempting SMTP connection to %s:%s as %s",
@@ -196,46 +409,67 @@ def _dispatch_email(to_email: str, subject: str, html_content: str, text_content
         msg.attach(MIMEText(text_content, "plain"))
         msg.attach(MIMEText(html_content, "html"))
 
-        context = ssl.create_default_context()
-        if cfg["port"] == 465:
-            with smtplib.SMTP_SSL(cfg["host"], cfg["port"], context=context, timeout=15) as server:
-                _safe_smtp_login(server, cfg["user"], cfg["password"])
-                server.sendmail(cfg["from_"], to_email, msg.as_string())
-        else:
-            with smtplib.SMTP(cfg["host"], cfg["port"], timeout=15) as server:
-                server.ehlo()
-                server.starttls(context=context)
-                server.ehlo()
-                _safe_smtp_login(server, cfg["user"], cfg["password"])
-                server.sendmail(cfg["from_"], to_email, msg.as_string())
+        _send_with_connection(cfg, to_email, msg.as_string())
 
-        logger.info("[Mailer] Email dispatched successfully to %s", mask_email(to_email))
-        print(f"[Mailer] Email dispatched successfully to {mask_email(to_email)}", flush=True)
+        logger.info(
+            "[Mailer] SMTP accepted message for delivery to %s (subject: '%s')",
+            mask_email(to_email), subject
+        )
+        print(
+            f"[Mailer] SMTP accepted message for delivery to {mask_email(to_email)} (subject: '{subject}')",
+            flush=True
+        )
         return True
 
     except smtplib.SMTPAuthenticationError as exc:
-        logger.error("[Mailer] SMTP authentication failed: %s", exc)
-        print(f"[Mailer] SMTP authentication failed: {exc}", flush=True)
-        if is_dev:
-            print(f"[Mailer DEV FALLBACK] Simulated email dispatch to {mask_email(to_email)} (auth failure in dev mode)", flush=True)
-            return True
-        raise RuntimeError(f"SMTP authentication failure ({exc})") from exc
+        code = getattr(exc, "smtp_code", 535)
+        raw_msg = str(getattr(exc, "smtp_error", exc))
+        is_bad_creds = "badcredentials" in raw_msg.lower() or "not accepted" in raw_msg.lower()
+        hint = (
+            " (BadCredentials: check your 16-character Gmail App Password without spaces in "
+            "backend/.env — or regenerate it at myaccount.google.com/apppasswords)"
+        ) if is_bad_creds else ""
+        err_msg = f"SMTP authentication failed (code {code}){hint}"
+        logger.error("[Mailer] %s: %s", err_msg, exc)
+        print(f"[Mailer] {err_msg}: {exc}", flush=True)
+        raise RuntimeError(err_msg) from exc
 
-    except (smtplib.SMTPConnectError, smtplib.SMTPException, OSError) as exc:
-        logger.error("[Mailer] SMTP error: %s: %s", type(exc).__name__, exc)
-        print(f"[Mailer] SMTP error: {type(exc).__name__}: {exc}", flush=True)
-        if is_dev:
-            print(f"[Mailer DEV FALLBACK] Simulated email dispatch to {mask_email(to_email)} ({type(exc).__name__})", flush=True)
-            return True
-        raise RuntimeError(f"SMTP error ({type(exc).__name__}: {exc})") from exc
+    except TimeoutError as exc:
+        err_msg = (
+            f"SMTP connection timed out connecting to {cfg['host']}:{cfg['port']}. "
+            "If running on Render, outbound SMTP may be blocked — "
+            "set EMAIL_PROVIDER=resend or EMAIL_PROVIDER=brevo."
+        )
+        logger.error("[Mailer] %s (%s)", err_msg, exc)
+        print(f"[Mailer] {err_msg}", flush=True)
+        raise RuntimeError(err_msg) from exc
+
+    except (smtplib.SMTPConnectError, OSError) as exc:
+        err_msg = (
+            f"SMTP connection error ({type(exc).__name__}: {exc}). "
+            "Check SMTP_HOST / SMTP_PORT, or switch to EMAIL_PROVIDER=resend / brevo "
+            "if outbound SMTP is blocked by your hosting provider."
+        )
+        logger.error("[Mailer] %s", err_msg)
+        print(f"[Mailer] {err_msg}", flush=True)
+        raise RuntimeError(err_msg) from exc
+
+    except smtplib.SMTPRecipientsRefused as exc:
+        err_msg = f"SMTP rejected the recipient address: {exc}"
+        logger.error("[Mailer] %s", err_msg)
+        raise RuntimeError(err_msg) from exc
+
+    except smtplib.SMTPException as exc:
+        err_msg = f"SMTP error ({type(exc).__name__}: {exc})"
+        logger.error("[Mailer] %s", err_msg)
+        print(f"[Mailer] {err_msg}", flush=True)
+        raise RuntimeError(err_msg) from exc
 
     except Exception as exc:
-        logger.exception("[Mailer] Unexpected error during email dispatch: %s", exc)
-        print(f"[Mailer] Unexpected error: {type(exc).__name__}: {exc}", flush=True)
-        if is_dev:
-            print(f"[Mailer DEV FALLBACK] Simulated email dispatch to {mask_email(to_email)} after exception: {exc}", flush=True)
-            return True
-        raise RuntimeError(f"Email dispatch error: {exc}") from exc
+        err_msg = f"Email dispatch failed unexpectedly: {type(exc).__name__}: {exc}"
+        logger.exception("[Mailer] %s", err_msg)
+        print(f"[Mailer] {err_msg}", flush=True)
+        raise RuntimeError(err_msg) from exc
 
 
 def send_registration_otp_email(to_email: str, first_name: Optional[str] = None) -> bool:
@@ -555,6 +789,252 @@ def send_password_otp_email(
 </html>"""
 
     print(f"[Mailer] Dispatching password-change verification email to {mask_email(to_email)}")
+    return _dispatch_email(to_email, subject, html_content, text_content)
+
+
+def send_password_reset_link_email(
+    to_email: str,
+    reset_url: str,
+    first_name: Optional[str] = None
+) -> bool:
+    """
+    Send password-reset email with a single-use secure reset link.
+
+    - reset_url contains the secure token.
+    - Link expires in 30 minutes.
+    - Never logs tokens or sensitive data.
+    - Returns True on success, raises RuntimeError if sending fails.
+    """
+    greeting_name = first_name.strip().title() if first_name else "there"
+
+    subject = "Reset your ChurnGuard password"
+
+    text_content = (
+        f"Hello {greeting_name},\n\n"
+        "We received a request to reset your ChurnGuard account password.\n\n"
+        f"Click the link below to set a new password:\n{reset_url}\n\n"
+        "⏱️ This link is valid for 30 minutes and can only be used once.\n\n"
+        "If you did not request a password reset, you can safely ignore this email. "
+        "Your account remains secure.\n\n"
+        "— The ChurnGuard Security Team"
+    )
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8fafc;
+      margin: 0;
+      padding: 20px;
+      color: #1e293b;
+    }}
+    .container {{
+      max-width: 520px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 36px 32px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    }}
+    .badge {{
+      display: inline-block;
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 20px;
+    }}
+    h1 {{
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 12px;
+    }}
+    p {{
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.6;
+      margin: 0 0 20px;
+    }}
+    .btn-container {{
+      text-align: center;
+      margin: 28px 0;
+    }}
+    .btn {{
+      display: inline-block;
+      background-color: #4338ca;
+      color: #ffffff !important;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 28px;
+      border-radius: 10px;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+    }}
+    .alt-link {{
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      word-break: break-all;
+      font-size: 12px;
+      color: #64748b;
+      margin: 20px 0;
+    }}
+    .warning {{
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #92400e;
+      line-height: 1.5;
+      margin: 20px 0 0;
+    }}
+    .footer {{
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 28px;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 16px;
+      line-height: 1.5;
+    }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">ChurnGuard Security</span>
+    <h1>Reset Your Password</h1>
+    <p>Hello {greeting_name},</p>
+    <p>We received a request to reset your ChurnGuard account password. Click the button below to choose a new password.</p>
+
+    <div class="btn-container">
+      <a href="{reset_url}" target="_blank" class="btn">Reset Password</a>
+    </div>
+
+    <div class="alt-link">
+      <strong>Or copy this link:</strong><br>
+      <a href="{reset_url}" style="color: #4338ca; text-decoration: underline;">{reset_url}</a>
+    </div>
+
+    <div class="warning">
+      ⏱️ <strong>This link expires in 30 minutes</strong> and can only be used once. If you did not request this, please ignore this email.
+    </div>
+
+    <div class="footer">
+      This is an automated transmission from ChurnGuard Enterprise AI Platform.<br>
+      Do not reply to this email.
+    </div>
+  </div>
+</body>
+</html>"""
+
+    print(f"[Mailer] Dispatching password reset link email to {mask_email(to_email)}")
+    return _dispatch_email(to_email, subject, html_content, text_content)
+
+
+def send_password_changed_notification_email(
+    to_email: str,
+    first_name: Optional[str] = None
+) -> bool:
+    """
+    Send security alert informing user that their account password has been changed.
+    """
+    greeting_name = first_name.strip().title() if first_name else "there"
+    subject = "Security Alert: Your ChurnGuard password was changed"
+
+    text_content = (
+        f"Hello {greeting_name},\n\n"
+        "This is confirmation that the password for your ChurnGuard account was successfully changed.\n\n"
+        "If you made this change, no further action is required.\n\n"
+        "If you did NOT make this change, please reset your password immediately or contact your administrator.\n\n"
+        "— The ChurnGuard Security Team"
+    )
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8fafc;
+      margin: 0;
+      padding: 20px;
+      color: #1e293b;
+    }}
+    .container {{
+      max-width: 520px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 36px 32px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    }}
+    .badge {{
+      display: inline-block;
+      background: #f0fdf4;
+      color: #16a34a;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 20px;
+    }}
+    h1 {{ font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 12px; }}
+    p {{ font-size: 14px; color: #475569; line-height: 1.6; margin: 0 0 16px; }}
+    .alert-box {{
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 16px;
+      color: #991b1b;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 20px 0;
+    }}
+    .footer {{
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 28px;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 16px;
+      line-height: 1.5;
+    }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">ChurnGuard · Security Notice</span>
+    <h1>Password Changed Successfully</h1>
+    <p>Hello {greeting_name},</p>
+    <p>This is confirmation that the password for your ChurnGuard account (<strong>{mask_email(to_email)}</strong>) was updated recently.</p>
+    <div class="alert-box">
+      <strong>Didn't make this change?</strong><br>
+      If you did not initiate this change, your credentials may be compromised. Please reset your password immediately or contact your administrator.
+    </div>
+    <div class="footer">
+      This is an automated security transmission from ChurnGuard Enterprise AI Platform.<br>
+      Do not reply to this email.
+    </div>
+  </div>
+</body>
+</html>"""
+
+    print(f"[Mailer] Dispatching password changed alert to {mask_email(to_email)}")
     return _dispatch_email(to_email, subject, html_content, text_content)
 
 
