@@ -64,3 +64,7 @@ export async function deleteTelcoCustomer(customerId) {
 export async function getAllCustomers() {
   return apiRequest('/customers/all')
 }
+
+export async function getCustomerSuggestions(id) {
+  return apiRequest(`/customers/${encodeURIComponent(id)}/suggestions`)
+}

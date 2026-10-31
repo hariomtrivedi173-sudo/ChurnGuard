@@ -7,3 +7,7 @@ export async function getDashboardStats() {
 export async function runBatchAnalysis() {
   return apiRequest('/predict/batch-all', { method: 'POST' })
 }
+
+export async function getRevenueAtRisk() {
+  return apiRequest('/analytics/revenue-at-risk')
+}

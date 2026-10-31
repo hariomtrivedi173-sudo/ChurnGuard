@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
-import { getDashboardStats, runBatchAnalysis } from '../api/dashboard'
+import { getDashboardStats, runBatchAnalysis, getRevenueAtRisk } from '../api/dashboard'
+import { getCustomerSuggestions } from '../api/customers'
+import RecommendedActions from '../components/RecommendedActions'
 import { getMLMetrics } from '../api/metrics'
 import { getUploadHistory } from '../api/dataset'
 import { useNavigate } from 'react-router-dom'
@@ -15,10 +17,10 @@ import {
   ShieldAlert, ShieldCheck, DollarSign, Sparkles,
   ChevronRight, Zap, UploadCloud, Clock,
   ArrowUpRight, ArrowDownRight, Layers,
-  Shield, CheckCircle2
+  Shield, CheckCircle2, X, Info
 } from 'lucide-react'
 
-import { formatCurrency, getActiveCurrency } from '../utils/formatters'
+import { formatCurrency, getActiveCurrency, formatMoney } from '../utils/formatters'
 
 const AVATAR_COLORS = ['#4F46E5', '#3B82F6', '#0EA5E9', '#10B981', '#F59E0B', '#64748B', '#6366F1', '#14B8A6']
 
@@ -98,6 +100,36 @@ export default function Dashboard() {
   const [loading,       setLoading]       = useState(true)
   const [analyzing,     setAnalyzing]     = useState(false)
   const [error,         setError]         = useState('')
+  const [revRisk,       setRevRisk]       = useState(null)
+  const [selectedCustSuggestions, setSelectedCustSuggestions] = useState(null)
+  const [suggestionsLoading,      setSuggestionsLoading]      = useState(false)
+  const [showSuggestionsModal,    setShowSuggestionsModal]    = useState(false)
+
+  async function openCustSuggestions(c) {
+    setSelectedCustSuggestions({
+      id: c.customerID || c.id,
+      riskLevel: c.risk_level || c.riskLevel,
+      monthly: c.monthly_charges || c.monthly,
+      contract: c.contract,
+      tenure: c.tenure,
+      suggestions: []
+    })
+    setShowSuggestionsModal(true)
+    setSuggestionsLoading(true)
+    try {
+      const res = await getCustomerSuggestions(c.customerID || c.id)
+      setSelectedCustSuggestions(prev => ({
+        ...prev,
+        riskLevel: res.risk_level || prev.riskLevel,
+        churn_probability: res.churn_probability,
+        suggestions: res.suggestions || []
+      }))
+    } catch {
+      toast.error('Failed to load retention suggestions')
+    } finally {
+      setSuggestionsLoading(false)
+    }
+  }
   const [, setCurrencyTick] = useState(getActiveCurrency)
   const navigate = useNavigate()
 
@@ -113,14 +145,16 @@ export default function Dashboard() {
     setLoading(true)
     setError('')
     try {
-      const [data, metrics, hist] = await Promise.allSettled([
+      const [data, metrics, hist, rev] = await Promise.allSettled([
         getDashboardStats(),
         getMLMetrics(),
         getUploadHistory(6),
+        getRevenueAtRisk(),
       ])
       if (data.status === 'fulfilled' && data.value?.available) setStats(data.value)
       if (metrics.status === 'fulfilled') setMlMetrics(metrics.value)
       if (hist.status === 'fulfilled' && Array.isArray(hist.value)) setHistory(hist.value)
+      if (rev.status === 'fulfilled' && rev.value?.available) setRevRisk(rev.value)
 
       if (data.status === 'rejected') {
         setError(`Failed to load dashboard: ${data.reason?.message || 'Unknown error'}`)
@@ -866,6 +900,199 @@ export default function Dashboard() {
 
         </div>
 
+        {/* ─────────────────────────────────────────────────────────────
+            REVENUE AT RISK INTELLIGENCE & 4 KPI CARDS
+           ───────────────────────────────────────────────────────────── */}
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div>
+              <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <DollarSign size={18} color="var(--danger)" /> Revenue at Risk
+              </h3>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '3px 0 0 0' }}>
+                Expected loss is an estimate based on predicted probabilities.
+              </p>
+            </div>
+            {revRisk?.available && (
+              <span className="badge badge-red" style={{ fontSize: '11px' }}>
+                {revRisk.percent_revenue_at_risk}% of Monthly Revenue Exposed
+              </span>
+            )}
+          </div>
+
+          {/* 4 KPI Cards */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '14px',
+            marginBottom: '16px'
+          }}>
+            {/* Card 1: Monthly Revenue at Risk */}
+            <div className="card" style={{ padding: '16px 18px', borderLeft: '4px solid var(--danger)' }}>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0 }}>
+                Monthly Revenue at Risk
+              </p>
+              <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--danger)', margin: '6px 0 2px 0' }}>
+                {loading ? '—' : formatMoney(revRisk?.monthly_revenue_at_risk ?? (hasData ? highRiskMRR : 0))}
+              </p>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+                High-risk account monthly exposure
+              </p>
+            </div>
+
+            {/* Card 2: Annual Revenue at Risk */}
+            <div className="card" style={{ padding: '16px 18px', borderLeft: '4px solid var(--warning)' }}>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0 }}>
+                Annual Revenue at Risk
+              </p>
+              <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--warning)', margin: '6px 0 2px 0' }}>
+                {loading ? '—' : formatMoney(revRisk?.annual_revenue_at_risk ?? (hasData ? highRiskMRR * 12 : 0))}
+              </p>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+                Annualized (Monthly × 12)
+              </p>
+            </div>
+
+            {/* Card 3: High-Risk Customers */}
+            <div className="card" style={{ padding: '16px 18px', borderLeft: '4px solid #f43f5e' }}>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0 }}>
+                High-Risk Customers
+              </p>
+              <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', margin: '6px 0 2px 0' }}>
+                {loading ? '—' : (revRisk?.high_risk_customer_count ?? high).toLocaleString()}
+              </p>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+                Accounts classified High Risk
+              </p>
+            </div>
+
+            {/* Card 4: % of Revenue at Risk */}
+            <div className="card" style={{ padding: '16px 18px', borderLeft: '4px solid var(--brand)' }}>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0 }}>
+                % of Revenue at Risk
+              </p>
+              <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--brand)', margin: '6px 0 2px 0' }}>
+                {loading ? '—' : `${revRisk?.percent_revenue_at_risk ?? atRiskPct}%`}
+              </p>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+                Share of total monthly revenue
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Top 10 High-Value Customers at Risk */}
+        <div style={{ marginBottom: '24px' }}>
+          <div className="dashboard-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                    Top 10 High-Value Customers at Risk
+                  </h3>
+                  <span className="badge badge-red" style={{ fontSize: '10px' }}>Priority Accounts</span>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '3px 0 0 0' }}>
+                  Ranked by exposure and expected monthly loss (MonthlyCharges × P(churn)). Expected loss is an estimate based on predicted probabilities.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/customers')}
+                style={{ background: 'none', border: 'none', color: 'var(--brand)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
+              >
+                View all in Customers <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {(!revRisk || !revRisk.top_10_at_risk_customers || revRisk.top_10_at_risk_customers.length === 0) ? (
+              <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--slate-500)', fontSize: '13px' }}>
+                <p style={{ marginBottom: '14px' }}>
+                  {revRisk?.message || 'Upload a customer dataset to evaluate revenue exposure'}
+                </p>
+                <button
+                  onClick={() => navigate('/upload')}
+                  className="btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '8px 16px', margin: '0 auto' }}
+                >
+                  <UploadCloud size={14} /> Upload Dataset
+                </button>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                      <th style={{ padding: '8px 12px', fontWeight: 600 }}>Customer</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 600 }}>Contract</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 600 }}>Monthly Spend</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 600 }}>Churn Risk</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 600 }}>Expected Loss / Mo</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 600, textAlign: 'right' }}>Retention Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {revRisk.top_10_at_risk_customers.map((c, i) => (
+                      <tr
+                        key={c.customerID || i}
+                        style={{ borderBottom: '1px solid var(--border)', transition: 'background 120ms ease' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-muted)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <td style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {c.customerID}
+                        </td>
+                        <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>
+                          {c.contract || '—'}
+                        </td>
+                        <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {formatMoney(c.monthly_charges)}
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <span className={c.risk_level === 'High' ? 'badge badge-red' : c.risk_level === 'Medium' ? 'badge badge-yellow' : 'badge badge-green'} style={{ fontSize: '10px' }}>
+                            ● {c.risk_level} ({c.churn_probability}%)
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--danger)' }}>
+                          {formatMoney(c.expected_monthly_loss)}
+                        </td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                          <button
+                            onClick={() => openCustSuggestions(c)}
+                            style={{
+                              background: 'var(--brand-subtle)',
+                              color: 'var(--brand)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '6px',
+                              padding: '5px 10px',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              transition: 'all 150ms'
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.background = 'var(--brand)'
+                              e.currentTarget.style.color = '#fff'
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = 'var(--brand-subtle)'
+                              e.currentTarget.style.color = 'var(--brand)'
+                            }}
+                          >
+                            <Sparkles size={12} /> View Suggestions
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Highest Risk Customers List */}
         <div style={{ marginBottom: '24px' }}>
           <div className="dashboard-card">
@@ -1041,6 +1268,59 @@ export default function Dashboard() {
           </div>
 
         </div>
+
+        {/* ── MODAL: RETENTION SUGGESTIONS ── */}
+        {showSuggestionsModal && selectedCustSuggestions && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, padding: '20px'
+          }}>
+            <div style={{
+              width: '100%', maxWidth: '580px', maxHeight: '90vh', overflowY: 'auto',
+              padding: '24px 28px', borderRadius: '16px', background: 'var(--surface)',
+              border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--brand-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand)' }}>
+                    <Sparkles size={16} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Retention Playbook</h3>
+                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                      Account: <strong style={{ color: 'var(--text-primary)' }}>{selectedCustSuggestions.id}</strong> • Spend: {formatMoney(selectedCustSuggestions.monthly)}/mo
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowSuggestionsModal(false)}
+                  style={{ background: 'none', border: 'none', color: 'var(--slate-400)', cursor: 'pointer', padding: '4px' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <RecommendedActions
+                suggestions={selectedCustSuggestions.suggestions}
+                loading={suggestionsLoading}
+                title="Mitigation Playbook & Action Plan"
+              />
+
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowSuggestionsModal(false)}
+                  className="btn-outline"
+                  style={{ fontSize: '12px', padding: '8px 16px' }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

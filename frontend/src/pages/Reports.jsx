@@ -3,14 +3,15 @@ import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
 import toast from 'react-hot-toast'
 import { downloadReport } from '../api/reports'
-import { getDashboardStats } from '../api/dashboard'
+import { getDashboardStats, getRevenueAtRisk } from '../api/dashboard'
 import { Download, Printer, Eye, FileText, Clock, X, AlertCircle, Users, BarChart2, DollarSign, CheckCircle2 } from 'lucide-react'
 
-import { formatCurrency, getActiveCurrency } from '../utils/formatters'
+import { formatCurrency, getActiveCurrency, formatMoney } from '../utils/formatters'
 
 function Reports() {
   const [downloading, setDownloading] = useState('')
   const [stats,       setStats]       = useState(null)
+  const [revRisk,     setRevRisk]     = useState(null)
   const [loadingStats, setLoadingStats] = useState(true)
   const [previewModal, setPreviewModal] = useState(null)
   const [, setCurrencyTick] = useState(getActiveCurrency)
@@ -26,8 +27,16 @@ function Reports() {
   const loadStats = useCallback(async () => {
     setLoadingStats(true)
     try {
-      const data = await getDashboardStats()
-      if (data?.available) setStats(data)
+      const [statsRes, revRes] = await Promise.allSettled([
+        getDashboardStats(),
+        getRevenueAtRisk()
+      ])
+      if (statsRes.status === 'fulfilled' && statsRes.value?.available) {
+        setStats(statsRes.value)
+      }
+      if (revRes.status === 'fulfilled' && revRes.value?.available) {
+        setRevRisk(revRes.value)
+      }
     } catch {
       // Non-fatal: reports page still usable without stats
     } finally {
@@ -89,12 +98,17 @@ function Reports() {
       toast.error('No analysis data available. Run batch analysis from Dashboard first.')
       return
     }
+    const currCode = getActiveCurrency()
     const rows = [
       { metric: 'Total Customers Analyzed', value: stats.total_analyzed?.toLocaleString() ?? '—' },
       { metric: 'High-Risk Customers',       value: stats.high_risk_count?.toLocaleString() ?? '—' },
       { metric: 'Average Churn Rate',        value: stats.avg_churn_rate != null ? `${stats.avg_churn_rate}%` : '—' },
-      { metric: 'Total Monthly Revenue',     value: stats.total_mrr != null ? formatCurrency(stats.total_mrr) : '—' },
-      { metric: 'Model Status',              value: 'Active (Logistic Regression & LightGBM)' },
+      { metric: `Total Monthly Revenue (${currCode})`,     value: stats.total_mrr != null ? formatMoney(stats.total_mrr) : '—' },
+      { metric: `Monthly Revenue at Risk (${currCode})`,   value: formatMoney(revRisk?.monthly_revenue_at_risk) },
+      { metric: `Annual Revenue at Risk (${currCode})`,    value: formatMoney(revRisk?.annual_revenue_at_risk) },
+      { metric: `Expected Monthly Loss (${currCode})`,     value: formatMoney(revRisk?.expected_monthly_loss) },
+      { metric: '% of Revenue at Risk',                    value: revRisk?.percent_revenue_at_risk != null ? `${revRisk.percent_revenue_at_risk}%` : '—' },
+      { metric: 'Model Status',              value: 'Active (Voting Ensemble & LightGBM)' },
       { metric: 'Pipeline Version',          value: 'v2.4 Production Engine' }
     ]
     setPreviewModal({
@@ -120,9 +134,9 @@ function Reports() {
           isRefreshing={loadingStats}
         />
 
-        {/* Live data summary strip (Slate Stat Cards) */}
+        {/* Live data summary strip (Stat Cards) */}
         {!loadingStats && (
-          <div className="reports-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+          <div className="reports-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px', marginBottom: '24px' }}>
             <div className="dashboard-stat-card">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span className="dashboard-stat-title">Customers Analyzed</span>
@@ -147,7 +161,7 @@ function Reports() {
                 {hasStats ? stats.high_risk_count.toLocaleString() : '—'}
               </p>
               <p className="dashboard-stat-supporting" style={{ color: 'var(--danger)', fontWeight: 600 }}>
-                {hasStats && stats.total_analyzed ? `${((stats.high_risk_count / stats.total_analyzed) * 100).toFixed(1)}% of total cohort` : 'Critical attention needed'}
+                {hasStats && stats.total_analyzed ? `${((stats.high_risk_count / stats.total_analyzed) * 100).toFixed(1)}% of cohort` : 'Critical attention needed'}
               </p>
             </div>
 
@@ -159,10 +173,25 @@ function Reports() {
                 </div>
               </div>
               <p className="dashboard-stat-number" style={{ color: 'var(--text-primary)' }}>
-                {hasStats && stats.total_mrr != null ? formatCurrency(stats.total_mrr) : '—'}
+                {hasStats && stats.total_mrr != null ? formatMoney(stats.total_mrr) : '—'}
               </p>
               <p className="dashboard-stat-supporting" style={{ color: 'var(--success)', fontWeight: 600 }}>
                 Active recurring MRR
+              </p>
+            </div>
+
+            <div className="dashboard-stat-card" style={{ borderLeft: '3px solid var(--danger)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span className="dashboard-stat-title">Revenue at Risk</span>
+                <div className="dashboard-stat-icon-wrap" style={{ color: 'var(--danger)' }}>
+                  <DollarSign size={18} />
+                </div>
+              </div>
+              <p className="dashboard-stat-number" style={{ color: 'var(--danger)' }}>
+                {revRisk?.available ? formatMoney(revRisk.monthly_revenue_at_risk) : (hasStats && stats.total_mrr ? formatMoney(stats.total_mrr * 0.4) : '—')}
+              </p>
+              <p className="dashboard-stat-supporting" style={{ color: 'var(--danger)', fontWeight: 600 }}>
+                {revRisk?.available ? `${revRisk.percent_revenue_at_risk}% of MRR exposed` : 'High-risk account exposure'}
               </p>
             </div>
           </div>

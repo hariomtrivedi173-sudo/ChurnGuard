@@ -2,10 +2,11 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
 import toast from 'react-hot-toast'
-import { getTelcoCustomers, deleteTelcoCustomer, addTelcoCustomer, updateTelcoCustomer } from '../api/customers'
+import { getTelcoCustomers, deleteTelcoCustomer, addTelcoCustomer, updateTelcoCustomer, getCustomerSuggestions } from '../api/customers'
+import RecommendedActions from '../components/RecommendedActions'
 import {
   Search, ChevronLeft, ChevronRight, Trash2, Users, Database,
-  UserPlus, Edit3, X
+  UserPlus, Edit3, X, Sparkles
 } from 'lucide-react'
 import { formatCurrency, getActiveCurrency } from '../utils/formatters'
 
@@ -123,6 +124,36 @@ export default function Customers() {
   const [editingCustomer, setEditingCustomer] = useState(null)
   const [editForm,       setEditForm]       = useState(INITIAL_FORM)
   const [savingEdit,     setSavingEdit]     = useState(false)
+
+  const [showSuggestionsModal, setShowSuggestionsModal] = useState(false)
+  const [selectedCustSuggestions, setSelectedCustSuggestions] = useState(null)
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false)
+
+  async function openSuggestions(c) {
+    setSelectedCustSuggestions({
+      id: c.id,
+      riskLevel: c.riskLevel,
+      monthly: c.monthly,
+      contract: c.contract,
+      tenure: c.tenure,
+      suggestions: []
+    })
+    setShowSuggestionsModal(true)
+    setSuggestionsLoading(true)
+    try {
+      const res = await getCustomerSuggestions(c.id)
+      setSelectedCustSuggestions(prev => ({
+        ...prev,
+        riskLevel: res.risk_level || prev.riskLevel,
+        churn_probability: res.churn_probability,
+        suggestions: res.suggestions || []
+      }))
+    } catch (err) {
+      toast.error('Failed to load retention suggestions')
+    } finally {
+      setSuggestionsLoading(false)
+    }
+  }
 
   // AbortController ref — cancels stale requests when search/page changes
   const abortRef = useRef(null)
@@ -570,6 +601,19 @@ export default function Customers() {
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <button
+                          onClick={() => openSuggestions(c)}
+                          title="View Retention Suggestions"
+                          style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            color: 'var(--brand)', padding: '6px', borderRadius: '6px',
+                            display: 'flex', alignItems: 'center', transition: 'all 150ms'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+                          onMouseLeave={e => e.currentTarget.style.color = 'var(--brand)'}
+                        >
+                          <Sparkles size={14} />
+                        </button>
+                        <button
                           onClick={() => openEditModal(c)}
                           title="Edit customer"
                           style={{
@@ -995,6 +1039,59 @@ export default function Customers() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* ── MODAL: RETENTION SUGGESTIONS ── */}
+        {showSuggestionsModal && selectedCustSuggestions && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, padding: '20px'
+          }}>
+            <div style={{
+              width: '100%', maxWidth: '580px', maxHeight: '90vh', overflowY: 'auto',
+              padding: '24px 28px', borderRadius: '16px', background: 'var(--surface)',
+              border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--brand-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand)' }}>
+                    <Sparkles size={16} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Retention Playbook</h3>
+                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                      Account: <strong style={{ color: 'var(--text-primary)' }}>{selectedCustSuggestions.id}</strong> • Contract: {selectedCustSuggestions.contract} • Spend: {formatCurrency(selectedCustSuggestions.monthly, activeCurrency)}/mo
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowSuggestionsModal(false)}
+                  style={{ background: 'none', border: 'none', color: 'var(--slate-400)', cursor: 'pointer', padding: '4px' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <RecommendedActions
+                suggestions={selectedCustSuggestions.suggestions}
+                loading={suggestionsLoading}
+                title="Account Mitigation Actions"
+              />
+
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowSuggestionsModal(false)}
+                  className="btn-outline"
+                  style={{ fontSize: '12px', padding: '8px 16px' }}
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}

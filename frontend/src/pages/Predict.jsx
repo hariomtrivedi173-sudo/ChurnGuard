@@ -6,6 +6,7 @@ import { predictChurn, predictSelectedCustomers } from '../api/predict'
 import { getTelcoCustomers } from '../api/customers'
 import { getUploadHistory } from '../api/dataset'
 import { formatCurrency, getActiveCurrency } from '../utils/formatters'
+import RecommendedActions from '../components/RecommendedActions'
 import toast from 'react-hot-toast'
 import {
   Sparkles,
@@ -96,52 +97,52 @@ function buildPayload(record) {
 }
 
 function riskColor(level) {
-  if (level === 'High')   return 'var(--danger)'
+  if (level === 'High') return 'var(--danger)'
   if (level === 'Medium') return 'var(--warning)'
   return 'var(--success)'
 }
 
 function riskBadgeClass(level) {
-  if (level === 'High')   return 'badge badge-red'
+  if (level === 'High') return 'badge badge-red'
   if (level === 'Medium') return 'badge badge-yellow'
   return 'badge badge-green'
 }
 
 export default function Predict() {
   // ── Pagination & Filter State ──
-  const [currentPage,  setCurrentPage]  = useState(1)
-  const [pageSize,     setPageSize]     = useState(50)
-  const [total,        setTotal]        = useState(0)
-  const [totalPages,   setTotalPages]   = useState(1)
-  const [search,       setSearch]       = useState('')
-  const [searchInput,  setSearchInput]  = useState('')
-  const [riskFilter,   setRiskFilter]   = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
+  const [riskFilter, setRiskFilter] = useState('all')
   const [uploadFilter, setUploadFilter] = useState('all')
-  const [datasets,     setDatasets]     = useState([])
-  const [gotoPage,     setGotoPage]     = useState('')
+  const [datasets, setDatasets] = useState([])
+  const [gotoPage, setGotoPage] = useState('')
 
   // ── Records & Selected Items ──
-  const [records,       setRecords]       = useState([])
+  const [records, setRecords] = useState([])
   const [inspectedCust, setInspectedCust] = useState(null)
-  const [selectedIds,   setSelectedIds]   = useState(new Set())
-  const [selectAllAll,  setSelectAllAll]  = useState(false)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [selectAllAll, setSelectAllAll] = useState(false)
   const [deselectedIds, setDeselectedIds] = useState(new Set())
 
   // ── Results & Inference State ──
-  const [activeMode,       setActiveMode]       = useState('single') // 'single' | 'batch'
-  const [singleResult,     setSingleResult]     = useState(null)
-  const [batchResult,      setBatchResult]      = useState(null)
-  const [activeBatchCust,  setActiveBatchCust]  = useState(null)
-  const [activeBatchShap,  setActiveBatchShap]  = useState(null)
-  const [shapLoading,      setShapLoading]      = useState(false)
-  const [shapCache,        setShapCache]        = useState({})
+  const [activeMode, setActiveMode] = useState('single') // 'single' | 'batch'
+  const [singleResult, setSingleResult] = useState(null)
+  const [batchResult, setBatchResult] = useState(null)
+  const [activeBatchCust, setActiveBatchCust] = useState(null)
+  const [activeBatchShap, setActiveBatchShap] = useState(null)
+  const [shapLoading, setShapLoading] = useState(false)
+  const [shapCache, setShapCache] = useState({})
 
   // ── Loaders & Errors ──
   const [loadingCusts, setLoadingCusts] = useState(true)
-  const [analyzing,    setAnalyzing]    = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
   const [singleLoading, setSingleLoading] = useState(false)
-  const [loadError,    setLoadError]    = useState('')
-  const [predError,    setPredError]    = useState('')
+  const [loadError, setLoadError] = useState('')
+  const [predError, setPredError] = useState('')
   const [, setCurrencyTick] = useState(getActiveCurrency)
 
   useEffect(() => {
@@ -179,7 +180,7 @@ export default function Predict() {
       setRecords(list)
       setTotal(data?.total ?? list.length)
       setTotalPages(data?.total_pages ?? Math.max(1, Math.ceil((data?.total ?? list.length) / limit)))
-      
+
       // Keep inspected customer if still in page, otherwise select first record
       if (list.length > 0) {
         setInspectedCust(prev => {
@@ -384,15 +385,15 @@ export default function Predict() {
 
     const payload = selectAllAll
       ? {
-          select_all_matching: true,
-          deselected_ids: Array.from(deselectedIds),
-          search,
-          risk_level: riskFilter,
-          upload_id: uploadFilter,
-        }
+        select_all_matching: true,
+        deselected_ids: Array.from(deselectedIds),
+        search,
+        risk_level: riskFilter,
+        upload_id: uploadFilter,
+      }
       : {
-          customer_ids: Array.from(selectedIds),
-        }
+        customer_ids: Array.from(selectedIds),
+      }
 
     try {
       const data = await predictSelectedCustomers(payload)
@@ -463,7 +464,7 @@ export default function Predict() {
       pages.push('...')
     }
     const start = Math.max(2, Math.min(currentPage - 1, totalPages - 4))
-    const end   = Math.min(totalPages - 1, Math.max(currentPage + 1, 5))
+    const end = Math.min(totalPages - 1, Math.max(currentPage + 1, 5))
     for (let p = start; p <= end; p++) {
       pages.push(p)
     }
@@ -475,18 +476,18 @@ export default function Predict() {
   }
 
   const showingFrom = total === 0 ? 0 : (currentPage - 1) * pageSize + 1
-  const showingTo   = Math.min(currentPage * pageSize, total)
+  const showingTo = Math.min(currentPage * pageSize, total)
 
   // Customer detail fields to display for inspected account
   const detailFields = inspectedCust
     ? [
-        { label: 'Tenure (Mo)',      value: `${inspectedCust.tenure ?? 0} mos` },
-        { label: 'Contract',         value: inspectedCust.Contract        ?? '—' },
-        { label: 'Internet Service', value: inspectedCust.InternetService ?? '—' },
-        { label: 'Monthly Charges',  value: inspectedCust.MonthlyCharges  != null ? formatCurrency(parseFloat(inspectedCust.MonthlyCharges)) : '—' },
-        { label: 'Total Charges',    value: inspectedCust.TotalCharges    != null ? formatCurrency(parseFloat(inspectedCust.TotalCharges)) : '—' },
-        { label: 'Payment Method',   value: inspectedCust.PaymentMethod   ?? '—' },
-      ]
+      { label: 'Tenure (Mo)', value: `${inspectedCust.tenure ?? 0} mos` },
+      { label: 'Contract', value: inspectedCust.Contract ?? '—' },
+      { label: 'Internet Service', value: inspectedCust.InternetService ?? '—' },
+      { label: 'Monthly Charges', value: inspectedCust.MonthlyCharges != null ? formatCurrency(parseFloat(inspectedCust.MonthlyCharges)) : '—' },
+      { label: 'Total Charges', value: inspectedCust.TotalCharges != null ? formatCurrency(parseFloat(inspectedCust.TotalCharges)) : '—' },
+      { label: 'Payment Method', value: inspectedCust.PaymentMethod ?? '—' },
+    ]
     : []
 
   const hasActiveFilters = search || riskFilter !== 'all' || uploadFilter !== 'all'
@@ -760,7 +761,7 @@ export default function Predict() {
 
             {/* ── Customer List Table / Rows ── */}
             <div style={{ border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden', background: 'var(--surface)' }}>
-              
+
               {loadingCusts ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '40px 0', justifyContent: 'center', color: 'var(--slate-500)', fontSize: '13px' }}>
                   <div style={{ width: '16px', height: '16px', border: '2px solid var(--slate-300)', borderTopColor: 'var(--brand)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
@@ -1472,33 +1473,18 @@ export default function Predict() {
                 )}
 
                 {/* Recommended Actions */}
-                {singleResult.recommended_actions && singleResult.recommended_actions.length > 0 && (
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                      <Lightbulb size={13} color="var(--brand)" />
-                      <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                        Recommended Mitigation Actions
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {singleResult.recommended_actions.map((a, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            fontSize: '12px',
-                            background: 'var(--surface-muted)',
-                            padding: '10px 12px',
-                            borderRadius: '8px',
-                            border: '1px solid var(--border)',
-                            borderLeft: '3px solid var(--brand)'
-                          }}
-                        >
-                          <p style={{ fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{a.action}</p>
-                          {a.reason && <p style={{ color: 'var(--text-muted)', marginTop: '3px', fontSize: '11px', margin: '3px 0 0 0' }}>{a.reason}</p>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                {(singleResult.retention_suggestions || singleResult.recommended_actions) && (
+                  <RecommendedActions
+                    suggestions={
+                      singleResult.retention_suggestions ||
+                      singleResult.recommended_actions.map(a => ({
+                        title: a.action,
+                        reason: a.reason,
+                        priority: singleResult.risk_level === 'High' ? 'High' : singleResult.risk_level === 'Medium' ? 'Medium' : 'Low',
+                        channel: 'Offer'
+                      }))
+                    }
+                  />
                 )}
 
               </div>

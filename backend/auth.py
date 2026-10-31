@@ -8,7 +8,7 @@ from jose import jwt
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from database import user_collection
+from database import user_collection, blacklisted_token_collection
 
 # Load .env from backend directory or fallback to current directory
 _backend_dir = os.path.dirname(os.path.abspath(__file__))
@@ -71,6 +71,15 @@ async def get_current_user_doc(credentials: HTTPAuthorizationCredentials = Depen
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"
         )
+
+    # Verify token is not revoked / blacklisted
+    revoked = await blacklisted_token_collection.find_one({"token": token})
+    if revoked:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked. Please log in again."
+        )
+
     email = payload.get("sub")
     if not email:
         raise HTTPException(
@@ -89,6 +98,7 @@ async def get_current_user_doc(credentials: HTTPAuthorizationCredentials = Depen
         await user_collection.update_one({"_id": user_doc["_id"]}, {"$set": {"company_id": company_id}})
         user_doc["company_id"] = company_id
 
+    user_doc["_current_token"] = token
     return user_doc
 
 

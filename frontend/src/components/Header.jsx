@@ -15,6 +15,7 @@ import toast from 'react-hot-toast'
 import { useSidebar } from './useSidebar'
 import { useTheme } from './useTheme'
 import { clearAuth } from '../utils/auth'
+import { logoutUser } from '../api/auth'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
@@ -289,7 +290,8 @@ function Header({
     }
   }
 
-  function handleExecuteLogout() {
+  async function handleExecuteLogout() {
+    await logoutUser()
     clearAuth()
     setNotifications([])
     setUnreadCount(0)

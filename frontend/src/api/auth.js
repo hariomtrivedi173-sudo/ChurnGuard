@@ -66,3 +66,13 @@ export async function resetPassword({ token, new_password, confirm_password }) {
     body: JSON.stringify({ token, new_password, confirm_password }),
   })
 }
+
+/** Revoke session on backend and blacklist token in MongoDB */
+export async function logoutUser() {
+  try {
+    return await apiRequest('/auth/logout', { method: 'POST' })
+  } catch (err) {
+    // Non-blocking fallback: ensure local cleanup always finishes
+    return { success: false, error: err.message }
+  }
+}

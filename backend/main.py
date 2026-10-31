@@ -8,9 +8,10 @@ import hashlib
 import logging
 from collections import Counter
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Query, Request
+from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
 from dotenv import load_dotenv
 from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure
 
@@ -37,16 +38,31 @@ from database import (
     otp_collection,
     upload_collection,
     password_reset_collection,
+    blacklisted_token_collection,
     database,
     check_db_connection,
 )
-from auth import hash_password, verify_password, create_access_token, get_current_user, get_current_user_doc, get_company_id_for_name
+from auth import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    decode_access_token,
+    get_current_user,
+    get_current_user_doc,
+    get_company_id_for_name,
+    security_scheme,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+)
 from mailer import send_otp_email, send_registration_otp_email_with_code, send_password_reset_link_email, mask_email, is_dev_mode
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ml.predict import predict_churn
 from ml.explain import explain_prediction
 from ml.recommend import generate_recommendations
+try:
+    from retention import get_retention_suggestions
+except ImportError:
+    from backend.retention import get_retention_suggestions
 from typing import Literal, Optional, List, Dict, Any, Union
 from fastapi.middleware.cors import CORSMiddleware
 from ml.batch_predict import predict_batch, build_aggregates
@@ -83,6 +99,44 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    """
+    Defensive security headers middleware:
+    - Injects X-Content-Type-Options, X-Frame-Options, Referrer-Policy, and CSP.
+    - Preserves Swagger UI (/docs, /redoc) functionality.
+    - Strips Server fingerprint header.
+    """
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+    # Suppress server fingerprint header
+    if "server" in response.headers:
+        del response.headers["server"]
+
+    # Content-Security-Policy (allows Swagger UI CDNs for /docs and /redoc)
+    path = request.url.path
+    if path.startswith(("/docs", "/redoc", "/openapi.json")):
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "img-src 'self' data: https://fastapi.tiangolo.com https://cdn.jsdelivr.net;"
+        )
+    else:
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "img-src 'self' data: blob: http: https:; "
+            "font-src 'self' https: data:; "
+            "style-src 'self' 'unsafe-inline' https:; "
+            "script-src 'self' 'unsafe-inline'; "
+            "connect-src 'self' http: https: ws: wss:;"
+        )
+    return response
 
 @app.exception_handler(ServerSelectionTimeoutError)
 async def mongo_timeout_handler(request: Request, exc: ServerSelectionTimeoutError):
@@ -204,6 +258,17 @@ async def startup_event():
             [("expires_at", 1)],
             expireAfterSeconds=0,
             name="pwd_reset_expires_ttl"
+        ),
+        # Blacklisted tokens — token lookup and automatic TTL expiration
+        blacklisted_token_collection.create_index(
+            [("token", 1)],
+            unique=True,
+            name="blacklisted_token_unique"
+        ),
+        blacklisted_token_collection.create_index(
+            [("expires_at", 1)],
+            expireAfterSeconds=0,
+            name="blacklisted_token_ttl"
         ),
     ]
 
@@ -343,7 +408,7 @@ class CustomerPredictionInput(BaseModel):
     SeniorCitizen: Optional[Any] = "No"
     Partner: Optional[str] = "No"
     Dependents: Optional[str] = "No"
-    tenure: int
+    tenure: int = Field(..., ge=0, le=120, description="Customer tenure in months (0 to 120)")
     PhoneService: Optional[str] = "Yes"
     MultipleLines: Optional[str] = "No"
     InternetService: Optional[str] = "Fiber optic"
@@ -356,8 +421,8 @@ class CustomerPredictionInput(BaseModel):
     Contract: Optional[str] = "Month-to-month"
     PaperlessBilling: Optional[str] = "Yes"
     PaymentMethod: Optional[str] = "Electronic check"
-    MonthlyCharges: float
-    TotalCharges: float
+    MonthlyCharges: float = Field(..., ge=0.0, le=50000.0, description="Monthly charges (>= 0)")
+    TotalCharges: float = Field(..., ge=0.0, le=1000000.0, description="Total charges (>= 0)")
 
     @field_validator("SeniorCitizen", mode="before")
     @classmethod
@@ -632,6 +697,37 @@ async def get_one_customer(customer_id: str, user_doc: dict = Depends(get_curren
     if doc is None:
         raise HTTPException(status_code=404, detail=f"No customer found with ID {customer_id}")
     return customer_helper(doc)
+
+
+@app.get("/customers/{customer_id}/suggestions")
+@app.get("/telco/customers/{customer_id}/suggestions")
+async def get_customer_suggestions_endpoint(
+    customer_id: str,
+    user_doc: dict = Depends(get_current_user_doc)
+):
+    company_id = user_doc["company_id"]
+    query = {"company_id": company_id, "customerID": customer_id}
+    doc = await telco_collection.find_one(query)
+    if not doc and ObjectId.is_valid(customer_id):
+        doc = await telco_collection.find_one({"company_id": company_id, "_id": ObjectId(customer_id)})
+    if not doc and ObjectId.is_valid(customer_id):
+        doc = await customer_collection.find_one({"company_id": company_id, "_id": ObjectId(customer_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail=f"Customer '{customer_id}' not found")
+
+    cid = doc.get("customerID") or str(doc.get("_id"))
+    clean_cust = {k: v for k, v in doc.items() if k not in ("_id", "company_id")}
+    pred = predict_churn(clean_cust)
+    prob = pred["churn_probability"]
+    suggestions = get_retention_suggestions(clean_cust, prob)
+
+    return {
+        "customerID": cid,
+        "churn_prediction": pred.get("churn_prediction"),
+        "churn_probability": prob,
+        "risk_level": pred.get("risk_level"),
+        "suggestions": suggestions
+    }
 
 
 @app.put("/customers/{customer_id}")
@@ -1107,6 +1203,8 @@ async def resend_registration_otp(req: RegistrationResendOtp):
 
 
 @app.post("/login")
+@app.post("/auth/login")
+@app.post("/api/auth/login")
 async def login_user(user: User):
     norm_email = user.email.strip().lower()
     existing = await user_collection.find_one({
@@ -1135,6 +1233,36 @@ async def login_user(user: User):
 
     token = create_access_token({"sub": existing.get("email", norm_email), "company_id": company_id})
     return {"access_token": token, "token_type": "bearer", "company_id": company_id}
+
+
+@app.post("/auth/logout")
+@app.post("/api/auth/logout")
+async def logout_user(credentials: HTTPAuthorizationCredentials = Depends(security_scheme)):
+    """
+    Revoke the current authentication session.
+    Blacklists the incoming JWT token in MongoDB with a TTL index matching its expiration.
+    """
+    token = credentials.credentials
+    payload = decode_access_token(token)
+    exp = payload.get("exp") if payload else None
+    if exp:
+        expires_at = datetime.fromtimestamp(exp, tz=timezone.utc)
+    else:
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    await blacklisted_token_collection.update_one(
+        {"token": token},
+        {
+            "$set": {
+                "token": token,
+                "email": payload.get("sub") if payload else "unknown",
+                "revoked_at": datetime.now(timezone.utc),
+                "expires_at": expires_at
+            }
+        },
+        upsert=True
+    )
+    return {"success": True, "message": "Successfully logged out. Session token has been revoked."}
 
 
 # ── Password Recovery (Forgot Password & Reset Link) ──────────────────────────
@@ -1460,6 +1588,8 @@ async def reset_password(req: ResetPasswordRequest):
 
 
 @app.get("/profile/me")
+@app.get("/auth/me")
+@app.get("/auth/profile")
 async def get_user_profile(user_doc: dict = Depends(get_current_user_doc)):
     # Explicitly query scoped by _id and company_id, omitting password
     doc = await user_collection.find_one(
@@ -1468,6 +1598,20 @@ async def get_user_profile(user_doc: dict = Depends(get_current_user_doc)):
     )
     if not doc:
         raise HTTPException(status_code=404, detail="User profile not found")
+
+    # Verify physical file existence on disk before returning photo_url
+    raw_photo = doc.get("photo_url", None)
+    valid_photo = raw_photo
+    if raw_photo and raw_photo.startswith("/uploads/avatars/"):
+        filename = os.path.basename(raw_photo)
+        filepath = os.path.join(AVATAR_DIR, filename)
+        if not os.path.exists(filepath):
+            valid_photo = None
+            # Proactively sanitize DB record so client doesn't retry missing asset
+            await user_collection.update_one(
+                {"_id": user_doc["_id"]},
+                {"$unset": {"photo_url": ""}}
+            )
 
     return {
         "first_name":   doc.get("first_name", ""),
@@ -1483,7 +1627,7 @@ async def get_user_profile(user_doc: dict = Depends(get_current_user_doc)):
         "phone":        doc.get("phone",       ""),
         "country":      doc.get("country",     "India"),
         "language":     doc.get("language",    "en"),
-        "photo_url":    doc.get("photo_url",   None)
+        "photo_url":    valid_photo
     }
 
 
@@ -1561,7 +1705,11 @@ async def update_user_profile(
             "phone":        updated_doc.get("phone",       ""),
             "country":      updated_doc.get("country",     "India"),
             "language":     updated_doc.get("language",    "en"),
-            "photo_url":    updated_doc.get("photo_url",   None)
+            "photo_url":    (
+                updated_doc.get("photo_url")
+                if updated_doc.get("photo_url") and os.path.exists(os.path.join(AVATAR_DIR, os.path.basename(updated_doc["photo_url"])))
+                else None
+            )
         }
     }
 
@@ -2752,9 +2900,19 @@ async def predict_with_explanation(
     customer: CustomerPredictionInput,
     user_doc: dict = Depends(get_current_user_doc)
 ):
-    prediction_result   = predict_churn(customer.dict())
-    explanation_result  = explain_prediction(customer.dict())
-    return {**prediction_result, **explanation_result}
+    customer_dict       = customer.dict()
+    prediction_result   = predict_churn(customer_dict)
+    explanation_result  = explain_prediction(customer_dict)
+    retention_suggestions = get_retention_suggestions(
+        customer_dict,
+        prediction_result["churn_probability"],
+        explanation_result.get("top_factors")
+    )
+    return {
+        **prediction_result,
+        **explanation_result,
+        "retention_suggestions": retention_suggestions
+    }
 
 @app.post("/predict/full")
 async def predict_full_analysis(
@@ -2771,9 +2929,19 @@ async def predict_full_analysis(
         explanation_result["top_factors"],
         prediction_result["risk_level"]
     )
+    retention_suggestions = get_retention_suggestions(
+        customer_dict,
+        prediction_result["churn_probability"],
+        explanation_result.get("top_factors")
+    )
     print(f"[predict/full] {(time.perf_counter()-t0)*1000:.1f}ms | risk={prediction_result['risk_level']}")
 
-    return {**prediction_result, **explanation_result, **recommendation_result}
+    return {
+        **prediction_result,
+        **explanation_result,
+        **recommendation_result,
+        "retention_suggestions": retention_suggestions
+    }
 
 
 @app.post("/predict/selected")
@@ -3100,6 +3268,106 @@ async def get_ml_segments(user_doc: dict = Depends(get_current_user_doc)):
     return await get_segment_profiles(company_id=company_id)
 
 
+@app.get("/analytics/revenue-at-risk")
+async def get_revenue_at_risk(user_doc: dict = Depends(get_current_user_doc)):
+    t0 = time.perf_counter()
+    company_id = user_doc["company_id"]
+
+    projection = {
+        "customerID": 1, "company_id": 1,
+        "gender": 1, "SeniorCitizen": 1, "Partner": 1, "Dependents": 1,
+        "tenure": 1, "PhoneService": 1, "MultipleLines": 1, "InternetService": 1,
+        "OnlineSecurity": 1, "OnlineBackup": 1, "DeviceProtection": 1,
+        "TechSupport": 1, "StreamingTV": 1, "StreamingMovies": 1,
+        "Contract": 1, "PaperlessBilling": 1, "PaymentMethod": 1,
+        "MonthlyCharges": 1, "TotalCharges": 1, "_id": 1
+    }
+
+    cursor = telco_collection.find({"company_id": company_id}, projection)
+    raw_customers = await cursor.to_list(length=None)
+
+    empty_response = {
+        "available": False,
+        "message": "No customer records found. Please upload a dataset first.",
+        "total_monthly_revenue": 0.0,
+        "monthly_revenue_at_risk": 0.0,
+        "expected_monthly_loss": 0.0,
+        "annual_revenue_at_risk": 0.0,
+        "high_risk_customer_count": 0,
+        "percent_revenue_at_risk": 0.0,
+        "top_10_at_risk_customers": []
+    }
+
+    if not raw_customers:
+        return empty_response
+
+    # Verify if dataset has a revenue column
+    has_revenue = any(c.get("MonthlyCharges") is not None for c in raw_customers)
+    if not has_revenue:
+        empty_response["message"] = "Dataset has no revenue column (MonthlyCharges)."
+        return empty_response
+
+    clean_customers = [{k: v for k, v in c.items() if k != "company_id"} for c in raw_customers]
+    predictions = predict_batch(clean_customers)
+
+    total_monthly_revenue = 0.0
+    monthly_revenue_at_risk = 0.0
+    expected_monthly_loss = 0.0
+    high_risk_count = 0
+    at_risk_list = []
+
+    for cust, pred in zip(clean_customers, predictions):
+        try:
+            raw_mc = cust.get("MonthlyCharges")
+            mc = float(raw_mc) if raw_mc is not None and str(raw_mc).strip() != "" else 0.0
+            if math.isnan(mc):
+                mc = 0.0
+        except (ValueError, TypeError):
+            mc = 0.0
+
+        total_monthly_revenue += mc
+        prob_pct = float(pred.get("churn_probability") or 0.0)
+        prob_dec = prob_pct / 100.0
+        exp_loss = mc * prob_dec
+        expected_monthly_loss += exp_loss
+
+        risk_level = pred.get("risk_level", "Low")
+        if risk_level == "High" or pred.get("churn_prediction") == "Yes":
+            monthly_revenue_at_risk += mc
+            high_risk_count += 1
+
+        cid = cust.get("customerID") or str(cust.get("_id") or "")
+        at_risk_list.append({
+            "customerID": cid,
+            "monthly_charges": round(mc, 2),
+            "churn_probability": round(prob_pct, 2),
+            "risk_level": risk_level,
+            "contract": cust.get("Contract", "Unknown"),
+            "tenure": cust.get("tenure", 0),
+            "expected_monthly_loss": round(exp_loss, 2)
+        })
+
+    # Sort at-risk customers: prioritize high/medium risk and expected loss
+    at_risk_list.sort(key=lambda x: (x["risk_level"] == "High", x["expected_monthly_loss"], x["monthly_charges"]), reverse=True)
+    top_10 = at_risk_list[:10]
+
+    annual_revenue_at_risk = round(monthly_revenue_at_risk * 12.0, 2)
+    percent_revenue_at_risk = round((monthly_revenue_at_risk / total_monthly_revenue * 100.0), 2) if total_monthly_revenue > 0 else 0.0
+
+    print(f"[revenue-at-risk] {len(clean_customers)} customers evaluated in {(time.perf_counter()-t0)*1000:.1f}ms")
+
+    return {
+        "available": True,
+        "total_monthly_revenue": round(total_monthly_revenue, 2),
+        "monthly_revenue_at_risk": round(monthly_revenue_at_risk, 2),
+        "expected_monthly_loss": round(expected_monthly_loss, 2),
+        "annual_revenue_at_risk": annual_revenue_at_risk,
+        "high_risk_customer_count": high_risk_count,
+        "percent_revenue_at_risk": percent_revenue_at_risk,
+        "top_10_at_risk_customers": top_10
+    }
+
+
 @app.get("/reports/export/csv")
 async def export_reports_csv(
     risk_level: Optional[str] = "All",
@@ -3136,8 +3404,16 @@ async def export_reports_csv(
     for orig, pred in zip(clean, predictions):
         rec = dict(orig)
         rec["churn_prediction"]  = pred.get("churn_prediction", "No")
-        rec["churn_probability"] = pred.get("churn_probability", 0.0)
-        rec["risk_level"]        = pred.get("risk_level", "Low")
+        prob = pred.get("churn_probability", 0.0)
+        rec["churn_probability"] = prob
+        risk = pred.get("risk_level", "Low")
+        rec["risk_level"]        = risk
+        try:
+            mc = float(orig.get("MonthlyCharges", 0.0) or 0.0)
+        except (ValueError, TypeError):
+            mc = 0.0
+        rec["expected_monthly_loss"] = round(mc * (prob / 100.0), 2)
+        rec["annual_revenue_at_risk"] = round(mc * 12.0, 2) if risk == "High" else 0.0
         results.append(rec)
 
     if risk_level != "All":

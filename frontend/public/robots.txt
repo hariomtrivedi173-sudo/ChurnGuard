@@ -1,0 +1,25 @@
+# ChurnGuard Crawl Directives
+User-agent: *
+
+# Public marketing and authentication pages
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /verify-otp
+Allow: /reset-password
+
+# Private tenant application workspaces
+Disallow: /dashboard
+Disallow: /customers
+Disallow: /predict
+Disallow: /predictions
+Disallow: /settings
+Disallow: /reports
+Disallow: /analytics
+Disallow: /upload
+Disallow: /datasets
+Disallow: /dataset-management
+Disallow: /segments
+Disallow: /api/
+Disallow: /uploads/
+

@@ -9,6 +9,7 @@ import {
 import { useSidebar } from './useSidebar'
 import ChurnGuardLogo from './ChurnGuardLogo'
 import { clearAuth } from '../utils/auth'
+import { logoutUser } from '../api/auth'
 import { t, getActiveLanguage } from '../utils/formatters'
 
 const navMenu = [
@@ -43,7 +44,8 @@ function Sidebar() {
     }
   }, [])
 
-  function handleConfirmLogout() {
+  async function handleConfirmLogout() {
+    await logoutUser()
     clearAuth()
     setShowLogoutModal(false)
     if (isMobileOpen) closeMobileSidebar()

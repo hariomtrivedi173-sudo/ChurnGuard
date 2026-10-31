@@ -15,6 +15,7 @@ import Settings from './pages/Settings'
 import ProtectedRoute from './components/ProtectedRoute'
 import VerifyOTP from './pages/VerifyOTP'
 import ResetPassword from './pages/ResetPassword'
+import NotFound from './pages/NotFound'
 import { SidebarProvider } from './components/SidebarProvider'
 import { ThemeProvider } from './components/ThemeProvider'
 
@@ -52,7 +53,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/verify-otp" element={<VerifyOTP />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="*" element={<Login />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </SidebarProvider>
     </BrowserRouter>

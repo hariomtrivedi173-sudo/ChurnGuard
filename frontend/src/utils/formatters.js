@@ -154,3 +154,6 @@ export function formatCurrency(val, currencyCode = null) {
   if (num >= 1_000)         return `${curr.symbol}${(num / 1_000).toFixed(1)}K`
   return `${curr.symbol}${Math.round(num).toLocaleString(curr.locale)}`
 }
+
+export const formatMoney = formatCurrency
+
