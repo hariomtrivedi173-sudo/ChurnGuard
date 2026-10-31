@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   Search, Plus, Sun, Moon, Bell, Settings, LogOut, X,
   CheckCircle2, Info, ShieldAlert, Trash2, Menu,
@@ -16,25 +17,9 @@ import { useSidebar } from './useSidebar'
 import { useTheme } from './useTheme'
 import { clearAuth } from '../utils/auth'
 import { logoutUser } from '../api/auth'
+import { formatRelativeTime } from '../utils/formatters'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
-
-function formatRelativeTime(isoString) {
-  if (!isoString) return ''
-  try {
-    const diffMs = Date.now() - new Date(isoString).getTime()
-    const diffSec = Math.floor(diffMs / 1000)
-    if (diffSec < 60) return 'Just now'
-    const diffMin = Math.floor(diffSec / 60)
-    if (diffMin < 60) return `${diffMin}m ago`
-    const diffHr = Math.floor(diffMin / 60)
-    if (diffHr < 24) return `${diffHr}h ago`
-    const diffDays = Math.floor(diffHr / 24)
-    return `${diffDays}d ago`
-  } catch {
-    return ''
-  }
-}
 
 function Header({
   title = "Dashboard",
@@ -52,6 +37,7 @@ function Header({
   onSearchChange = null,
 }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { openMobileSidebar } = useSidebar()
   const { theme, toggleTheme } = useTheme()
 
@@ -297,7 +283,7 @@ function Header({
     setUnreadCount(0)
     setShowLogoutModal(false)
     setShowProfileMenu(false)
-    toast.success('You have been logged out.')
+    toast.success(t('settings.toasts.loggedOut'))
     navigate('/login')
   }
 
@@ -323,7 +309,7 @@ function Header({
           type="button"
           onClick={openMobileSidebar}
           className="mobile-menu-btn"
-          aria-label="Open sidebar menu"
+          aria-label={t('header.openSidebarMenu')}
         >
           <Menu size={20} />
         </button>
@@ -340,7 +326,7 @@ function Header({
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Search telemetry, customers, pages..."
+            placeholder={t('header.searchPlaceholder')}
             value={onSearchChange ? searchQuery : localSearch}
             onChange={(e) => {
               setLocalSearch(e.target.value)
@@ -354,7 +340,7 @@ function Header({
             }}
             onKeyDown={handleSearchKeyDown}
             className="navbar-search-input"
-            aria-label="Search telemetry, customers and pages"
+            aria-label={t('header.searchAria')}
             aria-expanded={isSearchOpen}
             aria-autocomplete="list"
             role="combobox"
@@ -365,9 +351,9 @@ function Header({
           {isSearchOpen && (
             <div className="search-suggestions-dropdown" role="listbox">
               <div className="search-suggestions-header">
-                <span>{localSearch.trim() ? 'Matching Results' : 'Suggested Pages & Actions'}</span>
+                <span>{localSearch.trim() ? t('header.matchingResults') : t('header.suggestedPages')}</span>
                 <span className="search-suggestions-count">
-                  {filteredSuggestions.length} {filteredSuggestions.length === 1 ? 'item' : 'items'}
+                  {t('header.itemsCount', { count: filteredSuggestions.length })}
                 </span>
               </div>
 
@@ -404,9 +390,9 @@ function Header({
                 ) : (
                   <div className="search-suggestions-empty">
                     <SearchX size={26} className="search-empty-icon" />
-                    <p className="search-empty-title">No results found</p>
+                    <p className="search-empty-title">{t('header.noResultsFound')}</p>
                     <p className="search-empty-sub">
-                      No matches found for &ldquo;<span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{localSearch}</span>&rdquo;. Try searching for <em>dashboard</em>, <em>customers</em>, or <em>predict</em>.
+                      {t('header.noResultsDesc')}
                     </p>
                   </div>
                 )}
@@ -414,9 +400,9 @@ function Header({
 
               <div className="search-suggestions-footer">
                 <div className="search-footer-hint">
-                  <kbd>↑</kbd><kbd>↓</kbd> <span>navigate</span>
-                  <kbd>↵</kbd> <span>select</span>
-                  <kbd>esc</kbd> <span>close</span>
+                  <kbd>↑</kbd><kbd>↓</kbd> <span>{t('header.navHintNavigate')}</span>
+                  <kbd>↵</kbd> <span>{t('header.navHintSelect')}</span>
+                  <kbd>esc</kbd> <span>{t('header.navHintClose')}</span>
                 </div>
               </div>
             </div>
@@ -436,10 +422,10 @@ function Header({
           type="button"
           onClick={() => navigate('/predict')}
           className="btn-primary navbar-action-primary"
-          title="Create a new customer churn prediction"
+          title={t('header.newPredictionTitle')}
         >
           <Plus size={16} />
-          <span>New Prediction</span>
+          <span>{t('header.newPrediction')}</span>
         </button>
 
         {/* SECONDARY ACTION: Run Analysis */}
@@ -449,17 +435,17 @@ function Header({
             onClick={handleRunAnalysisClick}
             disabled={effectiveAnalyzing || !hasData}
             className="navbar-action-secondary"
-            title={!hasData ? 'Upload a dataset first' : 'Run batch ML churn analysis'}
+            title={!hasData ? t('header.uploadDatasetFirst') : t('header.runAnalysisTitle')}
           >
             {effectiveAnalyzing ? (
               <>
                 <div className="btn-spinner" />
-                <span>Analyzing…</span>
+                <span>{t('header.analyzing')}</span>
               </>
             ) : (
               <>
                 <Zap size={15} />
-                <span>Run Analysis</span>
+                <span>{t('header.runAnalysis')}</span>
               </>
             )}
           </button>
@@ -471,8 +457,8 @@ function Header({
           onClick={handleRefreshClick}
           disabled={effectiveRefreshing}
           className="navbar-icon-btn refresh-btn"
-          title="Refresh dashboard data"
-          aria-label="Refresh dashboard data"
+          title={t('header.refreshTitle')}
+          aria-label={t('header.refreshAria')}
         >
           <RefreshCw size={16} className={effectiveRefreshing ? 'spin-animation' : ''} />
         </button>
@@ -486,8 +472,8 @@ function Header({
           type="button"
           onClick={toggleTheme}
           className="navbar-icon-btn theme-btn"
-          title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-          aria-label={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          title={theme === 'light' ? t('header.themeDarkTitle') : t('header.themeLightTitle')}
+          aria-label={theme === 'light' ? t('header.themeDarkTitle') : t('header.themeLightTitle')}
           aria-pressed={theme === 'dark'}
         >
           {theme === 'light' ? (
@@ -507,13 +493,13 @@ function Header({
               if (!showNotifications) loadNotifs()
             }}
             className="navbar-icon-btn notif-btn"
-            title="Notifications"
-            aria-label="Notifications"
+            title={t('header.notificationsTitle')}
+            aria-label={t('header.notificationsTitle')}
             aria-expanded={showNotifications}
           >
             <Bell size={17} />
             {unreadCount > 0 && (
-              <span id="notifications-badge" className="notif-badge" aria-label={`${unreadCount} unread notifications`}>
+              <span id="notifications-badge" className="notif-badge" aria-label={t('header.unreadBadgeAria', { count: unreadCount })}>
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -525,19 +511,19 @@ function Header({
               id="notifications-panel"
               className="notification-drawer"
               role="region"
-              aria-label="Notification drawer"
+              aria-label={t('header.notificationsTitle')}
             >
               {/* Drawer Header */}
               <div className="drawer-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="drawer-title">Notifications</span>
+                  <span className="drawer-title">{t('header.notificationsTitle')}</span>
                   {unreadCount > 0 ? (
                     <span className="badge badge-red" style={{ fontSize: '10px' }}>
-                      {unreadCount} unread
+                      {t('header.unreadCount', { count: unreadCount })}
                     </span>
                   ) : notifications.length > 0 ? (
                     <span className="badge badge-green" style={{ fontSize: '10px' }}>
-                      All caught up
+                      {t('header.allCaughtUp')}
                     </span>
                   ) : null}
                 </div>
@@ -548,9 +534,9 @@ function Header({
                       type="button"
                       onClick={handleMarkAllRead}
                       className="drawer-text-action"
-                      title="Mark all notifications as read"
+                      title={t('header.markAllRead')}
                     >
-                      Mark all read
+                      {t('header.markAllRead')}
                     </button>
                   )}
                   {notifications.length > 0 && (
@@ -559,8 +545,8 @@ function Header({
                       type="button"
                       onClick={() => setShowClearModal(true)}
                       className="drawer-icon-action danger-action"
-                      title="Clear all notifications"
-                      aria-label="Clear all notifications"
+                      title={t('header.clearAll')}
+                      aria-label={t('header.clearAll')}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -570,8 +556,8 @@ function Header({
                     type="button"
                     onClick={() => setShowNotifications(false)}
                     className="drawer-icon-action"
-                    title="Close notifications"
-                    aria-label="Close notifications"
+                    title={t('header.closeNotifications')}
+                    aria-label={t('header.closeNotifications')}
                   >
                     <X size={16} />
                   </button>
@@ -582,7 +568,7 @@ function Header({
               <div className="drawer-list">
                 {loadingNotifs ? (
                   <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
-                    Loading notifications…
+                    {t('header.loadingNotifications')}
                   </div>
                 ) : notifications.length === 0 ? (
                   <div className="drawer-empty-state">
@@ -590,10 +576,10 @@ function Header({
                       <Bell size={22} />
                     </div>
                     <p className="drawer-empty-title">
-                      No notifications
+                      {t('header.noNotifications')}
                     </p>
                     <p className="drawer-empty-sub">
-                      You are all caught up!
+                      {t('header.noNotificationsDesc')}
                     </p>
                   </div>
                 ) : (
@@ -613,7 +599,7 @@ function Header({
                           }
                         }}
                         className={`notification-item ${isUnread ? 'unread' : 'read'}`}
-                        title={isUnread ? 'Click to mark as read' : ''}
+                        title={isUnread ? t('header.clickToMarkRead') : ''}
                       >
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                           {notif.type === 'alert' && (
@@ -661,7 +647,7 @@ function Header({
             onClick={() => setShowProfileMenu(!showProfileMenu)}
             className="navbar-avatar-btn"
             title={displayName}
-            aria-label="User profile menu"
+            aria-label={t('header.userProfileMenu')}
             aria-expanded={showProfileMenu}
           >
             {avatarSrc && !avatarError ? (
@@ -696,7 +682,7 @@ function Header({
                 className="profile-menu-item"
               >
                 <User size={15} />
-                <span>Profile & Account</span>
+                <span>{t('header.profileAndAccount')}</span>
               </button>
 
               <button
@@ -708,7 +694,7 @@ function Header({
                 className="profile-menu-item"
               >
                 <Settings size={15} />
-                <span>Settings</span>
+                <span>{t('header.settings')}</span>
               </button>
 
               <button
@@ -717,7 +703,7 @@ function Header({
                 className="profile-menu-item"
               >
                 {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
-                <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+                <span>{theme === 'light' ? t('header.darkMode') : t('header.lightMode')}</span>
               </button>
 
               <div className="dropdown-divider" />
@@ -731,7 +717,7 @@ function Header({
                 className="profile-menu-item logout-item"
               >
                 <LogOut size={15} />
-                <span>Logout</span>
+                <span>{t('header.logout')}</span>
               </button>
             </div>
           )}
@@ -757,11 +743,11 @@ function Header({
                 <LogOut size={20} />
               </div>
               <h3 id="navbar-logout-dialog-title" style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                Are you sure you want to log out?
+                {t('header.logoutConfirmTitle')}
               </h3>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '24px' }}>
-              You will need to log in again to access your ChurnGuard dashboard and workspace.
+              {t('header.logoutConfirmDesc')}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
@@ -771,7 +757,7 @@ function Header({
                 className="btn-secondary"
                 style={{ fontSize: '13px', padding: '8px 16px' }}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 id="header-logout-confirm-btn"
@@ -779,7 +765,7 @@ function Header({
                 onClick={handleExecuteLogout}
                 className="btn-danger"
               >
-                Log out
+                {t('header.logout')}
               </button>
             </div>
           </div>
@@ -805,11 +791,11 @@ function Header({
                 <Trash2 size={20} />
               </div>
               <h3 id="clear-notifs-dialog-title" style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                Clear all notifications?
+                {t('header.clearModalTitle')}
               </h3>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '24px' }}>
-              This will permanently delete your notification history for this workspace.
+              {t('header.clearModalDesc')}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
@@ -819,7 +805,7 @@ function Header({
                 className="btn-secondary"
                 style={{ fontSize: '13px', padding: '8px 16px' }}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 id="clear-notifs-confirm-btn"
@@ -827,7 +813,7 @@ function Header({
                 onClick={handleConfirmClearAll}
                 className="btn-danger"
               >
-                Clear All
+                {t('common.delete')}
               </button>
             </div>
           </div>

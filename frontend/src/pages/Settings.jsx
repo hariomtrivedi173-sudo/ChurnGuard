@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
 import { useTheme } from '../components/useTheme'
@@ -14,7 +15,8 @@ import {
   Eye, EyeOff, Check, AlertCircle, CheckCircle2, Building2, Phone,
   Mail, Trash2, X, RefreshCw, KeyRound, Sparkles
 } from 'lucide-react'
-import { formatCurrency, t, CURRENCIES } from '../utils/formatters'
+import { formatCurrency, CURRENCIES, LANGUAGES } from '../utils/formatters'
+import { changeAppLanguage } from '../i18n/index.js'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
@@ -79,14 +81,6 @@ const COMPANY_SIZES = [
   '1000+'
 ]
 
-const LANGUAGES = [
-  { code: 'en',    label: 'English (US)' },
-  { code: 'en-GB', label: 'English (UK)' },
-  { code: 'es',    label: 'Spanish (Español)' },
-  { code: 'fr',    label: 'French (Français)' },
-  { code: 'de',    label: 'German (Deutsch)' },
-  { code: 'ja',    label: 'Japanese (日本語)' },
-]
 
 const COUNTRIES = [
   'India',
@@ -111,6 +105,7 @@ function maskEmailHelper(email) {
 }
 
 function Settings() {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState('Profile')
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [savingProfile, setSavingProfile]   = useState(false)
@@ -213,19 +208,18 @@ function Settings() {
   async function handleSaveRegionalPreferences() {
     setSavingRegional(true)
     try {
-      const selectedLang = profile.language || 'en'
+      const selectedLang = profile.language || 'en-US'
       const res = await updateProfile({ language: selectedLang })
       if (res?.profile) {
         localStorage.setItem('user_profile', JSON.stringify(res.profile))
       }
-      localStorage.setItem('app_language', selectedLang)
+      await changeAppLanguage(selectedLang)
       localStorage.setItem('churnguard_currency', regionalSettings.currency)
       localStorage.setItem('churnguard_date_format', regionalSettings.dateFormat)
       localStorage.setItem('churnguard_number_format', regionalSettings.numberFormat)
       window.dispatchEvent(new Event('churnguard_profile_updated'))
       window.dispatchEvent(new Event('churnguard_regional_updated'))
-      const langObj = LANGUAGES.find(l => l.code === selectedLang)
-      toast.success(`Preferences saved: ${langObj?.label || selectedLang} · ${regionalSettings.currency}`)
+      toast.success(t('settings.toasts.preferencesSaved'))
     } catch (err) {
       toast.error(err.message || 'Failed to save preferences')
     } finally {
@@ -435,6 +429,7 @@ function Settings() {
     try {
       const data = await fetchProfile()
       if (data) {
+        const userLang = (data.language === 'en') ? 'en-US' : (data.language || 'en-US')
         setProfile({
           first_name:   data.first_name   || '',
           last_name:    data.last_name    || '',
@@ -447,10 +442,14 @@ function Settings() {
           company_size: data.company_size || '11–50',
           phone:        data.phone        || '',
           country:      data.country      || 'India',
-          language:     data.language     || 'en',
+          language:     userLang,
           photo_url:    data.photo_url    || null
         })
         localStorage.setItem('user_profile', JSON.stringify(data))
+        if (userLang) {
+          localStorage.setItem('app_language', userLang)
+          changeAppLanguage(userLang)
+        }
       }
     } catch {
       const saved = localStorage.getItem('user_profile')
@@ -520,6 +519,11 @@ function Settings() {
       if (res.profile) {
         setProfile({ ...res.profile, photo_url: updatedPhotoUrl || res.profile.photo_url })
         localStorage.setItem('user_profile', JSON.stringify({ ...res.profile, photo_url: updatedPhotoUrl || res.profile.photo_url }))
+      }
+
+      if (cleanData.language) {
+        localStorage.setItem('app_language', cleanData.language)
+        window.dispatchEvent(new Event('churnguard_regional_updated'))
       }
 
       // Broadcast event so Header updates avatar & name immediately
@@ -737,16 +741,16 @@ function Settings() {
       <Sidebar />
       <div className="page-content" style={{ padding: '24px 32px' }}>
 
-        <Header title="Settings" subtitle="Manage your profile, security, and workspace preferences." />
+        <Header title={t('settings.title')} subtitle={t('settings.subtitle')} />
 
         {/* ── Settings Tab Bar ── */}
         <div className="settings-tabs-bar" style={{ marginBottom: '24px' }}>
           {[
-            { id: 'Profile',       label: 'Profile',       icon: User },
-            { id: 'Security',      label: 'Security',      icon: Shield },
-            { id: 'Notifications', label: 'Notifications', icon: Bell },
-            { id: 'Appearance',    label: 'Appearance',    icon: Palette },
-            { id: 'Language',      label: 'Language & Region', icon: Globe },
+            { id: 'Profile',       label: t('settings.tabs.profile'),       icon: User },
+            { id: 'Security',      label: t('settings.tabs.security'),      icon: Shield },
+            { id: 'Notifications', label: t('settings.tabs.notifications'), icon: Bell },
+            { id: 'Appearance',    label: t('settings.tabs.appearance'),    icon: Palette },
+            { id: 'Language',      label: t('settings.tabs.language'),      icon: Globe },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -765,10 +769,10 @@ function Settings() {
             {/* Left Card: Avatar Preview & Management */}
             <div className="settings-card" style={{ padding: '28px 24px', textAlign: 'center' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', textAlign: 'left', marginBottom: '2px' }}>
-                Profile Avatar
+                {t('settings.profile.avatarTitle')}
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--slate-500)', textAlign: 'left', marginBottom: '24px' }}>
-                Your enterprise identity photo
+                {t('settings.profile.avatarSubtitle')}
               </p>
 
               <div style={{
@@ -801,10 +805,10 @@ function Settings() {
 
               <div style={{ marginBottom: '16px' }}>
                 <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {profile.first_name ? `${profile.first_name} ${profile.last_name}` : profile.email || 'User Profile'}
+                  {profile.first_name ? `${profile.first_name} ${profile.last_name}` : profile.email || t('settings.profile.userFallback')}
                 </p>
                 <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginTop: '2px' }}>
-                  {profile.company || 'Enterprise Tenant'} · {profile.role}
+                  {profile.company || t('settings.profile.tenantFallback')} · {profile.role}
                 </p>
               </div>
 
@@ -819,7 +823,7 @@ function Settings() {
                     padding: '8px 16px', fontSize: '12px', width: '100%', justifyContent: 'center'
                   }}
                 >
-                  <UploadCloud size={14} /> {uploadingPhoto ? 'Uploading…' : 'Choose Photo'}
+                  <UploadCloud size={14} /> {uploadingPhoto ? t('settings.profile.uploading') : t('settings.profile.choosePhoto')}
                 </button>
                 <input
                   ref={fileInputRef}
@@ -840,13 +844,13 @@ function Settings() {
                       display: 'flex', alignItems: 'center', gap: '4px', padding: '4px'
                     }}
                   >
-                    <Trash2 size={13} /> Remove Photo
+                    <Trash2 size={13} /> {t('settings.profile.removePhoto')}
                   </button>
                 )}
               </div>
 
               <p style={{ fontSize: '11px', color: 'var(--slate-400)', marginTop: '12px' }}>
-                JPG, PNG, or WEBP under 5 MB
+                {t('settings.profile.photoSpecs')}
               </p>
             </div>
 
@@ -855,15 +859,15 @@ function Settings() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
                   <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '2px' }}>
-                    Personal Information
+                    {t('settings.profile.personalInfoTitle')}
                   </h3>
                   <p style={{ fontSize: '12px', color: 'var(--slate-500)' }}>
-                    Update your account details and organizational profile
+                    {t('settings.profile.personalInfoSubtitle')}
                   </p>
                 </div>
                 {loadingProfile && (
                   <span style={{ fontSize: '12px', color: 'var(--brand)', fontWeight: 600 }}>
-                    Loading profile…
+                    {t('settings.profile.loadingProfile')}
                   </span>
                 )}
               </div>
@@ -877,7 +881,7 @@ function Settings() {
                       display: 'block', fontSize: '12px', fontWeight: 600,
                       color: 'var(--text-secondary)', marginBottom: '6px'
                     }}>
-                      First Name <span style={{ color: '#e11d48' }}>*</span>
+                      {t('settings.profile.firstName')} <span style={{ color: '#e11d48' }}>*</span>
                     </label>
                     <input
                       id="settings-fname"
@@ -889,7 +893,7 @@ function Settings() {
                       onChange={e => setProfile({ ...profile, first_name: e.target.value })}
                       onBlur={() => setTouched(prev => ({ ...prev, first_name: true }))}
                       required
-                      placeholder="First name"
+                      placeholder={t('settings.profile.firstNamePlaceholder')}
                       className="input-base"
                       style={{ borderColor: profileErrors.first_name ? '#f87171' : undefined }}
                       aria-invalid={profileErrors.first_name ? 'true' : 'false'}
@@ -907,7 +911,7 @@ function Settings() {
                       display: 'block', fontSize: '12px', fontWeight: 600,
                       color: 'var(--text-secondary)', marginBottom: '6px'
                     }}>
-                      Last Name
+                      {t('settings.profile.lastName')}
                     </label>
                     <input
                       id="settings-lname"
@@ -918,7 +922,7 @@ function Settings() {
                       onKeyDown={handleNameKeyDown}
                       onChange={e => setProfile({ ...profile, last_name: e.target.value })}
                       onBlur={() => setTouched(prev => ({ ...prev, last_name: true }))}
-                      placeholder="Last name"
+                      placeholder={t('settings.profile.lastNamePlaceholder')}
                       className="input-base"
                       style={{ borderColor: profileErrors.last_name ? '#f87171' : undefined }}
                       aria-invalid={profileErrors.last_name ? 'true' : 'false'}
@@ -939,7 +943,7 @@ function Settings() {
                       display: 'block', fontSize: '12px', fontWeight: 600,
                       color: 'var(--text-secondary)', marginBottom: '6px'
                     }}>
-                      Work Email Address
+                      {t('settings.profile.email')}
                     </label>
                     <div style={{ position: 'relative' }}>
                       <Mail size={15} style={{
@@ -963,7 +967,7 @@ function Settings() {
                       display: 'block', fontSize: '12px', fontWeight: 600,
                       color: 'var(--text-secondary)', marginBottom: '6px'
                     }}>
-                      Mobile Number (10 digits)
+                      {t('settings.profile.phone')}
                     </label>
                     <div style={{ position: 'relative' }}>
                       <Phone size={15} style={{
@@ -978,7 +982,7 @@ function Settings() {
                         onPaste={handlePhonePaste}
                         onChange={e => setProfile({ ...profile, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                         onBlur={() => setTouched(prev => ({ ...prev, phone: true }))}
-                        placeholder="9876543210"
+                        placeholder={t('settings.profile.phonePlaceholder')}
                         className="input-base"
                         style={{
                           paddingLeft: '38px',
@@ -1003,7 +1007,7 @@ function Settings() {
                       display: 'block', fontSize: '12px', fontWeight: 600,
                       color: 'var(--text-secondary)', marginBottom: '6px'
                     }}>
-                      Company / Organisation
+                      {t('settings.profile.company')}
                     </label>
                     <div style={{ position: 'relative' }}>
                       <Building2 size={15} style={{
@@ -1015,7 +1019,7 @@ function Settings() {
                         type="text"
                         value={profile.company}
                         onChange={e => setProfile({ ...profile, company: e.target.value })}
-                        placeholder="Company name"
+                        placeholder={t('settings.profile.companyPlaceholder')}
                         className="input-base"
                         style={{ paddingLeft: '38px' }}
                       />
@@ -1027,7 +1031,7 @@ function Settings() {
                       display: 'block', fontSize: '12px', fontWeight: 600,
                       color: 'var(--text-secondary)', marginBottom: '6px'
                     }}>
-                      Role <span style={{ color: '#e11d48' }}>*</span>
+                      {t('settings.profile.role')} <span style={{ color: '#e11d48' }}>*</span>
                     </label>
                     <select
                       id="settings-role"
@@ -1049,7 +1053,7 @@ function Settings() {
                       display: 'block', fontSize: '12px', fontWeight: 600,
                       color: 'var(--text-secondary)', marginBottom: '6px'
                     }}>
-                      Company Type
+                      {t('settings.profile.companyType')}
                     </label>
                     <select
                       id="settings-company-type"
@@ -1068,7 +1072,7 @@ function Settings() {
                       display: 'block', fontSize: '12px', fontWeight: 600,
                       color: 'var(--text-secondary)', marginBottom: '6px'
                     }}>
-                      Industry
+                      {t('settings.profile.industry')}
                     </label>
                     <select
                       id="settings-industry"
@@ -1090,7 +1094,7 @@ function Settings() {
                       display: 'block', fontSize: '12px', fontWeight: 600,
                       color: 'var(--text-secondary)', marginBottom: '6px'
                     }}>
-                      Department
+                      {t('settings.profile.department')}
                     </label>
                     <select
                       id="settings-dept"
@@ -1109,7 +1113,7 @@ function Settings() {
                       display: 'block', fontSize: '12px', fontWeight: 600,
                       color: 'var(--text-secondary)', marginBottom: '6px'
                     }}>
-                      Company Size
+                      {t('settings.profile.companySize')}
                     </label>
                     <select
                       id="settings-size"
@@ -1131,7 +1135,7 @@ function Settings() {
                       display: 'block', fontSize: '12px', fontWeight: 600,
                       color: 'var(--text-secondary)', marginBottom: '6px'
                     }}>
-                      Country
+                      {t('settings.profile.country')}
                     </label>
                     <select
                       id="settings-country"
@@ -1150,12 +1154,16 @@ function Settings() {
                       display: 'block', fontSize: '12px', fontWeight: 600,
                       color: 'var(--text-secondary)', marginBottom: '6px'
                     }}>
-                      Language Preference
+                      {t('settings.language.interfaceLanguage')}
                     </label>
                     <select
                       id="settings-lang"
-                      value={profile.language || 'en'}
-                      onChange={e => setProfile({ ...profile, language: e.target.value })}
+                      value={profile.language || 'en-US'}
+                      onChange={e => {
+                        const newLang = e.target.value
+                        setProfile(prev => ({ ...prev, language: newLang }))
+                        changeAppLanguage(newLang)
+                      }}
                       className="input-base"
                     >
                       {LANGUAGES.map(l => (
@@ -1163,7 +1171,7 @@ function Settings() {
                       ))}
                     </select>
                     <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', margin: '4px 0 0' }}>
-                      Synchronized with your MongoDB enterprise profile.
+                      {t('settings.language.interfaceLanguageHint')}
                     </p>
                   </div>
                 </div>
@@ -1178,7 +1186,7 @@ function Settings() {
                       opacity: savingProfile ? 0.7 : 1, cursor: savingProfile ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    <Save size={15} /> {savingProfile ? 'Saving Changes…' : 'Save Changes'}
+                    <Save size={15} /> {savingProfile ? t('settings.profile.savingProfile') : t('settings.profile.saveProfile')}
                   </button>
                 </div>
 
@@ -1200,11 +1208,11 @@ function Settings() {
                 <Lock size={18} />
               </div>
               <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                Password & Security
+                {t('settings.security.title')}
               </h3>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--slate-500)', marginBottom: '24px' }}>
-              Update your account password via single-use email verification
+              {t('settings.security.subtitle')}
             </p>
 
             {passwordSuccessMsg && (
@@ -1255,7 +1263,7 @@ function Settings() {
                   display: 'block', fontSize: '12px', fontWeight: 600,
                   color: 'var(--text-secondary)', marginBottom: '6px'
                 }}>
-                  Current Password <span style={{ color: '#e11d48' }}>*</span>
+                  {t('settings.security.currentPassword')} <span style={{ color: '#e11d48' }}>*</span>
                 </label>
                 <div style={{ position: 'relative' }}>
                   <Lock size={16} style={{
@@ -1272,7 +1280,7 @@ function Settings() {
                       if (passwordSuccessMsg) setPasswordSuccessMsg('')
                     }}
                     onBlur={() => setPwTouched(prev => ({ ...prev, currentPassword: true }))}
-                    placeholder="Enter current password"
+                    placeholder={t('settings.security.currentPasswordPlaceholder')}
                     className="input-base"
                     style={{
                       paddingLeft: '40px', paddingRight: '40px',
@@ -1283,7 +1291,7 @@ function Settings() {
                   <button
                     type="button"
                     onClick={() => setShowCurrentPw(!showCurrentPw)}
-                    aria-label={showCurrentPw ? 'Hide password' : 'Show password'}
+                    aria-label={showCurrentPw ? t('settings.security.hidePassword') : t('settings.security.showPassword')}
                     style={{
                       position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
                       background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)',
@@ -1317,7 +1325,7 @@ function Settings() {
                     onMouseEnter={e => e.target.style.textDecoration = 'underline'}
                     onMouseLeave={e => e.target.style.textDecoration = 'none'}
                   >
-                    {sendingForgotLink ? 'Sending reset link…' : 'Forgot current password?'}
+                    {sendingForgotLink ? t('settings.security.sendingResetLink') : t('settings.security.forgotCurrentPassword')}
                   </button>
                 </div>
               </div>
@@ -1328,7 +1336,7 @@ function Settings() {
                   display: 'block', fontSize: '12px', fontWeight: 600,
                   color: 'var(--text-secondary)', marginBottom: '6px'
                 }}>
-                  New Password <span style={{ color: '#e11d48' }}>*</span>
+                  {t('settings.security.newPassword')} <span style={{ color: '#e11d48' }}>*</span>
                 </label>
                 <div style={{ position: 'relative' }}>
                   <Lock size={16} style={{
@@ -1345,7 +1353,7 @@ function Settings() {
                       if (passwordSuccessMsg) setPasswordSuccessMsg('')
                     }}
                     onBlur={() => setPwTouched(prev => ({ ...prev, newPassword: true }))}
-                    placeholder="8–72 characters"
+                    placeholder={t('settings.security.newPasswordPlaceholder')}
                     className="input-base"
                     style={{
                       paddingLeft: '40px', paddingRight: '40px',
@@ -1356,7 +1364,7 @@ function Settings() {
                   <button
                     type="button"
                     onClick={() => setShowNewPw(!showNewPw)}
-                    aria-label={showNewPw ? 'Hide password' : 'Show password'}
+                    aria-label={showNewPw ? t('settings.security.hidePassword') : t('settings.security.showPassword')}
                     style={{
                       position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
                       background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)',
@@ -1373,24 +1381,24 @@ function Settings() {
                   padding: '12px 14px', marginTop: '8px', border: '1px solid var(--slate-200)'
                 }}>
                   <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--slate-500)', marginBottom: '6px' }}>
-                    Password Complexity Requirements:
+                    {t('settings.security.requirementsTitle')}
                   </p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '11px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordCriteria.length ? '#16a34a' : 'var(--slate-400)' }}>
                       {passwordCriteria.length ? <Check size={12} strokeWidth={3} /> : <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px solid currentColor', display: 'inline-block' }} />}
-                      <span>8–72 characters</span>
+                      <span>{t('settings.security.reqLength')}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordCriteria.hasUpper ? '#16a34a' : 'var(--slate-400)' }}>
                       {passwordCriteria.hasUpper ? <Check size={12} strokeWidth={3} /> : <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px solid currentColor', display: 'inline-block' }} />}
-                      <span>1+ Uppercase (A-Z)</span>
+                      <span>{t('settings.security.reqUpper')}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordCriteria.hasLower ? '#16a34a' : 'var(--slate-400)' }}>
                       {passwordCriteria.hasLower ? <Check size={12} strokeWidth={3} /> : <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px solid currentColor', display: 'inline-block' }} />}
-                      <span>1+ Lowercase (a-z)</span>
+                      <span>{t('settings.security.reqLower')}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordCriteria.hasNumber ? '#16a34a' : 'var(--slate-400)' }}>
                       {passwordCriteria.hasNumber ? <Check size={12} strokeWidth={3} /> : <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px solid currentColor', display: 'inline-block' }} />}
-                      <span>1+ Number (0-9)</span>
+                      <span>{t('settings.security.reqNumber')}</span>
                     </div>
                   </div>
                 </div>
@@ -1402,7 +1410,7 @@ function Settings() {
                   display: 'block', fontSize: '12px', fontWeight: 600,
                   color: 'var(--text-secondary)', marginBottom: '6px'
                 }}>
-                  Confirm New Password <span style={{ color: '#e11d48' }}>*</span>
+                  {t('settings.security.confirmPassword')} <span style={{ color: '#e11d48' }}>*</span>
                 </label>
                 <div style={{ position: 'relative' }}>
                   <Lock size={16} style={{
@@ -1419,7 +1427,7 @@ function Settings() {
                       if (passwordSuccessMsg) setPasswordSuccessMsg('')
                     }}
                     onBlur={() => setPwTouched(prev => ({ ...prev, confirmPassword: true }))}
-                    placeholder="Re-enter new password"
+                    placeholder={t('settings.security.confirmPasswordPlaceholder')}
                     className="input-base"
                     style={{
                       paddingLeft: '40px', paddingRight: '40px',
@@ -1430,7 +1438,7 @@ function Settings() {
                   <button
                     type="button"
                     onClick={() => setShowConfirmPw(!showConfirmPw)}
-                    aria-label={showConfirmPw ? 'Hide password' : 'Show password'}
+                    aria-label={showConfirmPw ? t('settings.security.hidePassword') : t('settings.security.showPassword')}
                     style={{
                       position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
                       background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)',
@@ -1457,7 +1465,7 @@ function Settings() {
                     opacity: requestingOtp ? 0.7 : 1, cursor: requestingOtp ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  <Shield size={15} /> {requestingOtp ? 'Sending Verification Code…' : 'Send Verification Code'}
+                  <Shield size={15} /> {requestingOtp ? t('settings.security.sendingVerificationCode') : t('settings.security.sendVerificationCode')}
                 </button>
               </div>
 
@@ -1469,44 +1477,48 @@ function Settings() {
         {activeTab === 'Notifications' && (
           <div className="settings-card" style={{ padding: '28px 32px', maxWidth: '720px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '2px' }}>
-              Notification Preferences
+              {t('settings.notifications.title')}
             </h3>
             <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginBottom: '24px' }}>
-              Choose what telemetry alerts and operational digests you want to receive
+              {t('settings.notifications.subtitle')}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {[
-                { key: 'highRiskAlert',  title: 'High-risk churn alerts', sub: 'Receive instant alerts when an account churn probability exceeds 80%.' },
-                { key: 'weeklyDigest',   title: 'Weekly retention digest', sub: 'Comprehensive summary of customer retention metrics every Monday morning.' },
-                { key: 'reportReady',    title: 'Report generation alerts', sub: 'Notification when an executive batch analysis or CSV export completes.' },
-                { key: 'productUpdates', title: 'Product & ML updates', sub: 'Receive notifications when new ML models and retention playbooks are released.' },
-                { key: 'securityAlerts', title: 'Security & Access events', sub: 'Immediate alerts on new workspace logins and credential modifications.' },
-              ].map((item) => (
-                <div key={item.key} style={{
+                'highRiskAlert',
+                'weeklyDigest',
+                'reportReady',
+                'productUpdates',
+                'securityAlerts',
+              ].map((key) => (
+                <div key={key} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '16px 20px', background: 'var(--surface-muted)', borderRadius: '12px',
                   border: '1px solid var(--border)'
                 }}>
                   <div>
-                    <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{item.title}</p>
-                    <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginTop: '3px', margin: '3px 0 0 0' }}>{item.sub}</p>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                      {t(`settings.notifications.${key}.title`)}
+                    </p>
+                    <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginTop: '3px', margin: '3px 0 0 0' }}>
+                      {t(`settings.notifications.${key}.sub`)}
+                    </p>
                   </div>
                   
                   <div
-                    onClick={() => toggleNotification(item.key)}
+                    onClick={() => toggleNotification(key)}
                     role="switch"
-                    aria-checked={notifications[item.key]}
+                    aria-checked={notifications[key]}
                     style={{
                       width: '44px', height: '24px', borderRadius: '99px',
-                      background: notifications[item.key] ? 'var(--brand)' : 'var(--slate-300)',
+                      background: notifications[key] ? 'var(--brand)' : 'var(--slate-300)',
                       padding: '2px', cursor: 'pointer', transition: 'background 200ms ease',
                       display: 'flex', alignItems: 'center', flexShrink: 0
                     }}
                   >
                     <div style={{
                       width: '20px', height: '20px', borderRadius: '50%', background: '#ffffff',
-                      transform: notifications[item.key] ? 'translateX(20px)' : 'translateX(0)',
+                      transform: notifications[key] ? 'translateX(20px)' : 'translateX(0)',
                       transition: 'transform 200ms ease', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
                     }} />
                   </div>
@@ -1520,10 +1532,10 @@ function Settings() {
         {activeTab === 'Appearance' && (
           <div className="settings-card" style={{ padding: '28px 32px', maxWidth: '640px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '2px' }}>
-              Theme Appearance
+              {t('settings.appearance.title')}
             </h3>
             <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginBottom: '24px' }}>
-              Customize application theme and contrast mode
+              {t('settings.appearance.subtitle')}
             </p>
 
             <div className="settings-grid-2col">
@@ -1537,9 +1549,17 @@ function Settings() {
                   transition: 'all 150ms ease'
                 }}
               >
-                <p style={{ fontSize: '15px', fontWeight: 800, color: '#000000', margin: 0 }}>Light Mode ☀️</p>
-                <p style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>Clean Slate neutral theme</p>
-                {currentTheme === 'light' && <span className="badge badge-green" style={{ marginTop: '12px' }}>Active</span>}
+                <p style={{ fontSize: '15px', fontWeight: 800, color: '#000000', margin: 0 }}>
+                  {t('settings.appearance.lightModeTitle')}
+                </p>
+                <p style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>
+                  {t('settings.appearance.lightModeSub')}
+                </p>
+                {currentTheme === 'light' && (
+                  <span className="badge badge-green" style={{ marginTop: '12px' }}>
+                    {t('settings.appearance.activeBadge')}
+                  </span>
+                )}
               </div>
 
               <div
@@ -1552,9 +1572,17 @@ function Settings() {
                   transition: 'all 150ms ease'
                 }}
               >
-                <p style={{ fontSize: '15px', fontWeight: 800, color: '#F8FAFC', margin: 0 }}>Dark Mode 🌙</p>
-                <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>Deep Slate dark theme</p>
-                {currentTheme === 'dark' && <span className="badge badge-green" style={{ marginTop: '12px' }}>Active</span>}
+                <p style={{ fontSize: '15px', fontWeight: 800, color: '#F8FAFC', margin: 0 }}>
+                  {t('settings.appearance.darkModeTitle')}
+                </p>
+                <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>
+                  {t('settings.appearance.darkModeSub')}
+                </p>
+                {currentTheme === 'dark' && (
+                  <span className="badge badge-green" style={{ marginTop: '12px' }}>
+                    {t('settings.appearance.activeBadge')}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -1565,14 +1593,14 @@ function Settings() {
           <div className="settings-card" style={{ padding: '28px 32px', maxWidth: '640px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                Language & Regional Preferences
+                {t('settings.language.title')}
               </h3>
               <span className="badge badge-slate" style={{ fontSize: '10px' }}>
-                Account Synced
+                {t('settings.language.badge')}
               </span>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--slate-500)', marginBottom: '24px' }}>
-              Select your interface language and reporting currency. These settings dynamically update navigation, metrics, and financials across the platform.
+              {t('settings.language.subtitle')}
             </p>
 
             {/* 2 Focused, Logical Options */}
@@ -1583,21 +1611,25 @@ function Settings() {
                   display: 'block', fontSize: '12px', fontWeight: 600,
                   color: 'var(--text-secondary)', marginBottom: '6px'
                 }}>
-                  Interface Language
+                  {t('settings.language.interfaceLanguage')}
                 </label>
                 <select
                   id="settings-language-select"
                   className="input-base"
                   style={{ width: '100%' }}
-                  value={profile.language || 'en'}
-                  onChange={e => setProfile(prev => ({ ...prev, language: e.target.value }))}
+                  value={profile.language || 'en-US'}
+                  onChange={e => {
+                    const newLang = e.target.value
+                    setProfile(prev => ({ ...prev, language: newLang }))
+                    changeAppLanguage(newLang)
+                  }}
                 >
                   {LANGUAGES.map(l => (
                     <option key={l.code} value={l.code}>{l.label}</option>
                   ))}
                 </select>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '4px 0 0' }}>
-                  Translates sidebar, metrics & badges
+                  {t('settings.language.interfaceLanguageHint')}
                 </p>
               </div>
 
@@ -1607,7 +1639,7 @@ function Settings() {
                   display: 'block', fontSize: '12px', fontWeight: 600,
                   color: 'var(--text-secondary)', marginBottom: '6px'
                 }}>
-                  Reporting Currency
+                  {t('settings.language.reportingCurrency')}
                 </label>
                 <select
                   id="settings-currency-select"
@@ -1621,7 +1653,7 @@ function Settings() {
                   ))}
                 </select>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '4px 0 0' }}>
-                  Applies to MRR, spend & financial analytics
+                  {t('settings.language.reportingCurrencyHint')}
                 </p>
               </div>
             </div>
@@ -1638,17 +1670,17 @@ function Settings() {
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--brand)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Sparkles size={13} /> Live Dynamic Preview
+                  <Sparkles size={13} /> {t('settings.language.livePreviewTitle')}
                 </span>
                 <span className="badge badge-green" style={{ fontSize: '10px' }}>
-                  {t('activeAccounts', profile.language || 'en')}: 1,420
+                  {t('settings.language.activeAccountsSample')}
                 </span>
               </div>
 
               <div className="settings-grid-2col" style={{ gap: '12px' }}>
                 <div style={{ background: 'var(--surface)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
                   <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>
-                    {t('monthlyRevenue', profile.language || 'en')}
+                    {t('settings.language.mrrSample')}
                   </p>
                   <p style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 0' }}>
                     {formatCurrency(54200, regionalSettings.currency)}
@@ -1657,14 +1689,14 @@ function Settings() {
 
                 <div style={{ background: 'var(--surface)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
                   <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>
-                    Sample Customer Churn Risk
+                    {t('settings.language.churnRiskSample')}
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
                     <span className="badge badge-red" style={{ fontSize: '11px' }}>
-                      ● {t('highRisk', profile.language || 'en')}
+                      {t('settings.language.highRiskSampleBadge')}
                     </span>
                     <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {formatCurrency(120, regionalSettings.currency)}/mo
+                      {formatCurrency(120, regionalSettings.currency)}{t('settings.language.perMonth')}
                     </span>
                   </div>
                 </div>
@@ -1681,7 +1713,7 @@ function Settings() {
                 className="btn-primary"
                 style={{ padding: '10px 22px', fontSize: '13px', fontWeight: 700, opacity: savingRegional ? 0.7 : 1 }}
               >
-                {savingRegional ? 'Saving...' : 'Save Preferences'}
+                {savingRegional ? t('settings.language.savingPreferences') : t('settings.language.savePreferences')}
               </button>
             </div>
 
@@ -1700,10 +1732,10 @@ function Settings() {
               <Globe size={18} color="var(--brand)" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
                 <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                  Regional Localization Active
+                  {t('settings.language.syncTitle')}
                 </p>
                 <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 0', lineHeight: 1.5 }}>
-                  Preferences are synchronized with your enterprise profile in MongoDB. Dates, analytics currencies, and numerical metrics across dashboards adapt to your regional settings.
+                  {t('settings.language.syncDesc')}
                 </p>
               </div>
             </div>
@@ -1738,11 +1770,11 @@ function Settings() {
                 <Trash2 size={20} />
               </div>
               <h3 id="remove-photo-title" style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                Remove profile photo?
+                {t('settings.profile.removePhotoModalTitle')}
               </h3>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--slate-500)', lineHeight: 1.5, marginBottom: '24px' }}>
-              This will revert your avatar to standard user initials across your dashboard and header.
+              {t('settings.profile.removePhotoModalDesc')}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
@@ -1751,7 +1783,7 @@ function Settings() {
                 className="btn-secondary"
                 style={{ fontSize: '13px', padding: '8px 16px' }}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -1762,7 +1794,7 @@ function Settings() {
                   padding: '8px 18px', cursor: 'pointer'
                 }}
               >
-                Remove Photo
+                {t('settings.profile.removePhotoConfirm')}
               </button>
             </div>
           </div>
@@ -1799,10 +1831,10 @@ function Settings() {
                 </div>
                 <div>
                   <h3 id="otp-modal-title" style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                    Verify Your Identity
+                    {t('settings.security.otpModalTitle')}
                   </h3>
                   <span className="badge badge-slate" style={{ marginTop: '4px' }}>
-                    Password Change OTP
+                    {t('settings.security.otpModalBadge')}
                   </span>
                 </div>
               </div>
@@ -1823,11 +1855,7 @@ function Settings() {
 
             {/* Subtitle with Masked Email */}
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
-              We sent a 6-digit verification code to your registered email{' '}
-              <strong style={{ color: 'var(--brand)', background: 'var(--surface-muted)', padding: '2px 8px', borderRadius: '6px', wordBreak: 'break-all' }}>
-                {maskedEmail || 'your email'}
-              </strong>.
-              Please enter the code below to complete your password change.
+              {t('settings.security.otpModalSubtitle', { email: maskedEmail || 'your email' })}
             </p>
 
             {/* Modal Inline Error Alert */}
@@ -1887,9 +1915,7 @@ function Settings() {
               }}>
                 {resendCooldown > 0 ? (
                   <span>
-                    Resend code in <strong style={{ color: 'var(--text-primary)' }}>
-                      00:{resendCooldown < 10 ? `0${resendCooldown}` : resendCooldown}
-                    </strong>
+                    {t('settings.security.resendIn', { time: '00:' + (resendCooldown < 10 ? '0' + resendCooldown : resendCooldown) })}
                   </span>
                 ) : (
                   <button
@@ -1903,7 +1929,7 @@ function Settings() {
                     }}
                   >
                     <RefreshCw size={13} style={{ animation: resendingOtp ? 'spin 1s linear infinite' : 'none' }} />
-                    {resendingOtp ? 'Resending Code…' : 'Resend Verification Code'}
+                    {resendingOtp ? t('settings.security.resendingCode') : t('settings.security.resendCode')}
                   </button>
                 )}
               </div>
@@ -1917,7 +1943,7 @@ function Settings() {
                   className="btn-secondary"
                   style={{ fontSize: '13px', padding: '9px 18px' }}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -1930,7 +1956,7 @@ function Settings() {
                   }}
                 >
                   <CheckCircle2 size={15} />
-                  {verifyingOtp ? 'Updating Password…' : 'Confirm & Update Password'}
+                  {verifyingOtp ? t('settings.security.updatingPassword') : t('settings.security.confirmUpdatePassword')}
                 </button>
               </div>
             </form>

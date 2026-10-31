@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import {
   LayoutDashboard, Users, Zap, UploadCloud, BarChart2, FileText,
@@ -10,7 +11,6 @@ import { useSidebar } from './useSidebar'
 import ChurnGuardLogo from './ChurnGuardLogo'
 import { clearAuth } from '../utils/auth'
 import { logoutUser } from '../api/auth'
-import { t, getActiveLanguage } from '../utils/formatters'
 
 const navMenu = [
   { path: '/dashboard', key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -28,30 +28,21 @@ const accountMenu = [
 
 function Sidebar() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { isCollapsed, toggleSidebar, isMobileOpen, closeMobileSidebar } = useSidebar()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
-  const [currentLang, setCurrentLang] = useState(getActiveLanguage)
-
-  useEffect(() => {
-    function handleRegionalChange() {
-      setCurrentLang(getActiveLanguage())
-    }
-    window.addEventListener('churnguard_regional_updated', handleRegionalChange)
-    window.addEventListener('storage', handleRegionalChange)
-    return () => {
-      window.removeEventListener('churnguard_regional_updated', handleRegionalChange)
-      window.removeEventListener('storage', handleRegionalChange)
-    }
-  }, [])
 
   async function handleConfirmLogout() {
     await logoutUser()
     clearAuth()
     setShowLogoutModal(false)
     if (isMobileOpen) closeMobileSidebar()
-    toast.success('You have been logged out.')
+    toast.success(t('settings.toasts.loggedOut'))
     navigate('/login')
   }
+
+  const logoutLabel = t('sidebar.logout')
+  const toggleLabel = isCollapsed ? t('sidebar.expandSidebar') : t('sidebar.collapseSidebar')
 
   return (
     <>
@@ -60,7 +51,7 @@ function Sidebar() {
          ───────────────────────────────────────────────────────────── */}
       <aside
         className={`sidebar desktop-sidebar ${isCollapsed ? 'collapsed' : ''}`}
-        aria-label="Main sidebar navigation"
+        aria-label={t('sidebar.mainNavAria')}
       >
         {/* Brand & Toggle Header */}
         <div
@@ -105,8 +96,8 @@ function Sidebar() {
               toggleSidebar()
             }}
             className="sidebar-toggle-btn"
-            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={toggleLabel}
+            aria-label={toggleLabel}
             style={{
               order: isCollapsed ? 1 : 2,
               flexShrink: 0,
@@ -131,11 +122,11 @@ function Sidebar() {
         >
           {/* MENU Group */}
           <div>
-            {!isCollapsed && <p className="sidebar-group-title">MENU</p>}
+            {!isCollapsed && <p className="sidebar-group-title">{t('sidebar.menu')}</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {navMenu.map(item => {
                 const Icon = item.icon
-                const labelText = t(item.key, currentLang)
+                const labelText = t('sidebar.' + item.key)
                 return (
                   <NavLink
                     key={item.path}
@@ -160,11 +151,11 @@ function Sidebar() {
 
           {/* ACCOUNT Group */}
           <div>
-            {!isCollapsed && <p className="sidebar-group-title">ACCOUNT</p>}
+            {!isCollapsed && <p className="sidebar-group-title">{t('sidebar.account')}</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {accountMenu.map(item => {
                 const Icon = item.icon
-                const labelText = t(item.key, currentLang)
+                const labelText = t('sidebar.' + item.key)
                 return (
                   <NavLink
                     key={item.path}
@@ -205,13 +196,13 @@ function Sidebar() {
               background: 'transparent',
               cursor: 'pointer',
             }}
-            aria-label="Logout"
+            aria-label={logoutLabel}
           >
             <LogOut size={18} />
-            {!isCollapsed && <span className="sidebar-nav-label">Logout</span>}
+            {!isCollapsed && <span className="sidebar-nav-label">{logoutLabel}</span>}
             {isCollapsed && (
               <span className="sidebar-tooltip" role="tooltip">
-                Logout
+                {logoutLabel}
               </span>
             )}
           </button>
@@ -269,7 +260,7 @@ function Sidebar() {
         {/* Drawer Links */}
         <div style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '18px', overflowY: 'auto' }}>
           <div>
-            <p className="sidebar-group-title">MENU</p>
+            <p className="sidebar-group-title">{t('sidebar.menu')}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {navMenu.map(item => {
                 const Icon = item.icon
@@ -281,7 +272,7 @@ function Sidebar() {
                     className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
                   >
                     <Icon size={18} />
-                    <span>{t(item.key, currentLang)}</span>
+                    <span>{t('sidebar.' + item.key)}</span>
                   </NavLink>
                 )
               })}
@@ -289,7 +280,7 @@ function Sidebar() {
           </div>
 
           <div>
-            <p className="sidebar-group-title">ACCOUNT</p>
+            <p className="sidebar-group-title">{t('sidebar.account')}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {accountMenu.map(item => {
                 const Icon = item.icon
@@ -301,7 +292,7 @@ function Sidebar() {
                     className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
                   >
                     <Icon size={18} />
-                    <span>{t(item.key, currentLang)}</span>
+                    <span>{t('sidebar.' + item.key)}</span>
                   </NavLink>
                 )
               })}
@@ -318,13 +309,13 @@ function Sidebar() {
             style={{ width: '100%', border: 'none', background: 'transparent', cursor: 'pointer' }}
           >
             <LogOut size={18} />
-            <span>Logout</span>
+            <span>{logoutLabel}</span>
           </button>
         </div>
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          3. LOGOUT CONFIRMATION MODAL
+          3. LOGOUT CONFIRMATION MODAL (Strictly English)
          ───────────────────────────────────────────────────────────── */}
       {showLogoutModal && (
         <div
@@ -376,11 +367,11 @@ function Sidebar() {
                 id="sidebar-logout-dialog-title"
                 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}
               >
-                Are you sure you want to log out?
+                {t('sidebar.logoutModalTitle')}
               </h3>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '24px' }}>
-              You will need to log in again to access your ChurnGuard dashboard and workspace.
+              {t('sidebar.logoutModalDesc')}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
@@ -390,7 +381,7 @@ function Sidebar() {
                 className="btn-secondary"
                 style={{ fontSize: '13px', padding: '8px 16px' }}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 id="sidebar-logout-confirm-btn"
@@ -408,7 +399,7 @@ function Sidebar() {
                   boxShadow: '0 2px 8px var(--danger-border)',
                 }}
               >
-                Log out
+                {t('sidebar.logoutConfirm')}
               </button>
             </div>
           </div>

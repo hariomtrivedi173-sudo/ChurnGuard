@@ -36,7 +36,13 @@ def prepare_features(df: pd.DataFrame):
     meta_cols = ["customerID", "created_at", "uploaded_by", "uploaded_at", "_id", "company_id", "upload_id", "upload_ids"]
     df = df.drop(columns=[c for c in meta_cols if c in df.columns], errors="ignore")
 
-    # Map Churn (target) if present
+    # Map Churn (target) if present (case-insensitive column resolution)
+    if "Churn" not in df.columns:
+        for c in df.columns:
+            if str(c).strip().lower() in ("churn", "churned", "exited", "attrition"):
+                df["Churn"] = df[c]
+                break
+
     if "Churn" in df.columns:
         df["Churn"] = df["Churn"].apply(lambda v: 1 if str(v).strip().lower() in ("yes", "1", "true") else 0)
 

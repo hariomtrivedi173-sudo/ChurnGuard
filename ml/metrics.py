@@ -28,6 +28,9 @@ BASELINE_METRICS = {
     "recall": 0.5412,
     "f1_score": 0.5915,
     "auc": 0.8462,
+    "is_benchmark": True,
+    "has_ground_truth": False,
+    "sample_size": 7043,
     "confusion_matrix": {
         "true_negative": 844,
         "false_positive": 201,
@@ -139,6 +142,13 @@ async def compute_metrics(company_id: str = None) -> dict:
         _set_cached(company_id, empty_metrics)
         return empty_metrics
 
+    # Resolve Churn column case-insensitively if needed
+    if "Churn" not in df.columns:
+        for c in df.columns:
+            if str(c).strip().lower() in ("churn", "churned", "exited", "attrition"):
+                df["Churn"] = df[c]
+                break
+
     # If dataset has no Churn column or insufficient ground truth to train/test split:
     has_valid_churn = (
         "Churn" in df.columns
@@ -150,6 +160,9 @@ async def compute_metrics(company_id: str = None) -> dict:
         # Provide calibrated benchmark metrics with live feature importances
         benchmark = dict(BASELINE_METRICS)
         benchmark["feature_importance"] = feature_importance
+        benchmark["is_benchmark"] = True
+        benchmark["has_ground_truth"] = False
+        benchmark["sample_size"] = len(df)
         _set_cached(company_id, benchmark)
         return benchmark
 
@@ -199,6 +212,9 @@ async def compute_metrics(company_id: str = None) -> dict:
             },
             "roc_curve":         roc_points,
             "feature_importance": feature_importance,
+            "is_benchmark":      False,
+            "has_ground_truth":  True,
+            "sample_size":       len(df),
         }
         _set_cached(company_id, result)
         return result
@@ -206,5 +222,8 @@ async def compute_metrics(company_id: str = None) -> dict:
         print(f"[metrics] Evaluation error for {company_id!r}: {e}")
         fallback = dict(BASELINE_METRICS)
         fallback["feature_importance"] = feature_importance
+        fallback["is_benchmark"] = True
+        fallback["has_ground_truth"] = False
+        fallback["sample_size"] = len(df)
         _set_cached(company_id, fallback)
         return fallback
