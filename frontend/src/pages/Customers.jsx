@@ -6,7 +6,7 @@ import { getTelcoCustomers, deleteTelcoCustomer, addTelcoCustomer, updateTelcoCu
 import RecommendedActions from '../components/RecommendedActions'
 import {
   Search, ChevronLeft, ChevronRight, Trash2, Users, Database,
-  UserPlus, Edit3, X, Sparkles
+  UserPlus, Edit3, X, Sparkles, AlertCircle
 } from 'lucide-react'
 import { formatCurrency, getActiveCurrency } from '../utils/formatters'
 
@@ -104,11 +104,11 @@ export default function Customers() {
   const [searchInput,    setSearchInput]    = useState('')
   const [riskFilter,     setRiskFilter]     = useState('all')
   const [deletingId,     setDeletingId]     = useState(null)
-  const [, setCurrencyTick] = useState(getActiveCurrency)
+  const [activeCurrency, setActiveCurrency] = useState(getActiveCurrency)
 
   useEffect(() => {
     function handleRegionalChange() {
-      setCurrencyTick(getActiveCurrency())
+      setActiveCurrency(getActiveCurrency())
       setRecords(prev => prev.map((r, i) => mapRecord(r, i)))
     }
     window.addEventListener('churnguard_regional_updated', handleRegionalChange)
@@ -128,27 +128,40 @@ export default function Customers() {
   const [showSuggestionsModal, setShowSuggestionsModal] = useState(false)
   const [selectedCustSuggestions, setSelectedCustSuggestions] = useState(null)
   const [suggestionsLoading, setSuggestionsLoading] = useState(false)
+  const [suggestionsError, setSuggestionsError] = useState('')
 
   async function openSuggestions(c) {
+    if (!c) return
+    const custId = c.id || c.customerID || c.mongoId
+    const monthlyVal = Number(c.monthlyCharges ?? c.monthly ?? 0)
     setSelectedCustSuggestions({
-      id: c.id,
-      riskLevel: c.riskLevel,
-      monthly: c.monthly,
-      contract: c.contract,
-      tenure: c.tenure,
+      id: custId,
+      riskLevel: c.riskLevel || 'Low',
+      monthly: isNaN(monthlyVal) ? 0 : monthlyVal,
+      contract: c.contract || '—',
+      tenure: c.tenure || '0 mo',
+      churn_probability: c.churn_probability,
       suggestions: []
     })
+    setSuggestionsError('')
     setShowSuggestionsModal(true)
     setSuggestionsLoading(true)
     try {
-      const res = await getCustomerSuggestions(c.id)
-      setSelectedCustSuggestions(prev => ({
-        ...prev,
-        riskLevel: res.risk_level || prev.riskLevel,
-        churn_probability: res.churn_probability,
-        suggestions: res.suggestions || []
-      }))
+      const res = await getCustomerSuggestions(custId)
+      if (res) {
+        setSelectedCustSuggestions(prev => {
+          if (!prev || prev.id !== custId) return prev
+          return {
+            ...prev,
+            riskLevel: res.risk_level || prev.riskLevel,
+            churn_probability: res.churn_probability !== undefined ? res.churn_probability : prev.churn_probability,
+            suggestions: Array.isArray(res.suggestions) ? res.suggestions : []
+          }
+        })
+      }
     } catch (err) {
+      console.error('Failed to load retention suggestions:', err)
+      setSuggestionsError('Failed to load retention suggestions from the server.')
       toast.error('Failed to load retention suggestions')
     } finally {
       setSuggestionsLoading(false)
@@ -1045,39 +1058,63 @@ export default function Customers() {
 
         {/* ── MODAL: RETENTION SUGGESTIONS ── */}
         {showSuggestionsModal && selectedCustSuggestions && (
-          <div style={{
-            position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 1000, padding: '20px'
-          }}>
+          <div
+            onClick={(e) => { if (e.target === e.currentTarget) setShowSuggestionsModal(false) }}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 1000, padding: '20px'
+            }}
+          >
             <div style={{
               width: '100%', maxWidth: '580px', maxHeight: '90vh', overflowY: 'auto',
               padding: '24px 28px', borderRadius: '16px', background: 'var(--surface)',
               border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--brand-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand)' }}>
-                    <Sparkles size={16} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--brand-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand)' }}>
+                    <Sparkles size={18} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Retention Playbook</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Retention Playbook</h3>
+                      {selectedCustSuggestions.riskLevel && (
+                        <span className={`badge ${selectedCustSuggestions.riskLevel === 'High' ? 'badge-red' : selectedCustSuggestions.riskLevel === 'Medium' ? 'badge-yellow' : 'badge-green'}`} style={{ fontSize: '10px' }}>
+                          ● {selectedCustSuggestions.riskLevel} Risk
+                          {selectedCustSuggestions.churn_probability !== undefined && selectedCustSuggestions.churn_probability !== null ? ` (${Math.round(selectedCustSuggestions.churn_probability)}%)` : ''}
+                        </span>
+                      )}
+                    </div>
                     <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-                      Account: <strong style={{ color: 'var(--text-primary)' }}>{selectedCustSuggestions.id}</strong> • Contract: {selectedCustSuggestions.contract} • Spend: {formatCurrency(selectedCustSuggestions.monthly, activeCurrency)}/mo
+                      Account: <strong style={{ color: 'var(--text-primary)' }}>{selectedCustSuggestions.id}</strong> • Contract: {selectedCustSuggestions.contract || '—'} • Spend: {formatCurrency(selectedCustSuggestions.monthly || 0, activeCurrency)}/mo
                     </p>
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowSuggestionsModal(false)}
-                  style={{ background: 'none', border: 'none', color: 'var(--slate-400)', cursor: 'pointer', padding: '4px' }}
+                  style={{ background: 'none', border: 'none', color: 'var(--slate-400)', cursor: 'pointer', padding: '4px', borderRadius: '6px' }}
+                  aria-label="Close"
                 >
                   <X size={18} />
                 </button>
               </div>
 
+              {suggestionsError && (
+                <div style={{
+                  padding: '10px 14px', borderRadius: '8px', marginBottom: '14px',
+                  background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)',
+                  color: '#ef4444', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px'
+                }}>
+                  <AlertCircle size={15} />
+                  <span>{suggestionsError}</span>
+                </div>
+              )}
+
               <RecommendedActions
-                suggestions={selectedCustSuggestions.suggestions}
+                suggestions={selectedCustSuggestions.suggestions || []}
                 loading={suggestionsLoading}
                 title="Account Mitigation Actions"
               />
