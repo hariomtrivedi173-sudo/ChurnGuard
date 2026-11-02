@@ -25,18 +25,9 @@ function mapRecord(r, i = 0) {
     riskLevel = r.risk_level
   } else if (r.churn_probability !== undefined && r.churn_probability !== null) {
     const prob = parseFloat(r.churn_probability)
-    if (prob >= 65) riskLevel = 'High'
+    if (prob >= 60) riskLevel = 'High'
     else if (prob >= 35) riskLevel = 'Medium'
     else riskLevel = 'Low'
-  } else {
-    // Heuristic categorization when no prediction available
-    if (tenure < 12 && r.Contract === 'Month-to-month') {
-      riskLevel = 'High'
-    } else if (tenure < 24 && r.Contract === 'Month-to-month') {
-      riskLevel = 'Medium'
-    } else {
-      riskLevel = 'Low'
-    }
   }
 
   const initials = String(id).split('').filter(c => /[A-Z0-9]/i.test(c)).slice(0, 2).join('').toUpperCase() || 'CU'
@@ -63,6 +54,8 @@ function mapRecord(r, i = 0) {
     tenure:           tenure > 0 ? `${tenure} mo` : '0 mo',
     tenureNum:        tenure,
     riskLevel,
+    churn_probability: r.churn_probability ?? null,
+    churn_prediction:  r.churn_prediction  ?? null,
     churn:            r.Churn ?? null,
   }
 }
@@ -171,7 +164,7 @@ export default function Customers() {
   // AbortController ref — cancels stale requests when search/page changes
   const abortRef = useRef(null)
 
-  const load = useCallback(async (page, searchTerm, { silent = false } = {}) => {
+  const load = useCallback(async (page, searchTerm, currentRisk = riskFilter, { silent = false } = {}) => {
     if (abortRef.current) {
       abortRef.current.abort()
     }
@@ -182,7 +175,8 @@ export default function Customers() {
     setError('')
 
     try {
-      const data = await getTelcoCustomers(page, PAGE_SIZE, searchTerm, controller.signal)
+      const riskParam = (!currentRisk || currentRisk.toLowerCase() === 'all') ? '' : currentRisk
+      const data = await getTelcoCustomers(page, PAGE_SIZE, searchTerm, riskParam, '', controller.signal)
 
       if (controller.signal.aborted) return
 
@@ -198,19 +192,19 @@ export default function Customers() {
     } finally {
       if (!controller.signal.aborted) setLoading(false)
     }
-  }, [])
+  }, [riskFilter])
 
   useEffect(() => {
-    load(currentPage, search)
+    load(currentPage, search, riskFilter)
     return () => { if (abortRef.current) abortRef.current.abort() }
-  }, [currentPage, search, load])
+  }, [currentPage, search, riskFilter, load])
 
   const handleClearSearch = useCallback(() => {
     setSearchInput('')
     setSearch('')
     setCurrentPage(1)
-    load(1, '')
-  }, [load])
+    load(1, '', riskFilter)
+  }, [load, riskFilter])
 
   // Debounced search — 300ms
   useEffect(() => {
@@ -222,10 +216,8 @@ export default function Customers() {
     return () => clearTimeout(t)
   }, [searchInput])
 
-  // Client-side risk filter on current page records
-  const displayedRecords = riskFilter === 'all'
-    ? records
-    : records.filter(r => r.riskLevel.toLowerCase() === riskFilter.toLowerCase())
+  // Server-side filtered records
+  const displayedRecords = records
 
   // Add Customer
   async function handleAddSubmit(e) {
@@ -346,9 +338,9 @@ export default function Customers() {
       if (records.length === 1 && currentPage > 1) {
         const prevPage = currentPage - 1
         setCurrentPage(prevPage)
-        await load(prevPage, search, { silent: true })
+        await load(prevPage, search, riskFilter, { silent: true })
       } else {
-        await load(currentPage, search, { silent: true })
+        await load(currentPage, search, riskFilter, { silent: true })
       }
     } catch (err) {
       toast.error(err.message || 'Delete failed')
@@ -474,7 +466,10 @@ export default function Customers() {
                   <button
                     key={f.key}
                     type="button"
-                    onClick={() => setRiskFilter(f.key)}
+                    onClick={() => {
+                      setRiskFilter(f.key)
+                      setCurrentPage(1)
+                    }}
                     style={{
                       padding: '5px 12px',
                       fontSize: '11px',
@@ -498,7 +493,10 @@ export default function Customers() {
           {/* Database Total Count */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
             <Database size={14} color="var(--slate-400)" />
-            <span><strong style={{ color: 'var(--text-primary)' }}>{total.toLocaleString('en-IN')}</strong> customer records</span>
+            <span>
+              <strong style={{ color: 'var(--text-primary)' }}>{total.toLocaleString('en-IN')}</strong>{' '}
+              {riskFilter === 'all' ? 'customer records' : `${riskFilter} risk customers`}
+            </span>
           </div>
         </div>
 

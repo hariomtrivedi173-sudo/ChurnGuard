@@ -191,6 +191,10 @@ async def startup_event():
             [("company_id", 1), ("created_at", -1)],
             name="telco_company_created"
         ),
+        telco_collection.create_index(
+            [("company_id", 1), ("risk_level", 1)],
+            name="telco_company_risk_level"
+        ),
         # Upload history — list by company, sorted by time
         database["dataset_uploads"].create_index(
             [("company_id", 1), ("uploaded_at", -1)],
@@ -2428,6 +2432,16 @@ async def store_dataset(file: UploadFile = File(...), user_doc: dict = Depends(g
 
     # ── Bulk insert ──
     if new_records:
+        try:
+            preds = predict_batch(new_records)
+            for r, p in zip(new_records, preds):
+                if p:
+                    r["churn_prediction"] = p.get("churn_prediction", "No")
+                    r["churn_probability"] = p.get("churn_probability", 0.0)
+                    r["risk_level"] = p.get("risk_level", "Low")
+        except Exception as e:
+            logger.warning(f"Predict batch on upload error: {e}")
+
         t_insert = time.perf_counter()
         try:
             insert_result = await telco_collection.insert_many(new_records, ordered=False)
@@ -2973,31 +2987,9 @@ async def predict_selected_customers(
                 ]
             })
         if payload.risk_level and payload.risk_level.strip() and payload.risk_level.strip().lower() != "all":
-            r_low = payload.risk_level.strip().lower()
-            if r_low == "high":
-                conditions.append({
-                    "Contract": "Month-to-month",
-                    "$or": [
-                        {"tenure": {"$lt": 12}},
-                        {"$expr": {"$lt": [{"$toDouble": "$tenure"}, 12]}}
-                    ]
-                })
-            elif r_low == "medium":
-                conditions.append({
-                    "Contract": "Month-to-month",
-                    "$or": [
-                        {"tenure": {"$gte": 12, "$lt": 24}},
-                        {"$expr": {"$and": [{"$gte": [{"$toDouble": "$tenure"}, 12]}, {"$lt": [{"$toDouble": "$tenure"}, 24]}]}}
-                    ]
-                })
-            elif r_low == "low":
-                conditions.append({
-                    "$or": [
-                        {"Contract": {"$ne": "Month-to-month"}},
-                        {"tenure": {"$gte": 24}},
-                        {"$expr": {"$gte": [{"$toDouble": "$tenure"}, 24]}}
-                    ]
-                })
+            r_val = payload.risk_level.strip().capitalize()
+            if r_val in ("High", "Medium", "Low"):
+                conditions.append({"risk_level": r_val})
         if payload.deselected_ids:
             conditions.append({"customerID": {"$nin": payload.deselected_ids}})
     else:
@@ -3492,31 +3484,9 @@ async def get_telco_customers(
         })
 
     if risk_level and risk_level.strip() and risk_level.strip().lower() != "all":
-        r_low = risk_level.strip().lower()
-        if r_low == "high":
-            conditions.append({
-                "Contract": "Month-to-month",
-                "$or": [
-                    {"tenure": {"$lt": 12}},
-                    {"$expr": {"$lt": [{"$toDouble": "$tenure"}, 12]}}
-                ]
-            })
-        elif r_low == "medium":
-            conditions.append({
-                "Contract": "Month-to-month",
-                "$or": [
-                    {"tenure": {"$gte": 12, "$lt": 24}},
-                    {"$expr": {"$and": [{"$gte": [{"$toDouble": "$tenure"}, 12]}, {"$lt": [{"$toDouble": "$tenure"}, 24]}]}}
-                ]
-            })
-        elif r_low == "low":
-            conditions.append({
-                "$or": [
-                    {"Contract": {"$ne": "Month-to-month"}},
-                    {"tenure": {"$gte": 24}},
-                    {"$expr": {"$gte": [{"$toDouble": "$tenure"}, 24]}}
-                ]
-            })
+        r_val = risk_level.strip().capitalize()
+        if r_val in ("High", "Medium", "Low"):
+            conditions.append({"risk_level": r_val})
 
     query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
 
@@ -3529,20 +3499,22 @@ async def get_telco_customers(
     for r in records:
         r["_id"] = str(r["_id"])
 
-    # Vectorized fast inference on page records for real calibrated risk levels
+    # Ensure all returned records have real calibrated ML predictions and risk levels
     if records:
-        try:
-            clean_page = [{k: v for k, v in r.items() if k not in ("company_id", "_id")} for r in records]
-            preds = predict_batch(clean_page)
-            pred_map = {p["customerID"]: p for p in preds}
-            for r in records:
-                p = pred_map.get(r.get("customerID"))
-                if p:
-                    r["risk_level"] = p.get("risk_level", "Low")
-                    r["churn_probability"] = p.get("churn_probability", 0.0)
-                    r["churn_prediction"] = p.get("churn_prediction", "No")
-        except Exception as e:
-            logger.warning(f"Fast page inference exception: {e}")
+        needs_prediction = [r for r in records if not r.get("risk_level")]
+        if needs_prediction:
+            try:
+                clean_page = [{k: v for k, v in r.items() if k not in ("company_id", "_id")} for r in needs_prediction]
+                preds = predict_batch(clean_page)
+                pred_map = {p["customerID"]: p for p in preds}
+                for r in needs_prediction:
+                    p = pred_map.get(r.get("customerID"))
+                    if p:
+                        r["risk_level"] = p.get("risk_level", "Low")
+                        r["churn_probability"] = p.get("churn_probability", 0.0)
+                        r["churn_prediction"] = p.get("churn_prediction", "No")
+            except Exception as e:
+                logger.warning(f"Fast page inference exception: {e}")
 
     print(f"[telco/customers] page={page} limit={limit} search={search!r} total={total} fetched={len(records)} time={(time.perf_counter()-t0)*1000:.1f}ms")
 
@@ -3579,6 +3551,15 @@ async def create_telco_customer(
     existing = await telco_collection.find_one({"company_id": company_id, "customerID": cid})
     if existing:
         raise HTTPException(status_code=400, detail=f"Customer with ID '{cid}' already exists.")
+
+    # Calculate real ML prediction and risk level
+    try:
+        pred = predict_churn(customer_dict)
+        customer_dict["churn_prediction"] = pred.get("churn_prediction", "No")
+        customer_dict["churn_probability"] = pred.get("churn_probability", 0.0)
+        customer_dict["risk_level"] = pred.get("risk_level", "Low")
+    except Exception as e:
+        logger.warning(f"predict_churn in create_telco_customer error: {e}")
 
     result = await telco_collection.insert_one(customer_dict)
     customer_dict["_id"] = str(result.inserted_id)
@@ -3641,6 +3622,21 @@ async def update_telco_customer(
 
     updated_doc = await telco_collection.find_one(filter_query)
     if updated_doc:
+        try:
+            pred = predict_churn(updated_doc)
+            risk_level = pred.get("risk_level", "Low")
+            prob = pred.get("churn_probability", 0.0)
+            pred_val = pred.get("churn_prediction", "No")
+            await telco_collection.update_one(filter_query, {"$set": {
+                "risk_level": risk_level,
+                "churn_probability": prob,
+                "churn_prediction": pred_val
+            }})
+            updated_doc["risk_level"] = risk_level
+            updated_doc["churn_probability"] = prob
+            updated_doc["churn_prediction"] = pred_val
+        except Exception as e:
+            logger.warning(f"predict_churn in update_telco_customer error: {e}")
         updated_doc["_id"] = str(updated_doc["_id"])
 
     # Invalidate dashboard cache

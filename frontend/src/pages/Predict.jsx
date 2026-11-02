@@ -802,7 +802,7 @@ export default function Predict() {
                       {records.map((c) => {
                         const selected = isSelected(c.customerID)
                         const isInspected = inspectedCust?.customerID === c.customerID
-                        const risk = c.risk_level || (c.Contract === 'Month-to-month' && Number(c.tenure) < 12 ? 'High' : c.Contract === 'Month-to-month' ? 'Medium' : 'Low')
+                        const risk = c.risk_level || (Number(c.churn_probability) >= 60 ? 'High' : Number(c.churn_probability) >= 35 ? 'Medium' : 'Low')
 
                         return (
                           <tr

@@ -8,10 +8,19 @@ export async function getCustomers(page = 1, limit = 50, search = '', signal = n
 }
 
 export async function getTelcoCustomers(page = 1, limit = 50, search = '', risk_level = '', upload_id = '', signal = null) {
+  // Defensive guard against callers passing AbortSignal as 4th positional argument
+  if (risk_level instanceof AbortSignal || (risk_level && typeof risk_level === 'object' && 'aborted' in risk_level)) {
+    signal = risk_level
+    risk_level = ''
+  }
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (search) params.append('search', search)
-  if (risk_level && risk_level !== 'all') params.append('risk_level', risk_level)
-  if (upload_id && upload_id !== 'all') params.append('upload_id', upload_id)
+  if (risk_level && typeof risk_level === 'string' && risk_level.toLowerCase() !== 'all') {
+    params.append('risk_level', risk_level)
+  }
+  if (upload_id && typeof upload_id === 'string' && upload_id.toLowerCase() !== 'all') {
+    params.append('upload_id', upload_id)
+  }
   return apiRequest(`/telco/customers?${params.toString()}`, { signal })
 }
 
